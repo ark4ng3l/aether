@@ -1,0 +1,118 @@
+"""Tests for aether.api.server — FastAPI project management endpoints."""
+
+import pytest
+from unittest.mock import patch, AsyncMock, MagicMock
+from fastapi.testclient import TestClient
+
+from aether.api.server import app
+from aether.core.project_manager import project_manager
+
+
+@pytest.fixture
+def client():
+    return TestClient(app)
+
+
+class TestHealthEndpoint:
+    def test_health(self, client: TestClient):
+        resp = client.get("/api/health")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "online"
+        assert data["engine"] == "AETHER"
+
+    def test_root_returns_html_or_json(self, client: TestClient):
+        resp = client.get("/")
+        assert resp.status_code == 200
+
+
+class TestProjectEndpoints:
+    def test_create_and_get_project(self, client: TestClient):
+        resp = client.post(
+            "/api/projects",
+            json={
+                "name": "API Test Project",
+                "target_seed": "@apt_test",
+                "target_type": "social_handle",
+                "context_briefing": "Test intelligence briefing notes",
+            },
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "created"
+        proj = data["project"]
+        assert proj["name"] == "API Test Project"
+        assert proj["target_seed"] == "@apt_test"
+        assert proj["context_briefing"] == "Test intelligence briefing notes"
+        project_id = proj["id"]
+
+        # Get project
+        get_resp = client.get(f"/api/projects/{project_id}")
+        assert get_resp.status_code == 200
+        assert get_resp.json()["project"]["id"] == project_id
+
+    def test_list_projects(self, client: TestClient):
+        resp = client.get("/api/projects")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "projects" in data
+        assert isinstance(data["projects"], list)
+
+    def test_update_project(self, client: TestClient):
+        p = project_manager.create_project(name="To Update", target_seed="update.com")
+        resp = client.patch(
+            f"/api/projects/{p.id}",
+            json={"name": "Updated Name", "context_briefing": "Updated notes"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["project"]["name"] == "Updated Name"
+        assert data["project"]["context_briefing"] == "Updated notes"
+
+    def test_delete_project(self, client: TestClient):
+        p = project_manager.create_project(name="To Delete", target_seed="del.com")
+        resp = client.delete(f"/api/projects/{p.id}")
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "deleted"
+
+        # Verify not found
+        get_resp = client.get(f"/api/projects/{p.id}")
+        assert get_resp.status_code == 404
+
+    @patch.object(project_manager, "run_project", new_callable=AsyncMock)
+    def test_run_project(self, mock_run, client: TestClient):
+        mock_run.return_value = True
+        p = project_manager.create_project(name="Run Test", target_seed="run.com")
+        resp = client.post(f"/api/projects/{p.id}/run")
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "started"
+
+    def test_stop_project(self, client: TestClient):
+        p = project_manager.create_project(name="Stop Test", target_seed="stop.com")
+        resp = client.post(f"/api/projects/{p.id}/stop")
+        assert resp.status_code == 200
+
+    def test_project_tasks_endpoint(self, client: TestClient):
+        p = project_manager.create_project(name="Task Test", target_seed="task.com")
+        resp = client.get(f"/api/projects/{p.id}/tasks")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["project_id"] == p.id
+        assert "completed_tasks" in data
+        assert "pending_tasks" in data
+
+    def test_project_graph_endpoint(self, client: TestClient):
+        p = project_manager.create_project(name="Graph Test", target_seed="graph.com")
+        resp = client.get(f"/api/projects/{p.id}/graph")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "nodes" in data
+        assert "edges" in data
+
+    def test_project_dossier_endpoint(self, client: TestClient):
+        p = project_manager.create_project(name="Dossier Test", target_seed="dossier.com")
+        resp = client.get(f"/api/projects/{p.id}/dossier")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["project_id"] == p.id
+        assert "dossier" in data
