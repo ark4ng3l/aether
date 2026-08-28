@@ -128,3 +128,24 @@ class TestProjectEndpoints:
         data = resp.json()
         assert data["project_id"] == p.id
         assert "dossier" in data
+
+    def test_settings_endpoints(self, client: TestClient):
+        # 1. GET settings
+        get_resp = client.get("/api/settings")
+        assert get_resp.status_code == 200
+        data = get_resp.json()
+        assert "settings" in data
+        assert "available_models" in data
+        assert "HYPOTHESIS_RECURSION_LIMIT" in data["settings"]
+
+        # 2. POST settings
+        post_resp = client.post(
+            "/api/settings",
+            json={
+                "HYPOTHESIS_RECURSION_LIMIT": 7,
+                "MAX_SEARCH_DEPTH": 15,
+                "REASONING_TEMPERATURE": 0.8,
+            },
+        )
+        assert post_resp.status_code == 200
+        assert post_resp.json()["status"] == "updated"

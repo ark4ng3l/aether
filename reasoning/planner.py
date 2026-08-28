@@ -114,7 +114,7 @@ class Planner:
 
         try:
             result = await model_manager.call_model(
-                prompt, response_format=PlanAction, temperature=0.2,
+                prompt, response_format=PlanAction, temperature=settings.PLANNER_TEMPERATURE,
             )
             if isinstance(result, PlanAction):
                 return result
@@ -123,7 +123,7 @@ class Planner:
 
         # Fallback: raw text → best-effort parse
         try:
-            raw = await model_manager.call_model(prompt, temperature=0.2)
+            raw = await model_manager.call_model(prompt, temperature=settings.PLANNER_TEMPERATURE)
             return self._parse_raw_plan(str(raw))
         except Exception:
             # Ultimate fallback

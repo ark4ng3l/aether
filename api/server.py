@@ -243,6 +243,76 @@ async def get_status_legacy(seed: str):
     return {"status": "not_found"}
 
 
+# ── Neural Settings & Model Matrix Endpoints ─────────────────────────────────
+
+class UpdateSettingsRequest(BaseModel):
+    OLLAMA_BASE_URL: Optional[str] = None
+    MODEL_AGGRESSIVE_FAST: Optional[str] = None
+    MODEL_VLM: Optional[str] = None
+    MODEL_FAST: Optional[str] = None
+    MODEL_CRITIC: Optional[str] = None
+    MODEL_DEEP: Optional[str] = None
+    MODEL_DEEP_FALLBACK: Optional[str] = None
+    MODEL_DEEP_31B: Optional[str] = None
+    HYPOTHESIS_RECURSION_LIMIT: Optional[int] = None
+    MAX_SEARCH_DEPTH: Optional[int] = None
+    ENTITY_CONFIDENCE_THRESHOLD: Optional[float] = None
+    REASONING_TEMPERATURE: Optional[float] = None
+    PLANNER_TEMPERATURE: Optional[float] = None
+    CRITIC_TEMPERATURE: Optional[float] = None
+    MAX_CONCURRENT_HEAVY_MODELS: Optional[int] = None
+    VRAM_ARBITRATION_ENABLED: Optional[bool] = None
+
+
+@app.get("/api/settings")
+async def get_settings():
+    """Fetch current system configuration and available Ollama models."""
+    from aether.config.settings import settings
+    import httpx
+
+    ollama_models = []
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            resp = await client.get(f"{settings.OLLAMA_BASE_URL}/api/tags")
+            if resp.status_code == 200:
+                data = resp.json()
+                ollama_models = [m["name"] for m in data.get("models", [])]
+    except Exception as exc:
+        logger.warning(f"Could not fetch Ollama models: {exc}")
+
+    return {
+        "settings": {
+            "OLLAMA_BASE_URL": settings.OLLAMA_BASE_URL,
+            "MODEL_AGGRESSIVE_FAST": settings.MODEL_AGGRESSIVE_FAST,
+            "MODEL_VLM": settings.MODEL_VLM,
+            "MODEL_FAST": settings.MODEL_FAST,
+            "MODEL_CRITIC": settings.MODEL_CRITIC,
+            "MODEL_DEEP": settings.MODEL_DEEP,
+            "MODEL_DEEP_FALLBACK": settings.MODEL_DEEP_FALLBACK,
+            "MODEL_DEEP_31B": settings.MODEL_DEEP_31B,
+            "HYPOTHESIS_RECURSION_LIMIT": settings.HYPOTHESIS_RECURSION_LIMIT,
+            "MAX_SEARCH_DEPTH": settings.MAX_SEARCH_DEPTH,
+            "ENTITY_CONFIDENCE_THRESHOLD": settings.ENTITY_CONFIDENCE_THRESHOLD,
+            "REASONING_TEMPERATURE": settings.REASONING_TEMPERATURE,
+            "PLANNER_TEMPERATURE": settings.PLANNER_TEMPERATURE,
+            "CRITIC_TEMPERATURE": settings.CRITIC_TEMPERATURE,
+            "MAX_CONCURRENT_HEAVY_MODELS": settings.MAX_CONCURRENT_HEAVY_MODELS,
+            "VRAM_ARBITRATION_ENABLED": settings.VRAM_ARBITRATION_ENABLED,
+        },
+        "available_models": ollama_models,
+    }
+
+
+@app.post("/api/settings")
+async def update_settings_endpoint(req: UpdateSettingsRequest):
+    """Update and persist AETHER model and reasoning settings."""
+    from aether.config.settings import settings
+    updates = req.model_dump(exclude_none=True)
+    settings.update_and_save(updates)
+    logger.info("Updated AETHER neural & reasoning configuration.")
+    return {"status": "updated", "settings": updates}
+
+
 # ── WebSocket Real-Time Streaming ─────────────────────────────────────────────
 
 @app.websocket("/ws/{channel_id:path}")

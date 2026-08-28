@@ -1058,6 +1058,9 @@
                 <button class="icon-btn active" id="audioToggle" title="Toggle Cyber Audio FX" onclick="toggleAudioFx()">
                     <span class="icon">volume_up</span>
                 </button>
+                <button class="icon-btn" id="settingsBtn" title="Neural Models & Cognitive Settings" onclick="openSettingsModal()">
+                    <span class="icon">settings</span>
+                </button>
                 <button class="m3-btn m3-btn-tonal" onclick="openNewProjectModal()">
                     <span class="icon" style="font-size:16px;">add</span> New Project
                 </button>
@@ -1349,6 +1352,128 @@
                 <button class="m3-btn m3-btn-tonal" onclick="closeNewProjectModal()">Cancel</button>
                 <button class="m3-btn m3-btn-tonal" onclick="createProjectAndRun(false)">Save</button>
                 <button class="m3-btn m3-btn-filled" onclick="createProjectAndRun(true)">Save & Launch ▶</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── M3 Settings & Neural Config Dialog ────────────────── -->
+    <div class="m3-dialog-backdrop" id="settingsModal">
+        <div class="m3-dialog-panel" style="width: 680px; max-width: 95vw;">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span class="icon" style="color:var(--md-sys-color-primary);">tune</span>
+                    <span style="font-size:15px;font-weight:800;color:var(--md-sys-color-on-surface);">Neural Engine & Reasoning Settings</span>
+                </div>
+                <button class="icon-btn" style="width:28px;height:28px;" onclick="closeSettingsModal()">
+                    <span class="icon" style="font-size:16px;">close</span>
+                </button>
+            </div>
+
+            <!-- Settings Sub-Tabs -->
+            <div style="display:flex;gap:6px;border-bottom:1px solid var(--md-sys-color-outline-variant);padding-bottom:8px;">
+                <button class="filter-chip active" id="tabBtnModels" onclick="switchSettingsTab('models')">🤖 Model Roles</button>
+                <button class="filter-chip" id="tabBtnReasoning" onclick="switchSettingsTab('reasoning')">🧠 Cognitive Depth</button>
+                <button class="filter-chip" id="tabBtnHardware" onclick="switchSettingsTab('hardware')">⚡ Hardware & VRAM</button>
+            </div>
+
+            <!-- Settings Tab 1: Models -->
+            <div class="settings-tab-content" id="settingsTabModels" style="display:flex;flex-direction:column;gap:12px;max-height:55vh;overflow-y:auto;padding-right:4px;">
+                <div class="m3-field">
+                    <label>Fast Heuristic Planner & Entity Extractor (12B)</label>
+                    <select id="cfgModelFast" class="model-select"></select>
+                </div>
+                <div class="m3-field">
+                    <label>Primary Deep Abductive Reasoner & Synthesis (35B)</label>
+                    <select id="cfgModelDeep" class="model-select"></select>
+                </div>
+                <div class="m3-field">
+                    <label>Adversarial Red-Team Critic (26B)</label>
+                    <select id="cfgModelCritic" class="model-select"></select>
+                </div>
+                <div class="m3-field">
+                    <label>Aggressive Tool Extractor (4B)</label>
+                    <select id="cfgModelAggressive" class="model-select"></select>
+                </div>
+                <div class="m3-field">
+                    <label>Heavy Deep Fallback Model (31B)</label>
+                    <select id="cfgModelDeep31B" class="model-select"></select>
+                </div>
+                <div class="m3-field">
+                    <label>Vision & OCR Multimodal Model (8B)</label>
+                    <select id="cfgModelVLM" class="model-select"></select>
+                </div>
+            </div>
+
+            <!-- Settings Tab 2: Cognitive Thinking & Parameters -->
+            <div class="settings-tab-content" id="settingsTabReasoning" style="display:none;flex-direction:column;gap:14px;max-height:55vh;overflow-y:auto;padding-right:4px;">
+                <div class="m3-field">
+                    <div style="display:flex;justify-content:space-between;">
+                        <label>Thinking Loops / Hypothesis Recursion Limit</label>
+                        <span id="valHypothesisRecursion" style="font-family:var(--font-mono);font-weight:700;color:var(--md-sys-color-primary);">5</span>
+                    </div>
+                    <input type="range" id="cfgHypothesisRecursion" min="1" max="10" step="1" oninput="document.getElementById('valHypothesisRecursion').textContent = this.value">
+                    <span style="font-size:10.5px;color:var(--md-sys-color-outline);">How many rounds of abductive hypothesis brainstorming the AI will attempt upon hitting dead-ends.</span>
+                </div>
+
+                <div class="m3-field">
+                    <div style="display:flex;justify-content:space-between;">
+                        <label>Max Search & Graph Expansion Depth</label>
+                        <span id="valSearchDepth" style="font-family:var(--font-mono);font-weight:700;color:var(--md-sys-color-primary);">10</span>
+                    </div>
+                    <input type="range" id="cfgSearchDepth" min="1" max="25" step="1" oninput="document.getElementById('valSearchDepth').textContent = this.value">
+                    <span style="font-size:10.5px;color:var(--md-sys-color-outline);">Maximum depth of investigative branch hops from the seed target.</span>
+                </div>
+
+                <div class="m3-field">
+                    <div style="display:flex;justify-content:space-between;">
+                        <label>Entity Confidence Threshold</label>
+                        <span id="valConfidence" style="font-family:var(--font-mono);font-weight:700;color:var(--md-sys-color-primary);">0.75</span>
+                    </div>
+                    <input type="range" id="cfgConfidence" min="0.50" max="0.95" step="0.05" oninput="document.getElementById('valConfidence').textContent = this.value">
+                    <span style="font-size:10.5px;color:var(--md-sys-color-outline);">Minimum confidence score required for an entity to enter the permanent topology graph.</span>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                    <div class="m3-field">
+                        <label>Reasoning Temp</label>
+                        <input type="number" id="cfgTempReasoning" min="0.0" max="1.0" step="0.1" value="0.7">
+                    </div>
+                    <div class="m3-field">
+                        <label>Planner Temp</label>
+                        <input type="number" id="cfgTempPlanner" min="0.0" max="1.0" step="0.1" value="0.2">
+                    </div>
+                    <div class="m3-field">
+                        <label>Critic Temp</label>
+                        <input type="number" id="cfgTempCritic" min="0.0" max="1.0" step="0.1" value="0.3">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Tab 3: Hardware & VRAM -->
+            <div class="settings-tab-content" id="settingsTabHardware" style="display:none;flex-direction:column;gap:12px;max-height:55vh;overflow-y:auto;padding-right:4px;">
+                <div class="m3-field">
+                    <label>Ollama Base URL</label>
+                    <input type="text" id="cfgOllamaUrl" placeholder="http://localhost:11434">
+                </div>
+                <div class="m3-field">
+                    <label>Max Concurrent Heavy (≥26B) Models</label>
+                    <select id="cfgConcurrentHeavy">
+                        <option value="1">1 (Strict Sequential Lock - Recommended for 8GB/12GB/16GB VRAM)</option>
+                        <option value="2">2 (Parallel Heavy - For 24GB+ VRAM)</option>
+                    </select>
+                </div>
+                <div class="m3-field">
+                    <label>VRAM Dynamic Lock</label>
+                    <select id="cfgVramArbitration">
+                        <option value="true">Enabled (Prevents VRAM OOM crashes)</option>
+                        <option value="false">Disabled</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:8px;">
+                <button class="m3-btn m3-btn-tonal" onclick="closeSettingsModal()">Cancel</button>
+                <button class="m3-btn m3-btn-filled" onclick="saveSettings()">Save Configuration</button>
             </div>
         </div>
     </div>
@@ -2126,6 +2251,123 @@
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;');
+        }
+
+        // ── Settings Dialog Logic ────────────────────────────────
+        async function openSettingsModal() {
+            playSound('click');
+            document.getElementById('settingsModal').classList.add('show');
+            try {
+                const resp = await fetch('/api/settings');
+                if (!resp.ok) return;
+                const data = await resp.json();
+                const s = data.settings;
+                const models = data.available_models || [];
+
+                // Populate model dropdowns
+                populateModelSelect('cfgModelFast', s.MODEL_FAST, models);
+                populateModelSelect('cfgModelDeep', s.MODEL_DEEP, models);
+                populateModelSelect('cfgModelCritic', s.MODEL_CRITIC, models);
+                populateModelSelect('cfgModelAggressive', s.MODEL_AGGRESSIVE_FAST, models);
+                populateModelSelect('cfgModelDeep31B', s.MODEL_DEEP_31B, models);
+                populateModelSelect('cfgModelVLM', s.MODEL_VLM, models);
+
+                // Populate Reasoning Sliders
+                document.getElementById('cfgHypothesisRecursion').value = s.HYPOTHESIS_RECURSION_LIMIT || 5;
+                document.getElementById('valHypothesisRecursion').textContent = s.HYPOTHESIS_RECURSION_LIMIT || 5;
+
+                document.getElementById('cfgSearchDepth').value = s.MAX_SEARCH_DEPTH || 10;
+                document.getElementById('valSearchDepth').textContent = s.MAX_SEARCH_DEPTH || 10;
+
+                document.getElementById('cfgConfidence').value = s.ENTITY_CONFIDENCE_THRESHOLD || 0.75;
+                document.getElementById('valConfidence').textContent = s.ENTITY_CONFIDENCE_THRESHOLD || 0.75;
+
+                document.getElementById('cfgTempReasoning').value = s.REASONING_TEMPERATURE || 0.7;
+                document.getElementById('cfgTempPlanner').value = s.PLANNER_TEMPERATURE || 0.2;
+                document.getElementById('cfgTempCritic').value = s.CRITIC_TEMPERATURE || 0.3;
+
+                // Populate Hardware
+                document.getElementById('cfgOllamaUrl').value = s.OLLAMA_BASE_URL || 'http://localhost:11434';
+                document.getElementById('cfgConcurrentHeavy').value = s.MAX_CONCURRENT_HEAVY_MODELS || 1;
+                document.getElementById('cfgVramArbitration').value = String(s.VRAM_ARBITRATION_ENABLED !== false);
+            } catch(e) {
+                logEvent('ERROR', `Failed to load settings: ${e.message}`);
+            }
+        }
+
+        function populateModelSelect(selectId, currentValue, availableModels) {
+            const sel = document.getElementById(selectId);
+            sel.innerHTML = '';
+            
+            const allModels = Array.from(new Set([currentValue, ...availableModels].filter(Boolean)));
+            allModels.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m;
+                opt.textContent = m;
+                if (m === currentValue) opt.selected = true;
+                sel.appendChild(opt);
+            });
+        }
+
+        function switchSettingsTab(tabName) {
+            playSound('click');
+            document.querySelectorAll('.settings-tab-content').forEach(c => c.style.display = 'none');
+            document.querySelectorAll('#settingsModal .filter-chip').forEach(c => c.classList.remove('active'));
+
+            if (tabName === 'models') {
+                document.getElementById('settingsTabModels').style.display = 'flex';
+                document.getElementById('tabBtnModels').classList.add('active');
+            } else if (tabName === 'reasoning') {
+                document.getElementById('settingsTabReasoning').style.display = 'flex';
+                document.getElementById('tabBtnReasoning').classList.add('active');
+            } else if (tabName === 'hardware') {
+                document.getElementById('settingsTabHardware').style.display = 'flex';
+                document.getElementById('tabBtnHardware').classList.add('active');
+            }
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').classList.remove('show');
+        }
+
+        async function saveSettings() {
+            try {
+                playSound('click');
+                const payload = {
+                    MODEL_FAST: document.getElementById('cfgModelFast').value,
+                    MODEL_DEEP: document.getElementById('cfgModelDeep').value,
+                    MODEL_CRITIC: document.getElementById('cfgModelCritic').value,
+                    MODEL_AGGRESSIVE_FAST: document.getElementById('cfgModelAggressive').value,
+                    MODEL_DEEP_31B: document.getElementById('cfgModelDeep31B').value,
+                    MODEL_VLM: document.getElementById('cfgModelVLM').value,
+                    HYPOTHESIS_RECURSION_LIMIT: parseInt(document.getElementById('cfgHypothesisRecursion').value),
+                    MAX_SEARCH_DEPTH: parseInt(document.getElementById('cfgSearchDepth').value),
+                    ENTITY_CONFIDENCE_THRESHOLD: parseFloat(document.getElementById('cfgConfidence').value),
+                    REASONING_TEMPERATURE: parseFloat(document.getElementById('cfgTempReasoning').value),
+                    PLANNER_TEMPERATURE: parseFloat(document.getElementById('cfgTempPlanner').value),
+                    CRITIC_TEMPERATURE: parseFloat(document.getElementById('cfgTempCritic').value),
+                    OLLAMA_BASE_URL: document.getElementById('cfgOllamaUrl').value.trim(),
+                    MAX_CONCURRENT_HEAVY_MODELS: parseInt(document.getElementById('cfgConcurrentHeavy').value),
+                    VRAM_ARBITRATION_ENABLED: document.getElementById('cfgVramArbitration').value === 'true',
+                };
+
+                const resp = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+
+                if (resp.ok) {
+                    logEvent('SUCCESS', '⚙️ Neural model & cognitive reasoning settings saved.');
+                    closeSettingsModal();
+                    // Update active model badge in HUD
+                    document.getElementById('hudActiveModel').textContent = payload.MODEL_FAST.split(':')[0].split('/').pop();
+                } else {
+                    throw new Error('Save returned error status.');
+                }
+            } catch(e) {
+                alert(`Failed to save settings: ${e.message}`);
+            }
         }
     </script>
 </body>

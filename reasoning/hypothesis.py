@@ -50,7 +50,7 @@ class HypothesisEngine:
                 prompt,
                 model=settings.MODEL_DEEP,
                 is_heavy=True,
-                temperature=0.8,
+                temperature=settings.REASONING_TEMPERATURE,
             )
             return self._parse(str(response))
         except Exception as exc:

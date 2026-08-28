@@ -50,7 +50,7 @@ class RedTeamCritic:
                 model=settings.MODEL_CRITIC,
                 is_heavy=True,
                 response_format=CriticVerdict,
-                temperature=0.2,
+                temperature=settings.CRITIC_TEMPERATURE,
                 task_label="Adversarial Refutation",
             )
             if isinstance(result, CriticVerdict):
