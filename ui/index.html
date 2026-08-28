@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AETHER // Cyber OSINT Operations Command</title>
+    <title>AETHER // Autonomous Cyber OSINT Warfare Operations Command</title>
     <meta name="description" content="AETHER — Autonomous Extraction, Tactical Heuristic Exploration & Resolution Intelligence Platform">
     
     <!-- Fonts -->
@@ -11,21 +11,22 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
     
-    <!-- Cytoscape Graph Visualization -->
+    <!-- Cytoscape Graph Visualization & Markdown Parser -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.4/cytoscape.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
     <style>
         /* ── Design System Tokens ────────────────────────────── */
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         
         :root {
-            --bg-void: #03060d;
-            --bg-base: #060a14;
-            --bg-panel: #0b1120;
-            --bg-surface: #10182b;
-            --bg-card: rgba(16, 24, 43, 0.75);
-            --bg-card-hover: rgba(23, 34, 60, 0.9);
-            --bg-card-active: rgba(28, 43, 76, 0.95);
+            --bg-void: #02050b;
+            --bg-base: #050a15;
+            --bg-panel: #0a1122;
+            --bg-surface: #0f1930;
+            --bg-card: rgba(15, 25, 48, 0.75);
+            --bg-card-hover: rgba(22, 36, 68, 0.9);
+            --bg-card-active: rgba(28, 45, 84, 0.95);
             
             --border-subtle: rgba(56, 189, 248, 0.12);
             --border-glow: rgba(56, 189, 248, 0.35);
@@ -33,7 +34,7 @@
             
             --cyan: #38bdf8;
             --cyan-bright: #7dd3fc;
-            --cyan-glow: rgba(56, 189, 248, 0.25);
+            --cyan-glow: rgba(56, 189, 248, 0.28);
             --emerald: #10b981;
             --emerald-glow: rgba(16, 185, 129, 0.25);
             --amber: #f59e0b;
@@ -41,7 +42,7 @@
             --rose: #f43f5e;
             --rose-glow: rgba(244, 63, 94, 0.25);
             --violet: #8b5cf6;
-            --violet-glow: rgba(139, 92, 246, 0.25);
+            --violet-glow: rgba(139, 92, 246, 0.28);
             --indigo: #6366f1;
             
             --text-main: #f8fafc;
@@ -67,9 +68,9 @@
             height: 100vh;
             overflow: hidden;
             background-image: 
-                radial-gradient(ellipse 80% 40% at 50% -10%, rgba(56, 189, 248, 0.09), transparent),
-                radial-gradient(ellipse 60% 50% at 85% 105%, rgba(139, 92, 246, 0.07), transparent),
-                radial-gradient(circle at 10% 90%, rgba(16, 185, 129, 0.04), transparent);
+                radial-gradient(ellipse 90% 40% at 50% -10%, rgba(56, 189, 248, 0.12), transparent),
+                radial-gradient(ellipse 70% 50% at 90% 105%, rgba(139, 92, 246, 0.09), transparent),
+                radial-gradient(circle at 10% 90%, rgba(16, 185, 129, 0.05), transparent);
         }
 
         /* ── Grid Layout ─────────────────────────────────────── */
@@ -85,7 +86,7 @@
             align-items: center;
             justify-content: space-between;
             padding: 0 24px;
-            background: rgba(11, 17, 32, 0.85);
+            background: rgba(10, 17, 34, 0.85);
             backdrop-filter: var(--glass);
             border-bottom: 1px solid var(--border-subtle);
             z-index: 50;
@@ -104,7 +105,7 @@
             background: linear-gradient(135deg, var(--cyan-bright) 0%, var(--cyan) 40%, var(--violet) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 24px rgba(56, 189, 248, 0.3);
+            text-shadow: 0 0 28px rgba(56, 189, 248, 0.35);
         }
 
         .brand-pill {
@@ -127,11 +128,12 @@
             display: flex;
             align-items: center;
             gap: 16px;
-            background: rgba(16, 24, 43, 0.6);
+            background: rgba(15, 25, 48, 0.65);
             border: 1px solid var(--border-subtle);
-            padding: 6px 16px;
+            padding: 6px 18px;
             border-radius: var(--radius-lg);
             font-size: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
         }
 
         .hud-item {
@@ -157,7 +159,7 @@
             font-weight: 600;
             color: var(--cyan-bright);
             background: rgba(56, 189, 248, 0.1);
-            padding: 2px 8px;
+            padding: 2px 9px;
             border-radius: var(--radius-xs);
             border: 1px solid rgba(56, 189, 248, 0.25);
         }
@@ -165,15 +167,15 @@
         .vram-lock-badge {
             font-size: 10px;
             font-weight: 700;
-            padding: 2px 7px;
+            padding: 2px 8px;
             border-radius: var(--radius-xs);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
         .vram-lock-badge.locked {
-            background: rgba(245, 158, 11, 0.15);
+            background: rgba(245, 158, 11, 0.18);
             color: var(--amber);
-            border: 1px solid rgba(245, 158, 11, 0.3);
+            border: 1px solid rgba(245, 158, 11, 0.35);
             animation: pulseFast 1.2s infinite ease-in-out;
         }
         .vram-lock-badge.unlocked {
@@ -187,6 +189,23 @@
             display: flex;
             align-items: center;
             gap: 10px;
+        }
+
+        /* ── Audio FX Button ─────────────────────────────────── */
+        .audio-toggle-btn {
+            background: transparent;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 6px 10px;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .audio-toggle-btn.active {
+            color: var(--cyan-bright);
+            border-color: var(--cyan);
+            background: rgba(56, 189, 248, 0.1);
         }
 
         /* ── Buttons ─────────────────────────────────────────── */
@@ -263,7 +282,7 @@
         #sidebar {
             display: flex;
             flex-direction: column;
-            background: rgba(11, 17, 32, 0.7);
+            background: rgba(10, 17, 34, 0.7);
             border-right: 1px solid var(--border-subtle);
             backdrop-filter: var(--glass);
             overflow: hidden;
@@ -371,7 +390,7 @@
             transform: translateY(-1px);
         }
         .project-card.active {
-            background: rgba(16, 24, 43, 0.95);
+            background: rgba(15, 25, 48, 0.95);
             border-color: var(--cyan);
             box-shadow: 0 0 24px rgba(56, 189, 248, 0.18);
         }
@@ -468,7 +487,7 @@
             align-items: center;
             justify-content: space-between;
             padding: 12px 24px;
-            background: rgba(16, 24, 43, 0.4);
+            background: rgba(15, 25, 48, 0.4);
             border-bottom: 1px solid var(--border-subtle);
         }
 
@@ -516,7 +535,7 @@
             align-items: center;
             justify-content: space-between;
             padding: 0 24px;
-            background: rgba(11, 17, 32, 0.8);
+            background: rgba(10, 17, 34, 0.8);
             border-bottom: 1px solid var(--border-subtle);
             height: 48px;
         }
@@ -584,7 +603,7 @@
         }
 
         .hud-glass-card {
-            background: rgba(11, 17, 32, 0.9);
+            background: rgba(10, 17, 34, 0.92);
             backdrop-filter: var(--glass);
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-md);
@@ -593,15 +612,30 @@
             align-items: center;
             gap: 14px;
             font-size: 12px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
         }
         .hud-glass-card span strong { color: var(--cyan); font-family: var(--font-mono); }
+
+        .graph-toolbar {
+            position: absolute;
+            top: 18px;
+            right: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(10, 17, 34, 0.92);
+            backdrop-filter: var(--glass);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 6px 12px;
+            z-index: 10;
+        }
 
         .graph-legend-bar {
             position: absolute;
             bottom: 18px;
             left: 18px;
-            background: rgba(11, 17, 32, 0.9);
+            background: rgba(10, 17, 34, 0.92);
             backdrop-filter: var(--glass);
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-md);
@@ -612,7 +646,7 @@
             font-size: 11px;
             color: var(--text-muted);
             z-index: 10;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
         }
         .legend-chip {
             display: flex;
@@ -630,19 +664,19 @@
             position: absolute;
             top: 18px;
             right: 18px;
-            width: 360px;
+            width: 380px;
             max-height: calc(100% - 36px);
-            background: rgba(11, 17, 32, 0.96);
+            background: rgba(10, 17, 34, 0.97);
             backdrop-filter: var(--glass);
             border: 1px solid var(--border-glow);
             border-radius: var(--radius-xl);
-            padding: 20px;
+            padding: 22px;
             display: none;
             flex-direction: column;
             gap: 14px;
             overflow-y: auto;
             z-index: 20;
-            box-shadow: 0 20px 48px rgba(0, 0, 0, 0.7), 0 0 30px rgba(56, 189, 248, 0.1);
+            box-shadow: 0 20px 48px rgba(0, 0, 0, 0.8), 0 0 32px rgba(56, 189, 248, 0.12);
             animation: slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
         #node-inspector.show { display: flex; }
@@ -704,14 +738,14 @@
 
         /* Live AI Consciousness Stream Box */
         .ai-thought-deck {
-            background: linear-gradient(135deg, rgba(16, 24, 43, 0.9), rgba(28, 43, 76, 0.6));
+            background: linear-gradient(135deg, rgba(15, 25, 48, 0.95), rgba(28, 45, 84, 0.65));
             border: 1px solid var(--border-glow);
             border-radius: var(--radius-lg);
             padding: 18px 20px;
             display: flex;
             flex-direction: column;
             gap: 10px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
         }
 
         .thought-header {
@@ -737,12 +771,13 @@
             font-size: 12px;
             line-height: 1.7;
             color: var(--text-secondary);
-            background: rgba(0, 0, 0, 0.3);
-            padding: 12px 16px;
+            background: rgba(0, 0, 0, 0.35);
+            padding: 14px 18px;
             border-radius: var(--radius-md);
             border-left: 3px solid var(--violet);
-            min-height: 52px;
+            min-height: 60px;
             white-space: pre-wrap;
+            position: relative;
         }
 
         /* Active Task Card */
@@ -763,6 +798,37 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+        }
+
+        /* Manual Task Injection Bar */
+        .injection-deck {
+            background: rgba(15, 25, 48, 0.5);
+            border: 1px dashed var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .injection-deck input {
+            flex: 1;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 8px 14px;
+            color: var(--text-main);
+            font-size: 12px;
+            outline: none;
+        }
+        .injection-deck select {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 8px 12px;
+            color: var(--text-main);
+            font-size: 12px;
+            outline: none;
         }
 
         /* Timeline Rows */
@@ -826,7 +892,7 @@
             line-height: 1.6;
             font-family: var(--font-mono);
             background: rgba(0, 0, 0, 0.35);
-            padding: 10px 14px;
+            padding: 12px 16px;
             border-radius: var(--radius-md);
             border-left: 3px solid rgba(56, 189, 248, 0.4);
         }
@@ -844,13 +910,17 @@
             background: var(--bg-card);
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-xl);
-            padding: 32px;
+            padding: 36px 44px;
             font-size: 14px;
             line-height: 1.8;
             color: var(--text-main);
-            white-space: pre-wrap;
             box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
         }
+        .dossier-sheet h1 { font-size: 22px; color: var(--cyan-bright); margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px; }
+        .dossier-sheet h2 { font-size: 16px; color: var(--text-main); margin-top: 24px; margin-bottom: 10px; }
+        .dossier-sheet ul { margin-left: 20px; margin-bottom: 14px; }
+        .dossier-sheet li { margin-bottom: 6px; }
+        .dossier-sheet code { font-family: var(--font-mono); background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; color: var(--cyan); }
 
         /* ── Tab 4: Telemetry ────────────────────────────────── */
         #telemetry-view {
@@ -863,9 +933,9 @@
         .telemetry-filter-bar {
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: space-between;
             padding: 10px 20px;
-            background: rgba(11, 17, 32, 0.6);
+            background: rgba(10, 17, 34, 0.7);
             border-bottom: 1px solid var(--border-subtle);
         }
 
@@ -916,7 +986,7 @@
         .modal-backdrop.show { display: flex; animation: fadeIn 0.2s ease; }
 
         .modal-panel {
-            width: 560px;
+            width: 580px;
             max-width: 92vw;
             background: var(--bg-panel);
             border: 1px solid var(--border-glow);
@@ -1014,6 +1084,7 @@
             </div>
 
             <div class="header-actions">
+                <button class="audio-toggle-btn active" id="audioToggle" title="Toggle Cyber Audio FX" onclick="toggleAudioFx()">🔊</button>
                 <button class="btn btn-secondary btn-sm" onclick="openNewProjectModal()">+ New Project</button>
                 <button class="btn btn-primary btn-sm" id="btnRunCurrent" onclick="runCurrentProject()" disabled>▶ Launch</button>
                 <button class="btn btn-danger btn-sm" id="btnStopCurrent" onclick="stopCurrentProject()" disabled>⏹ Abort</button>
@@ -1073,7 +1144,8 @@
                     </div>
 
                     <div style="display:flex;align-items:center;gap:10px;">
-                        <button class="btn btn-secondary btn-sm" onclick="exportDossierMarkdown()">📥 Export Report</button>
+                        <button class="btn btn-secondary btn-sm" onclick="exportDossierMarkdown()">📥 Export Report (.md)</button>
+                        <button class="btn btn-secondary btn-sm" onclick="window.print()">🖨 Print</button>
                     </div>
                 </div>
 
@@ -1084,9 +1156,18 @@
                         
                         <div class="graph-controls-hud">
                             <div class="hud-glass-card">
-                                <span>Discovered Entities: <strong id="hudNodeCount">0</strong></span>
-                                <span>Relationships: <strong id="hudEdgeCount">0</strong></span>
+                                <span>Entities: <strong id="hudNodeCount">0</strong></span>
+                                <span>Edges: <strong id="hudEdgeCount">0</strong></span>
                             </div>
+                        </div>
+
+                        <!-- Graph Toolbar (Physics & Controls) -->
+                        <div class="graph-toolbar">
+                            <button class="btn btn-secondary btn-sm" title="Physics Layout" onclick="setLayout('cose')">⚡ Force</button>
+                            <button class="btn btn-secondary btn-sm" title="Concentric Rings" onclick="setLayout('concentric')">🪐 Orbit</button>
+                            <button class="btn btn-secondary btn-sm" title="Hierarchy" onclick="setLayout('breadthfirst')">🌲 Tree</button>
+                            <button class="btn btn-secondary btn-sm" title="Fit to Screen" onclick="cy.fit(null, 50)">🔍 Fit</button>
+                            <button class="btn btn-primary btn-sm" title="Export HD Image" onclick="exportGraphImage()">📸 Image</button>
                         </div>
 
                         <div class="graph-legend-bar">
@@ -1133,7 +1214,7 @@
                             <div class="step-node-card" id="phaseCard-verifying">
                                 <div class="step-idx">PHASE 04</div>
                                 <div class="step-title">Adversarial Refutation</div>
-                                <div class="step-desc">Red-Team Skeptic Critic</div>
+                                <div class="step-desc">Gemma 26B Red-Team Critic</div>
                             </div>
                             <div class="step-node-card" id="phaseCard-synthesizing">
                                 <div class="step-idx">PHASE 05</div>
@@ -1145,10 +1226,23 @@
                         <!-- Live AI Consciousness Stream -->
                         <div class="ai-thought-deck">
                             <div class="thought-header">
-                                <div class="thought-label"><span>🧠</span> AI Live Reasoning & Thought Stream</div>
+                                <div class="thought-label"><span>🧠</span> AI Live Reasoning & Token Stream</div>
                                 <span style="font-size:10px;font-family:var(--font-mono);color:var(--text-dim)" id="thoughtModelTag">Hermes 35B / Gemma 12B</span>
                             </div>
-                            <div class="thought-text-content" id="liveThoughtStream">Awaiting investigation start... AI model internal monologue and strategic reasoning will stream here in real-time.</div>
+                            <div class="thought-text-content" id="liveThoughtStream">Awaiting investigation start... AI model internal monologue and strategic reasoning will stream here token-by-token in real-time.</div>
+                        </div>
+
+                        <!-- Manual Task Injection -->
+                        <div class="injection-deck">
+                            <span style="font-size:11px;font-weight:700;color:var(--cyan);letter-spacing:1px;">⚡ INJECT TASK:</span>
+                            <select id="injectToolSelect">
+                                <option value="web_search">DuckDuckGo Web Search</option>
+                                <option value="social_recon">Social Username Recon</option>
+                                <option value="network_recon">DNS & WHOIS Recon</option>
+                                <option value="metadata_extractor">EXIF & File Metadata</option>
+                            </select>
+                            <input type="text" id="injectQueryInput" placeholder="Enter target query or parameter to force search...">
+                            <button class="btn btn-secondary btn-sm" onclick="injectManualTask()">Inject ▶</button>
                         </div>
 
                         <!-- Current Active Task -->
@@ -1260,6 +1354,7 @@
         let projectWs = null;
         let globalWs = null;
         let eventCounter = 0;
+        let audioEnabled = true;
 
         const TYPE_COLORS = {
             person: '#f87171', company: '#fbbf24', domain: '#34d399',
@@ -1267,6 +1362,64 @@
             image: '#fb923c', document: '#a3a3a3', artifact: '#38bdf8',
             unknown: '#64748b',
         };
+
+        // ── Web Audio Synthesizer (Zero Assets Audio FX) ───────────
+        let audioCtx = null;
+        function getAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function playSound(type) {
+            if (!audioEnabled) return;
+            try {
+                const ctx = getAudioContext();
+                const now = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                if (type === 'discovery') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(587.33, now); // D5
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.15); // A5
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'complete') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, now); // C5
+                    osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+                    osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                    osc.start(now);
+                    osc.stop(now + 0.5);
+                } else if (type === 'click') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(1200, now);
+                    gain.gain.setValueAtTime(0.02, now);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.04);
+                    osc.start(now);
+                    osc.stop(now + 0.04);
+                }
+            } catch(e) {}
+        }
+
+        function toggleAudioFx() {
+            audioEnabled = !audioEnabled;
+            const btn = document.getElementById('audioToggle');
+            btn.textContent = audioEnabled ? '🔊' : '🔇';
+            btn.classList.toggle('active', audioEnabled);
+            if (audioEnabled) playSound('click');
+        }
 
         // ── Cytoscape Instance ───────────────────────────────────
         const cy = cytoscape({
@@ -1289,7 +1442,7 @@
                         'border-color': (ele) => TYPE_COLORS[ele.data('type')] || '#38bdf8',
                         'border-opacity': 0.6,
                         'text-outline-width': 2,
-                        'text-outline-color': '#03060d',
+                        'text-outline-color': '#02050b',
                     },
                 },
                 {
@@ -1301,7 +1454,7 @@
                         'border-color': '#7dd3fc',
                         'font-size': '13px',
                         'font-weight': '800',
-                        'text-outline-color': '#03060d',
+                        'text-outline-color': '#02050b',
                     },
                 },
                 {
@@ -1317,7 +1470,7 @@
                         'color': '#94a3b8',
                         'text-rotation': 'autorotate',
                         'text-outline-width': 1.5,
-                        'text-outline-color': '#03060d',
+                        'text-outline-color': '#02050b',
                     },
                 },
             ],
@@ -1327,8 +1480,30 @@
         });
 
         cy.on('tap', 'node', (evt) => {
+            playSound('click');
             showNodeInspector(evt.target.data());
         });
+
+        function setLayout(name) {
+            playSound('click');
+            cy.layout({
+                name: name,
+                animate: true,
+                animationDuration: 600,
+                padding: 60,
+                concentric: (n) => n.data('type') === 'seed' ? 10 : 1,
+                levelWidth: () => 2,
+            }).run();
+        }
+
+        function exportGraphImage() {
+            playSound('click');
+            const png64 = cy.png({ full: true, scale: 2, bg: '#02050b' });
+            const a = document.createElement('a');
+            a.href = png64;
+            a.download = `AETHER_Graph_${activeProjectId || 'network'}.png`;
+            a.click();
+        }
 
         // ── Init ─────────────────────────────────────────────────
         window.addEventListener('DOMContentLoaded', () => {
@@ -1406,6 +1581,7 @@
         }
 
         async function selectProject(projectId) {
+            playSound('click');
             activeProjectId = projectId;
             renderProjectList();
             await refreshActiveProject();
@@ -1583,14 +1759,53 @@
                 if (!resp.ok) return;
                 const data = await resp.json();
                 const card = document.getElementById('dossierContent');
-                card.textContent = data.dossier || 'Investigation results and AI intelligence dossier will appear here once synthesized.';
+                if (data.dossier && window.marked) {
+                    card.innerHTML = marked.parse(data.dossier);
+                } else {
+                    card.textContent = data.dossier || 'Investigation results and AI intelligence dossier will appear here once synthesized.';
+                }
             } catch(e) {}
+        }
+
+        // ── Manual Task Injection ────────────────────────────────
+        async function injectManualTask() {
+            if (!activeProjectId) {
+                alert('Please select an active project first.');
+                return;
+            }
+            const tool = document.getElementById('injectToolSelect').value;
+            const query = document.getElementById('injectQueryInput').value.trim();
+            if (!query) {
+                alert('Please enter a query or parameter.');
+                return;
+            }
+
+            try {
+                playSound('click');
+                const resp = await fetch(`/api/projects/${activeProjectId}/inject-task`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tool_name: tool,
+                        params: { query: query, username: query, domain: query },
+                        reasoning: `Manual operator injection: ${query}`,
+                    }),
+                });
+                if (resp.ok) {
+                    logEvent('SUCCESS', `⚡ Task injected into queue: [${tool}] ${query}`);
+                    document.getElementById('injectQueryInput').value = '';
+                    loadProjectTasks(activeProjectId);
+                }
+            } catch(e) {
+                logEvent('ERROR', `Injection failed: ${e.message}`);
+            }
         }
 
         // ── Actions ──────────────────────────────────────────────
         async function runCurrentProject() {
             if (!activeProjectId) return;
             try {
+                playSound('click');
                 const resp = await fetch(`/api/projects/${activeProjectId}/run`, { method: 'POST' });
                 if (!resp.ok) throw new Error('Run request failed');
                 logEvent('INFO', `Investigation launched for project [${activeProjectId}]`);
@@ -1603,6 +1818,7 @@
         async function stopCurrentProject() {
             if (!activeProjectId) return;
             try {
+                playSound('click');
                 await fetch(`/api/projects/${activeProjectId}/stop`, { method: 'POST' });
                 logEvent('WARN', `Investigation stopped.`);
                 refreshActiveProject();
@@ -1613,6 +1829,7 @@
 
         async function runBatchAll() {
             try {
+                playSound('click');
                 const resp = await fetch('/api/projects/run-all', { method: 'POST' });
                 const data = await resp.json();
                 logEvent('SUCCESS', `Queued ${data.count} investigations for sequential execution.`);
@@ -1625,6 +1842,7 @@
         async function deleteProject(projectId) {
             if (!confirm('Are you sure you want to delete this investigation?')) return;
             try {
+                playSound('click');
                 await fetch(`/api/projects/${projectId}`, { method: 'DELETE' });
                 logEvent('INFO', `Investigation deleted.`);
                 if (activeProjectId === projectId) activeProjectId = null;
@@ -1646,6 +1864,7 @@
             }
 
             try {
+                playSound('click');
                 const resp = await fetch('/api/projects', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1736,6 +1955,7 @@
 
             switch (type) {
                 case 'investigation_started':
+                    playSound('discovery');
                     logEvent('INFO', `🚀 Started investigation for ${data.project_name || data.seed}`);
                     refreshActiveProject();
                     break;
@@ -1744,6 +1964,7 @@
                     loadProjectTasks(activeProjectId);
                     break;
                 case 'entity_discovered':
+                    playSound('discovery');
                     logEvent('SUCCESS', `🌟 Discovered entity [${data.type}]: ${data.id}`);
                     loadProjectGraph(activeProjectId);
                     break;
@@ -1756,10 +1977,12 @@
                     loadProjectTasks(activeProjectId);
                     break;
                 case 'hypotheses_generated':
+                    playSound('discovery');
                     logEvent('WARN', `💡 Generated ${(data.hypotheses || []).length} abductive hypotheses`);
                     loadProjectTasks(activeProjectId);
                     break;
                 case 'investigation_completed':
+                    playSound('complete');
                     logEvent('SUCCESS', `🏆 Investigation complete: ${data.entities_count} entities discovered.`);
                     refreshActiveProject();
                     break;
@@ -1810,6 +2033,7 @@
         }
 
         function switchTab(tabId, btn) {
+            playSound('click');
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
 
@@ -1822,6 +2046,7 @@
         }
 
         function setProjectFilter(filter, el) {
+            playSound('click');
             activeFilter = filter;
             document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
             el.classList.add('active');
@@ -1833,6 +2058,7 @@
         }
 
         function openNewProjectModal() {
+            playSound('click');
             document.getElementById('inputProjName').value = '';
             document.getElementById('inputProjSeed').value = '';
             document.getElementById('inputProjBriefing').value = '';
@@ -1844,7 +2070,8 @@
         }
 
         function exportDossierMarkdown() {
-            const text = document.getElementById('dossierContent').textContent;
+            playSound('click');
+            const text = document.getElementById('dossierContent').innerText;
             if (!text || text.includes('Select an investigation')) {
                 alert('No dossier available to export.');
                 return;

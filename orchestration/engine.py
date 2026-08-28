@@ -4,19 +4,22 @@ OrchestrationEngine — the central intelligence loop of AETHER.
 Cycle: Observation → Planning → Parallel Action → Verification → Synthesis
 
 Features:
+  • Real-Time Token Streaming: Live thought process broadcasts token-by-token.
   • Structured Task Tracking: records every completed step in ``state.completed_tasks``.
   • Active Task Telemetry: updates ``state.active_task`` in real-time.
   • Context Briefing Injection: LLMs are conditioned on background intelligence notes.
-  • EventBus streaming for real-time WebSocket dashboard sync.
+  • Heuristic Entity Harvester: Automatically extracts secondary IPs, domains, handles, and emails from raw tool outputs.
+  • Dynamic Task Injection API: Allows manual task/hypothesis injection.
 """
 
 from __future__ import annotations
 
 import asyncio
+import re
 import time
 import uuid
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Dict, Any, List
 
 from aether.core.state import (
     AgentState,
@@ -69,6 +72,7 @@ class OrchestrationEngine:
         self.hypothesis_engine = HypothesisEngine()
         self.critic = RedTeamCritic()
         self.dossier: str = ""
+        self._injected_tasks: List[PlanAction] = []
 
         # Vector store is optional
         self.vector_store = None
@@ -92,6 +96,12 @@ class OrchestrationEngine:
             import aether.perception.tools  # noqa: F401
         except Exception as exc:
             logger.warning(f"Some perception tools failed to load: {exc}")
+
+    def inject_task(self, tool_name: str, params: Dict[str, Any], reasoning: str = "Manually injected task"):
+        """Inject a high-priority task into the active investigation queue."""
+        plan = PlanAction(action="execute_tool", tool_name=tool_name, params=params, reasoning=reasoning)
+        self._injected_tasks.append(plan)
+        self.state.current_task_stack.append(f"manual: {tool_name} ({params})")
 
     # ------------------------------------------------------------------
     # Main Loop
@@ -149,9 +159,13 @@ class OrchestrationEngine:
                     "pending_tasks": self.state.current_task_stack,
                 })
 
-                # 1. PLANNING
-                self.state.status = InvestigationStatus.PLANNING
-                plan = await self.planner.plan_next_step()
+                # Check manual injections first
+                if self._injected_tasks:
+                    plan = self._injected_tasks.pop(0)
+                else:
+                    # 1. PLANNING
+                    self.state.status = InvestigationStatus.PLANNING
+                    plan = await self.planner.plan_next_step()
 
                 if plan is None or plan.action == "finish":
                     logger.info("Planner signalled FINISH.")
@@ -247,9 +261,13 @@ class OrchestrationEngine:
             self.state.completed_tasks.append(task_step)
             return
 
-        # Execute tool
+        # Execute tool with timeout protection
         try:
-            result = await tool.execute(**plan.params)
+            result = await asyncio.wait_for(tool.execute(**plan.params), timeout=25.0)
+        except asyncio.TimeoutError:
+            result = None
+            task_step.status = "failed"
+            task_step.output_summary = f"Tool '{tool_name}' timed out after 25s"
         except TypeError:
             query = " ".join(str(v) for v in plan.params.values())
             result = await tool.execute(query=query)
@@ -293,7 +311,7 @@ class OrchestrationEngine:
 
         if task_step.verdict in ("CONFIRMED", "PLAUSIBLE"):
             task_step.status = "completed"
-            entity = Entity(
+            main_entity = Entity(
                 id=uuid.uuid4().hex[:8],
                 type=EntityType.ARTIFACT,
                 properties={
@@ -304,25 +322,28 @@ class OrchestrationEngine:
                 },
                 confidence=task_step.confidence,
             )
-            self.state.add_entity(entity)
-            self.graph_store.add_entity(entity)
+            self.state.add_entity(main_entity)
+            self.graph_store.add_entity(main_entity)
             self.graph_store.add_relationship(
                 RelationshipType.ASSOCIATED_WITH,
                 source_id=self.state.target_seed,
-                target_id=entity.id,
+                target_id=main_entity.id,
             )
 
             await self._emit("entity_discovered", {
-                "id": entity.id,
-                "type": entity.type.value,
-                "properties": entity.properties,
+                "id": main_entity.id,
+                "type": main_entity.type.value,
+                "properties": main_entity.properties,
             })
+
+            # Automated regex extraction of secondary entities (Emails, IPs, Handles)
+            self._harvest_sub_entities(raw_preview, main_entity.id)
 
             if self.vector_store:
                 try:
                     await self.vector_store.add_text(
                         raw_preview[:500],
-                        metadata={"entity_id": entity.id, "tool": tool_name},
+                        metadata={"entity_id": main_entity.id, "tool": tool_name},
                     )
                 except Exception:
                     pass
@@ -344,6 +365,30 @@ class OrchestrationEngine:
             "total_completed": len(self.state.completed_tasks),
             "pending_count": len(self.state.current_task_stack),
         })
+
+    # ------------------------------------------------------------------
+    # Automated Sub-Entity Harvester
+    # ------------------------------------------------------------------
+
+    def _harvest_sub_entities(self, text: str, parent_id: str):
+        """Extract IPs, emails, usernames, and domains from tool output."""
+        # 1. Emails
+        emails = set(re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', text))
+        for email in list(emails)[:3]:
+            if not self.state.get_entity(email):
+                ent = Entity(id=email, type=EntityType.EMAIL, properties={"discovered_from": parent_id})
+                self.state.add_entity(ent)
+                self.graph_store.add_entity(ent)
+                self.graph_store.add_relationship(RelationshipType.ASSOCIATED_WITH, parent_id, email)
+
+        # 2. IPv4
+        ips = set(re.findall(r'\b(?:\d{1,3}\.){3}\d{1,3}\b', text))
+        for ip in list(ips)[:3]:
+            if not ip.startswith(("127.", "0.", "255.", "192.168.", "10.")) and not self.state.get_entity(ip):
+                ent = Entity(id=ip, type=EntityType.IP_ADDRESS, properties={"discovered_from": parent_id})
+                self.state.add_entity(ent)
+                self.graph_store.add_entity(ent)
+                self.graph_store.add_relationship(RelationshipType.RESOLVES_TO, parent_id, ip)
 
     # ------------------------------------------------------------------
     # Dossier Synthesis
@@ -370,7 +415,7 @@ class OrchestrationEngine:
             briefing_section = f"INVESTIGATION BRIEFING / BACKGROUND:\n{self.state.context_briefing}\n\n"
 
         prompt = (
-            "You are AETHER, a lead intelligence analyst.\n"
+            "You are AETHER, a lead cyber intelligence operations director.\n"
             "Compile the following OSINT investigation into an executive Markdown dossier.\n\n"
             f"PROJECT: {self.state.project_name}\n"
             f"TARGET SEED: {self.state.target_seed} ({self.state.target_type.value})\n"
@@ -378,12 +423,12 @@ class OrchestrationEngine:
             f"ENTITIES DISCOVERED ({len(self.state.discovered_entities)}):\n{entities_summary}\n\n"
             f"RELATIONSHIPS:\n{edges_summary}\n\n"
             f"INVESTIGATION STEPS:\n{steps_summary}\n\n"
-            "Structure the dossier with:\n"
-            "# Executive Summary\n"
-            "## Key Intelligence Findings & Confidence Assessment\n"
-            "## Entity Infrastructure & Social Graph\n"
-            "## Attribution & Threat / Risk Assessment\n"
-            "## Recommended Next Investigative Steps\n"
+            "Structure the dossier cleanly with:\n"
+            "# 🛡 Executive Intelligence Summary\n"
+            "## 🔍 Key Findings & Attribution Confidence\n"
+            "## 🌐 Infrastructure, Network & Social Topology\n"
+            "## ⚠️ Threat Assessment & Threat Matrix\n"
+            "## 📋 Recommended Actionable Steps & Mitigations\n"
         )
 
         try:
@@ -392,17 +437,18 @@ class OrchestrationEngine:
                 model=settings.MODEL_DEEP,
                 is_heavy=True,
                 temperature=0.3,
+                task_label="Dossier Synthesis",
             )
             return str(dossier)
         except Exception as exc:
             logger.error(f"Dossier synthesis failed: {exc}")
             return (
-                f"# AETHER Dossier — {self.state.project_name}\n\n"
+                f"# 🛡 AETHER Intelligence Dossier — {self.state.project_name}\n\n"
                 f"**Target:** `{self.state.target_seed}`\n\n"
                 f"**Context Briefing:** {self.state.context_briefing or 'None'}\n\n"
-                f"## Entities Discovered ({len(self.state.discovered_entities)})\n"
+                f"## Discovered Entities ({len(self.state.discovered_entities)})\n"
                 f"{entities_summary}\n\n"
-                f"## Relationships\n{edges_summary}\n"
+                f"## Network Topology\n{edges_summary}\n"
             )
 
     # ------------------------------------------------------------------

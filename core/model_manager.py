@@ -1,12 +1,12 @@
 """
 ModelManager — handles all Ollama LLM communication with VRAM-safe locking
-for all 6 uncensored local models on NVIDIA RTX 4070.
+and real-time token streaming for all 6 uncensored local models on NVIDIA RTX 4070.
 """
 
 import asyncio
 import json
 import time
-from typing import Optional, Type, Union, Dict, Any
+from typing import Optional, Type, Union, Dict, Any, Callable
 
 import httpx
 from pydantic import BaseModel
@@ -76,9 +76,11 @@ class ModelManager:
         temperature: float = 0.7,
         is_heavy: bool = False,
         task_label: str = "Reasoning",
+        on_token: Optional[Callable[[str], None]] = None,
     ) -> Union[str, BaseModel]:
         """
-        Dispatches request to uncensored Ollama model with VRAM lock protection.
+        Dispatches request to uncensored Ollama model with VRAM lock protection
+        and real-time token streaming over WebSocket event bus.
         """
         target_model = model or settings.MODEL_FAST
         
@@ -134,7 +136,9 @@ class ModelManager:
                     "data": self.current_telemetry,
                 })
 
-            result = await self._call(target_model, prompt, response_format, temperature)
+            result = await self._call_streaming(
+                target_model, prompt, response_format, temperature, on_token
+            )
 
         latency = round(time.time() - start_time, 2)
         self.current_telemetry["status"] = "idle"
@@ -149,38 +153,65 @@ class ModelManager:
         return result
 
     # ------------------------------------------------------------------
-    # Internals
+    # Streaming Internals
     # ------------------------------------------------------------------
 
-    async def _call(
+    async def _call_streaming(
         self,
         target_model: str,
         prompt: str,
         response_format: Optional[Type[BaseModel]],
         temperature: float,
+        on_token: Optional[Callable[[str], None]] = None,
     ) -> Union[str, BaseModel]:
         client = self._get_client()
         payload: dict = {
             "model": target_model,
             "prompt": prompt,
-            "stream": False,
+            "stream": True,
             "options": {"temperature": temperature},
         }
 
         if response_format is not None:
             payload["format"] = "json"
 
-        try:
-            response = await client.post("/api/generate", json=payload)
-            response.raise_for_status()
+        short_model = target_model.split("/")[-1].split(":")[0]
+        collected_tokens = []
 
-            raw_text: str = response.json().get("response", "")
-            
-            # Emit live thought trace
+        try:
+            async with client.stream("POST", "/api/generate", json=payload) as response:
+                response.raise_for_status()
+                async for line in response.aiter_lines():
+                    if not line:
+                        continue
+                    try:
+                        chunk = json.loads(line)
+                        token = chunk.get("response", "")
+                        if token:
+                            collected_tokens.append(token)
+                            if on_token:
+                                on_token(token)
+                            # Broadcast real-time token stream in chunks
+                            if len(collected_tokens) % 3 == 0 or chunk.get("done", False):
+                                current_text = "".join(collected_tokens)
+                                await event_bus.emit_global({
+                                    "type": "ai_thought_stream",
+                                    "data": {
+                                        "model": short_model,
+                                        "thought": current_text[-400:],
+                                        "full_preview": current_text[:400],
+                                    },
+                                })
+                    except Exception:
+                        continue
+
+            raw_text = "".join(collected_tokens)
+
+            # Final thought emission
             await event_bus.emit_global({
                 "type": "ai_thought_stream",
                 "data": {
-                    "model": target_model.split("/")[-1].split(":")[0],
+                    "model": short_model,
                     "thought": raw_text[:500],
                 },
             })
@@ -194,8 +225,8 @@ class ModelManager:
             # Fallback chain: Hermes 35B -> Gemma 31B -> Gemma 26B
             if target_model == settings.MODEL_DEEP:
                 logger.warning(f"Falling back from Hermes 35B to {settings.MODEL_DEEP_FALLBACK}")
-                return await self._call(
-                    settings.MODEL_DEEP_FALLBACK, prompt, response_format, temperature
+                return await self._call_streaming(
+                    settings.MODEL_DEEP_FALLBACK, prompt, response_format, temperature, on_token
                 )
             raise
 

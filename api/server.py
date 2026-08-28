@@ -54,6 +54,12 @@ class UpdateProjectRequest(BaseModel):
     context_briefing: Optional[str] = None
 
 
+class InjectTaskRequest(BaseModel):
+    tool_name: str
+    params: Dict[str, Any]
+    reasoning: Optional[str] = "Manual operator injection"
+
+
 # ── Root & Static UI ──────────────────────────────────────────────────────────
 
 @app.get("/")
@@ -150,6 +156,25 @@ async def run_all_projects():
     return {"status": "queued", "count": count}
 
 
+@app.post("/api/projects/{project_id}/inject-task")
+async def inject_task(project_id: str, req: InjectTaskRequest):
+    """Inject a dynamic task into an active or queued project."""
+    proj = project_manager.get_project(project_id)
+    if not proj:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # If engine instance exists
+    engine = project_manager._active_runs.get(project_id)
+    if engine:
+        engine.inject_task(req.tool_name, req.params, req.reasoning or "Manual injection")
+    else:
+        if proj.state:
+            proj.state.current_task_stack.append(f"{req.tool_name}: {req.params}")
+            project_manager.save_projects()
+
+    return {"status": "injected", "tool": req.tool_name, "params": req.params}
+
+
 # ── Project Intelligence Artifacts ────────────────────────────────────────────
 
 @app.get("/api/projects/{project_id}/graph")
@@ -199,7 +224,6 @@ async def get_project_dossier(project_id: str):
 @app.post("/investigate/{seed:path}")
 async def investigate_legacy(seed: str):
     """Legacy quick scan endpoint: creates or uses existing project and starts run."""
-    # Check if a project with this seed already exists
     existing = next((p for p in project_manager._projects.values() if p.target_seed == seed), None)
     if not existing:
         existing = project_manager.create_project(
@@ -230,7 +254,6 @@ async def websocket_stream(websocket: WebSocket, channel_id: str):
     await websocket.accept()
     logger.info(f"WebSocket client connected for channel: '{channel_id}'")
 
-    # If channel_id is a seed, look up project_id
     sub_key = channel_id
     matching_proj = next((p for p in project_manager._projects.values() if p.target_seed == channel_id), None)
     if matching_proj:
@@ -239,7 +262,6 @@ async def websocket_stream(websocket: WebSocket, channel_id: str):
     queue = event_bus.subscribe(sub_key)
 
     try:
-        # Send initial connected heartbeat
         await websocket.send_json({
             "type": "heartbeat",
             "data": {"channel": channel_id, "status": "connected"},
@@ -247,11 +269,9 @@ async def websocket_stream(websocket: WebSocket, channel_id: str):
 
         while True:
             try:
-                # Wait for next event from EventBus with a 5s timeout for heartbeats
                 event = await asyncio.wait_for(queue.get(), timeout=5.0)
                 await websocket.send_json(event)
             except asyncio.TimeoutError:
-                # Send periodic heartbeat to keep connection alive
                 await websocket.send_json({
                     "type": "heartbeat",
                     "data": {"channel": channel_id, "ping": "ok"},
