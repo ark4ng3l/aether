@@ -2,978 +2,933 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AETHER // Autonomous Cyber OSINT Warfare Operations Command</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AETHER // Cyber OSINT Operations Command</title>
     <meta name="description" content="AETHER — Autonomous Extraction, Tactical Heuristic Exploration & Resolution Intelligence Platform">
     
-    <!-- Fonts -->
+    <!-- Google Fonts & Material Symbols (M3) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
     
     <!-- Cytoscape Graph Visualization & Markdown Parser -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.4/cytoscape.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
     <style>
-        /* ── Design System Tokens ────────────────────────────── */
+        /* ── Material Design 3 (M3) Token System ──────────────── */
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         
         :root {
-            --bg-void: #02050b;
-            --bg-base: #050a15;
-            --bg-panel: #0a1122;
-            --bg-surface: #0f1930;
-            --bg-card: rgba(15, 25, 48, 0.75);
-            --bg-card-hover: rgba(22, 36, 68, 0.9);
-            --bg-card-active: rgba(28, 45, 84, 0.95);
+            /* M3 Dark Theme Surface Roles */
+            --md-sys-color-surface: #0a0f1d;
+            --md-sys-color-surface-dim: #050811;
+            --md-sys-color-surface-container-lowest: #020409;
+            --md-sys-color-surface-container-low: #0e1629;
+            --md-sys-color-surface-container: #141f38;
+            --md-sys-color-surface-container-high: #1c2a4c;
+            --md-sys-color-surface-container-highest: #24355f;
             
-            --border-subtle: rgba(56, 189, 248, 0.12);
-            --border-glow: rgba(56, 189, 248, 0.35);
-            --border-bright: #38bdf8;
+            /* M3 Primary Roles (Electric Cyan & Neon Accents) */
+            --md-sys-color-primary: #38bdf8;
+            --md-sys-color-on-primary: #003548;
+            --md-sys-color-primary-container: #004d67;
+            --md-sys-color-on-primary-container: #c2e8ff;
+            --md-sys-color-primary-glow: rgba(56, 189, 248, 0.28);
+
+            /* M3 Secondary / Tertiary Roles */
+            --md-sys-color-secondary: #a78bfa;
+            --md-sys-color-on-secondary: #2e1065;
+            --md-sys-color-secondary-container: #4c1d95;
+            --md-sys-color-tertiary: #34d399;
+            --md-sys-color-error: #f43f5e;
+            --md-sys-color-warning: #f59e0b;
+
+            /* M3 Text & Outline Roles */
+            --md-sys-color-on-surface: #f8fafc;
+            --md-sys-color-on-surface-variant: #cbd5e1;
+            --md-sys-color-outline: #64748b;
+            --md-sys-color-outline-variant: rgba(100, 116, 139, 0.25);
             
-            --cyan: #38bdf8;
-            --cyan-bright: #7dd3fc;
-            --cyan-glow: rgba(56, 189, 248, 0.28);
-            --emerald: #10b981;
-            --emerald-glow: rgba(16, 185, 129, 0.25);
-            --amber: #f59e0b;
-            --amber-glow: rgba(245, 158, 11, 0.25);
-            --rose: #f43f5e;
-            --rose-glow: rgba(244, 63, 94, 0.25);
-            --violet: #8b5cf6;
-            --violet-glow: rgba(139, 92, 246, 0.28);
-            --indigo: #6366f1;
-            
-            --text-main: #f8fafc;
-            --text-secondary: #cbd5e1;
-            --text-muted: #94a3b8;
-            --text-dim: #64748b;
-            
-            --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+            /* M3 Elevation Shadows */
+            --md-elevation-1: 0 1px 3px 1px rgba(0, 0, 0, 0.25), 0 1px 2px 0 rgba(0, 0, 0, 0.35);
+            --md-elevation-2: 0 2px 6px 2px rgba(0, 0, 0, 0.3), 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+            --md-elevation-3: 0 4px 12px 3px rgba(0, 0, 0, 0.4), 0 2px 4px 0 rgba(0, 0, 0, 0.45);
+            --md-elevation-4: 0 8px 24px 4px rgba(0, 0, 0, 0.5), 0 4px 8px 0 rgba(0, 0, 0, 0.55);
+
+            /* Shape Tokens */
+            --md-shape-xs: 4px;
+            --md-shape-sm: 8px;
+            --md-shape-md: 12px;
+            --md-shape-lg: 16px;
+            --md-shape-xl: 24px;
+            --md-shape-full: 9999px;
+
+            /* Fonts */
+            --font-sans: 'Inter', 'Roboto', system-ui, sans-serif;
             --font-mono: 'JetBrains Mono', monospace;
-            
-            --radius-xs: 4px;
-            --radius-sm: 6px;
-            --radius-md: 10px;
-            --radius-lg: 14px;
-            --radius-xl: 18px;
-            --glass: blur(24px) saturate(190%);
         }
 
-        body {
-            background-color: var(--bg-void);
-            color: var(--text-main);
-            font-family: var(--font-sans);
-            height: 100vh;
+        html, body {
+            height: 100%;
+            width: 100%;
             overflow: hidden;
-            background-image: 
-                radial-gradient(ellipse 90% 40% at 50% -10%, rgba(56, 189, 248, 0.12), transparent),
-                radial-gradient(ellipse 70% 50% at 90% 105%, rgba(139, 92, 246, 0.09), transparent),
-                radial-gradient(circle at 10% 90%, rgba(16, 185, 129, 0.05), transparent);
+            background-color: var(--md-sys-color-surface-dim);
+            color: var(--md-sys-color-on-surface);
+            font-family: var(--font-sans);
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* ── Grid Layout ─────────────────────────────────────── */
+        /* ── M3 Icons ────────────────────────────────────────── */
+        .icon {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 20px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            vertical-align: middle;
+            user-select: none;
+        }
+
+        /* ── Master App Layout ───────────────────────────────── */
         #app {
-            display: grid;
-            grid-template-rows: 64px 1fr;
+            display: flex;
+            flex-direction: column;
             height: 100vh;
+            width: 100vw;
+            overflow: hidden;
         }
 
-        /* ── Header Top Bar ──────────────────────────────────── */
-        #header {
+        /* ── M3 Top App Bar (Header) ─────────────────────────── */
+        .top-app-bar {
+            height: 64px;
+            min-height: 64px;
+            background: var(--md-sys-color-surface);
+            border-bottom: 1px solid var(--md-sys-color-outline-variant);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 24px;
-            background: rgba(10, 17, 34, 0.85);
-            backdrop-filter: var(--glass);
-            border-bottom: 1px solid var(--border-subtle);
-            z-index: 50;
+            padding: 0 16px;
+            gap: 12px;
+            z-index: 40;
+            box-shadow: var(--md-elevation-1);
         }
 
-        .brand-section {
+        .brand-cluster {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .drawer-toggle-btn {
+            display: none;
+            background: transparent;
+            border: none;
+            color: var(--md-sys-color-on-surface);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: var(--md-shape-full);
+            transition: background 0.2s;
+        }
+        .drawer-toggle-btn:hover { background: rgba(255,255,255,0.08); }
+
+        .brand-title {
+            font-size: 17px;
+            font-weight: 900;
+            letter-spacing: 2.5px;
+            background: linear-gradient(135deg, #7dd3fc 0%, #38bdf8 50%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            white-space: nowrap;
+        }
+
+        .brand-chip {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 1px;
+            color: var(--md-sys-color-primary);
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            padding: 2px 8px;
+            border-radius: var(--md-shape-xs);
+            white-space: nowrap;
+        }
+
+        /* Top HUD Telemetry Pill */
+        .hud-telemetry-cluster {
             display: flex;
             align-items: center;
             gap: 14px;
-        }
-
-        .brand-logo-text {
-            font-size: 17px;
-            font-weight: 900;
-            letter-spacing: 3.5px;
-            background: linear-gradient(135deg, var(--cyan-bright) 0%, var(--cyan) 40%, var(--violet) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 28px rgba(56, 189, 248, 0.35);
-        }
-
-        .brand-pill {
-            font-size: 10px;
-            font-family: var(--font-mono);
-            color: var(--cyan);
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            padding: 2px 8px;
-            border-radius: var(--radius-xs);
-            background: rgba(56, 189, 248, 0.08);
-            border: 1px solid rgba(56, 189, 248, 0.2);
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        /* Live Model Telemetry Bar (Header Center) */
-        .model-telemetry-hud {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            background: rgba(15, 25, 48, 0.65);
-            border: 1px solid var(--border-subtle);
-            padding: 6px 18px;
-            border-radius: var(--radius-lg);
+            background: var(--md-sys-color-surface-container);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            padding: 4px 14px;
+            border-radius: var(--md-shape-full);
             font-size: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .hud-item {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
-
         .hud-label {
             font-size: 10px;
             font-family: var(--font-mono);
-            color: var(--text-dim);
+            color: var(--md-sys-color-outline);
             text-transform: uppercase;
-            letter-spacing: 1px;
         }
-
-        .model-name-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
+        .model-badge {
             font-family: var(--font-mono);
             font-size: 11px;
             font-weight: 600;
-            color: var(--cyan-bright);
-            background: rgba(56, 189, 248, 0.1);
-            padding: 2px 9px;
-            border-radius: var(--radius-xs);
-            border: 1px solid rgba(56, 189, 248, 0.25);
+            color: var(--md-sys-color-primary);
+            background: rgba(56, 189, 248, 0.12);
+            padding: 2px 7px;
+            border-radius: var(--md-shape-xs);
         }
 
-        .vram-lock-badge {
+        .vram-badge {
             font-size: 10px;
             font-weight: 700;
             padding: 2px 8px;
-            border-radius: var(--radius-xs);
+            border-radius: var(--md-shape-full);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
-        .vram-lock-badge.locked {
-            background: rgba(245, 158, 11, 0.18);
-            color: var(--amber);
-            border: 1px solid rgba(245, 158, 11, 0.35);
+        .vram-badge.locked {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--md-sys-color-warning);
+            border: 1px solid rgba(245, 158, 11, 0.4);
             animation: pulseFast 1.2s infinite ease-in-out;
         }
-        .vram-lock-badge.unlocked {
-            background: rgba(16, 185, 129, 0.15);
-            color: var(--emerald);
-            border: 1px solid rgba(16, 185, 129, 0.3);
+        .vram-badge.unlocked {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--md-sys-color-tertiary);
+            border: 1px solid rgba(16, 185, 129, 0.4);
         }
         @keyframes pulseFast { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
         .header-actions {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
+            flex-shrink: 0;
         }
 
-        /* ── Audio FX Button ─────────────────────────────────── */
-        .audio-toggle-btn {
-            background: transparent;
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-md);
-            padding: 6px 10px;
-            color: var(--text-muted);
-            cursor: pointer;
-            font-size: 13px;
-            transition: all 0.2s;
-        }
-        .audio-toggle-btn.active {
-            color: var(--cyan-bright);
-            border-color: var(--cyan);
-            background: rgba(56, 189, 248, 0.1);
-        }
-
-        /* ── Buttons ─────────────────────────────────────────── */
-        .btn {
+        /* ── M3 Buttons ──────────────────────────────────────── */
+        .m3-btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 7px;
-            padding: 8px 16px;
-            border-radius: var(--radius-md);
-            font-size: 12px;
+            gap: 6px;
+            height: 36px;
+            padding: 0 16px;
+            border-radius: var(--md-shape-full);
+            font-size: 12.5px;
             font-weight: 600;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.2px;
             cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             border: 1px solid transparent;
             outline: none;
-            font-family: var(--font-sans);
+            transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+            white-space: nowrap;
+            user-select: none;
         }
 
-        .btn-primary {
-            background: linear-gradient(135deg, #0284c7, var(--cyan));
-            color: #040711;
-            box-shadow: 0 4px 16px var(--cyan-glow);
+        .m3-btn-filled {
+            background: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+            box-shadow: var(--md-elevation-1);
         }
-        .btn-primary:hover {
+        .m3-btn-filled:hover:not(:disabled) {
+            box-shadow: 0 0 16px var(--md-sys-color-primary-glow);
             transform: translateY(-1px);
-            box-shadow: 0 6px 22px rgba(56, 189, 248, 0.45);
         }
 
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--text-main);
-            border: 1px solid var(--border-subtle);
+        .m3-btn-tonal {
+            background: var(--md-sys-color-surface-container-high);
+            color: var(--md-sys-color-on-surface);
+            border-color: var(--md-sys-color-outline-variant);
         }
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.09);
-            border-color: var(--border-glow);
+        .m3-btn-tonal:hover:not(:disabled) {
+            background: var(--md-sys-color-surface-container-highest);
+            border-color: var(--md-sys-color-primary);
         }
 
-        .btn-danger {
+        .m3-btn-danger {
             background: rgba(244, 63, 94, 0.15);
-            color: var(--rose);
-            border: 1px solid rgba(244, 63, 94, 0.3);
+            color: var(--md-sys-color-error);
+            border-color: rgba(244, 63, 94, 0.3);
         }
-        .btn-danger:hover {
+        .m3-btn-danger:hover:not(:disabled) {
             background: rgba(244, 63, 94, 0.25);
         }
 
-        .btn-success {
-            background: rgba(16, 185, 129, 0.15);
-            color: var(--emerald);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-        }
-        .btn-success:hover {
-            background: rgba(16, 185, 129, 0.25);
+        .m3-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
         }
 
-        .btn-sm {
-            padding: 5px 11px;
-            font-size: 11px;
-            border-radius: var(--radius-sm);
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            border-radius: var(--md-shape-full);
+            background: transparent;
+            border: 1px solid var(--md-sys-color-outline-variant);
+            color: var(--md-sys-color-on-surface-variant);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .icon-btn:hover {
+            color: var(--md-sys-color-on-surface);
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--md-sys-color-primary);
+        }
+        .icon-btn.active {
+            color: var(--md-sys-color-primary);
+            border-color: var(--md-sys-color-primary);
+            background: rgba(56, 189, 248, 0.12);
         }
 
-        /* ── Workspace 2-Column Grid ─────────────────────────── */
-        #workspace {
-            display: grid;
-            grid-template-columns: 360px 1fr;
+        /* ── Workspace Responsive Split ──────────────────────── */
+        #workspace-container {
+            display: flex;
+            flex: 1;
             height: calc(100vh - 64px);
+            width: 100%;
             overflow: hidden;
+            position: relative;
         }
 
-        /* ── Left Sidebar (Project Matrix) ──────────────────── */
-        #sidebar {
+        /* ── M3 Navigation Drawer (Sidebar) ─────────────────── */
+        #nav-drawer {
+            width: 340px;
+            min-width: 340px;
+            max-width: 340px;
+            background: var(--md-sys-color-surface-container-low);
+            border-right: 1px solid var(--md-sys-color-outline-variant);
             display: flex;
             flex-direction: column;
-            background: rgba(10, 17, 34, 0.7);
-            border-right: 1px solid var(--border-subtle);
-            backdrop-filter: var(--glass);
             overflow: hidden;
+            z-index: 30;
+            transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1);
         }
 
-        .sidebar-header {
-            padding: 16px 18px;
-            border-bottom: 1px solid var(--border-subtle);
+        .drawer-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--md-sys-color-outline-variant);
             display: flex;
             flex-direction: column;
             gap: 12px;
         }
 
-        .sidebar-title-row {
+        .drawer-title-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
-
-        .sidebar-title {
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: 1.5px;
-            color: var(--text-dim);
+        .drawer-title {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 1.2px;
             text-transform: uppercase;
+            color: var(--md-sys-color-outline);
             display: flex;
             align-items: center;
             gap: 6px;
         }
 
-        .search-box {
+        .m3-search-bar {
             position: relative;
-        }
-
-        .search-box input {
             width: 100%;
-            padding: 8px 12px 8px 34px;
-            background: var(--bg-surface);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-md);
-            color: var(--text-main);
+        }
+        .m3-search-bar input {
+            width: 100%;
+            background: var(--md-sys-color-surface-container);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-shape-full);
+            padding: 8px 14px 8px 36px;
+            color: var(--md-sys-color-on-surface);
             font-size: 12px;
-            font-family: var(--font-sans);
             outline: none;
             transition: all 0.2s;
         }
-        .search-box input:focus {
-            border-color: var(--cyan);
-            box-shadow: 0 0 0 2px var(--cyan-glow);
+        .m3-search-bar input:focus {
+            border-color: var(--md-sys-color-primary);
+            box-shadow: 0 0 0 2px var(--md-sys-color-primary-glow);
         }
-        .search-box .icon {
+        .m3-search-bar .icon {
             position: absolute;
-            left: 11px;
+            left: 10px;
             top: 50%;
             transform: translateY(-50%);
-            color: var(--text-dim);
-            font-size: 12px;
+            color: var(--md-sys-color-outline);
+            font-size: 18px;
         }
 
-        .filter-pills {
+        .filter-segmented-chips {
             display: flex;
             gap: 6px;
+            overflow-x: auto;
         }
-
-        .filter-pill {
+        .filter-chip {
             padding: 4px 12px;
-            border-radius: 14px;
+            border-radius: var(--md-shape-full);
             font-size: 11px;
-            cursor: pointer;
+            font-weight: 600;
             background: transparent;
-            color: var(--text-dim);
-            border: 1px solid transparent;
+            color: var(--md-sys-color-outline);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            cursor: pointer;
             transition: all 0.2s;
-            font-weight: 500;
+            white-space: nowrap;
         }
-        .filter-pill.active {
+        .filter-chip.active {
             background: rgba(56, 189, 248, 0.12);
-            color: var(--cyan-bright);
-            border-color: var(--border-subtle);
-            font-weight: 700;
+            color: var(--md-sys-color-primary);
+            border-color: var(--md-sys-color-primary);
         }
 
         /* Project Cards List */
-        .project-list {
+        .project-scroll-list {
             flex: 1;
             overflow-y: auto;
-            padding: 12px 14px;
+            padding: 12px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
         }
 
-        .project-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-lg);
-            padding: 14px 16px;
+        .m3-card {
+            background: var(--md-sys-color-surface-container);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-shape-lg);
+            padding: 14px;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
             position: relative;
         }
-        .project-card:hover {
-            background: var(--bg-card-hover);
-            border-color: var(--border-glow);
+        .m3-card:hover {
+            background: var(--md-sys-color-surface-container-high);
+            border-color: rgba(56, 189, 248, 0.4);
             transform: translateY(-1px);
         }
-        .project-card.active {
-            background: rgba(15, 25, 48, 0.95);
-            border-color: var(--cyan);
-            box-shadow: 0 0 24px rgba(56, 189, 248, 0.18);
+        .m3-card.active {
+            background: var(--md-sys-color-surface-container-highest);
+            border-color: var(--md-sys-color-primary);
+            box-shadow: 0 0 16px rgba(56, 189, 248, 0.15);
         }
 
-        .project-card-header {
+        .card-header-row {
             display: flex;
-            align-items: flex-start;
+            align-items: center;
             justify-content: space-between;
-            gap: 8px;
             margin-bottom: 6px;
+            gap: 8px;
         }
-
-        .project-card-name {
+        .card-name {
             font-size: 13px;
             font-weight: 700;
-            color: var(--text-main);
+            color: var(--md-sys-color-on-surface);
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
+        .card-status-badge {
+            font-size: 9.5px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 2px 6px;
+            border-radius: var(--md-shape-xs);
+        }
 
-        .project-card-seed-row {
+        .card-seed-row {
             display: flex;
             align-items: center;
             gap: 6px;
             margin-bottom: 6px;
         }
-
-        .project-card-seed {
+        .card-seed {
             font-size: 11px;
             font-family: var(--font-mono);
-            color: var(--cyan-bright);
+            color: var(--md-sys-color-primary);
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
-
-        .type-tag {
+        .m3-type-tag {
             font-size: 9px;
             font-family: var(--font-mono);
-            text-transform: uppercase;
-            padding: 1px 6px;
-            border-radius: 3px;
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--text-muted);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 1px 5px;
+            border-radius: var(--md-shape-xs);
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--md-sys-color-outline);
         }
 
-        .project-card-briefing {
+        .card-briefing {
             font-size: 11px;
-            color: var(--text-muted);
+            color: var(--md-sys-color-outline);
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
             line-height: 1.4;
-            margin-bottom: 10px;
-            font-style: italic;
+            margin-bottom: 8px;
         }
 
-        .project-card-footer {
+        .card-footer-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
             font-size: 11px;
-            color: var(--text-dim);
-            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            color: var(--md-sys-color-outline);
+            border-top: 1px solid var(--md-sys-color-outline-variant);
             padding-top: 8px;
         }
 
-        .project-stats-row {
-            display: flex;
-            gap: 12px;
-        }
-        .project-stat-item {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 11px;
-            font-family: var(--font-mono);
+        /* Scrim overlay for mobile drawer */
+        .drawer-scrim {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(4px);
+            z-index: 25;
         }
 
-        /* ── Right Content Area ──────────────────────────────── */
-        #main-content {
+        /* ── Main Operations Stage ───────────────────────────── */
+        #stage-container {
+            flex: 1;
             display: flex;
             flex-direction: column;
+            height: 100%;
             overflow: hidden;
-            position: relative;
+            background: var(--md-sys-color-surface-dim);
+            min-width: 0;
         }
 
-        /* ── Top Active Project Banner ───────────────────────── */
-        .active-project-bar {
+        /* Active Target Bar */
+        .active-target-bar {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 12px 24px;
-            background: rgba(15, 25, 48, 0.4);
-            border-bottom: 1px solid var(--border-subtle);
+            padding: 10px 20px;
+            background: var(--md-sys-color-surface-container-low);
+            border-bottom: 1px solid var(--md-sys-color-outline-variant);
+            gap: 12px;
+            flex-wrap: wrap;
         }
-
-        .active-proj-left {
+        .active-target-left {
             display: flex;
             align-items: center;
-            gap: 14px;
+            gap: 10px;
+            min-width: 0;
         }
-
-        .active-proj-title {
-            font-size: 15px;
+        .active-target-title {
+            font-size: 14px;
             font-weight: 700;
-            color: var(--text-main);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
-
-        .active-proj-seed {
+        .active-target-seed {
             font-family: var(--font-mono);
-            font-size: 12px;
-            color: var(--cyan);
+            font-size: 11.5px;
+            color: var(--md-sys-color-primary);
             background: rgba(56, 189, 248, 0.08);
-            padding: 2px 8px;
-            border-radius: var(--radius-xs);
             border: 1px solid rgba(56, 189, 248, 0.2);
+            padding: 2px 8px;
+            border-radius: var(--md-shape-xs);
+            white-space: nowrap;
         }
 
-        .status-badge-lg {
+        /* M3 Primary Tabs */
+        .m3-tab-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            background: var(--md-sys-color-surface);
+            border-bottom: 1px solid var(--md-sys-color-outline-variant);
+            min-height: 48px;
+            height: 48px;
+            overflow-x: auto;
+        }
+        .m3-tabs {
+            display: flex;
+            height: 100%;
+            gap: 4px;
+        }
+        .m3-tab {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .status-badge-lg.completed { background: rgba(16, 185, 129, 0.15); color: var(--emerald); border: 1px solid rgba(16, 185, 129, 0.3); }
-        .status-badge-lg.running { background: rgba(245, 158, 11, 0.15); color: var(--amber); border: 1px solid rgba(245, 158, 11, 0.3); }
-        .status-badge-lg.failed { background: rgba(244, 63, 94, 0.15); color: var(--rose); border: 1px solid rgba(244, 63, 94, 0.3); }
-        .status-badge-lg.idle { background: rgba(255, 255, 255, 0.05); color: var(--text-dim); border: 1px solid rgba(255, 255, 255, 0.1); }
-
-        /* ── Tab Navigation Bar ──────────────────────────────── */
-        .tab-bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 24px;
-            background: rgba(10, 17, 34, 0.8);
-            border-bottom: 1px solid var(--border-subtle);
-            height: 48px;
-        }
-
-        .tabs-group {
-            display: flex;
-            gap: 6px;
-            height: 100%;
-        }
-
-        .tab-btn {
-            display: flex;
-            align-items: center;
             gap: 8px;
-            padding: 0 18px;
             height: 100%;
+            padding: 0 16px;
             background: transparent;
             border: none;
             border-bottom: 2px solid transparent;
-            color: var(--text-muted);
+            color: var(--md-sys-color-outline);
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
+            white-space: nowrap;
         }
-        .tab-btn:hover {
-            color: var(--text-main);
-        }
-        .tab-btn.active {
-            color: var(--cyan-bright);
-            border-bottom-color: var(--cyan);
-            background: rgba(56, 189, 248, 0.05);
+        .m3-tab:hover { color: var(--md-sys-color-on-surface); }
+        .m3-tab.active {
+            color: var(--md-sys-color-primary);
+            border-bottom-color: var(--md-sys-color-primary);
         }
 
-        .tab-pane {
+        .m3-pane {
             display: none;
             flex: 1;
             overflow: hidden;
             position: relative;
+            min-height: 0;
         }
-        .tab-pane.active {
+        .m3-pane.active {
             display: flex;
             flex-direction: column;
         }
 
         /* ── Tab 1: Cytoscape Graph ──────────────────────────── */
-        #graph-container {
+        #graph-view {
+            flex: 1;
+            position: relative;
             width: 100%;
             height: 100%;
-            position: relative;
         }
         #cy {
             width: 100%;
             height: 100%;
+            position: absolute;
+            inset: 0;
         }
 
-        .graph-controls-hud {
+        .graph-hud-top-left {
             position: absolute;
-            top: 18px;
-            left: 18px;
+            top: 14px;
+            left: 14px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            z-index: 10;
-        }
-
-        .hud-glass-card {
-            background: rgba(10, 17, 34, 0.92);
-            backdrop-filter: var(--glass);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-md);
-            padding: 8px 16px;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            font-size: 12px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-        }
-        .hud-glass-card span strong { color: var(--cyan); font-family: var(--font-mono); }
-
-        .graph-toolbar {
-            position: absolute;
-            top: 18px;
-            right: 18px;
-            display: flex;
-            align-items: center;
             gap: 8px;
-            background: rgba(10, 17, 34, 0.92);
-            backdrop-filter: var(--glass);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-md);
-            padding: 6px 12px;
             z-index: 10;
         }
+        .graph-hud-pill {
+            background: rgba(14, 22, 41, 0.9);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-shape-full);
+            padding: 6px 14px;
+            font-size: 11px;
+            box-shadow: var(--md-elevation-2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .graph-hud-pill strong { color: var(--md-sys-color-primary); font-family: var(--font-mono); }
 
-        .graph-legend-bar {
+        .graph-floating-toolbar {
             position: absolute;
-            bottom: 18px;
-            left: 18px;
-            background: rgba(10, 17, 34, 0.92);
-            backdrop-filter: var(--glass);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-md);
-            padding: 8px 16px;
+            top: 14px;
+            right: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(14, 22, 41, 0.9);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-shape-full);
+            padding: 4px 8px;
+            z-index: 10;
+            box-shadow: var(--md-elevation-2);
+            max-width: calc(100% - 28px);
+            overflow-x: auto;
+        }
+
+        .graph-legend-pill {
+            position: absolute;
+            bottom: 14px;
+            left: 14px;
+            background: rgba(14, 22, 41, 0.9);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-shape-md);
+            padding: 8px 14px;
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
-            font-size: 11px;
-            color: var(--text-muted);
+            gap: 10px;
+            font-size: 10.5px;
+            color: var(--md-sys-color-outline);
             z-index: 10;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            box-shadow: var(--md-elevation-2);
+            max-width: calc(100% - 28px);
         }
-        .legend-chip {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .legend-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-        }
+        .legend-chip { display: flex; align-items: center; gap: 5px; }
+        .legend-dot { width: 7px; height: 7px; border-radius: 50%; }
 
-        /* ── Node Inspector Drawer ───────────────────────────── */
+        /* Node Inspector (M3 Bottom Sheet on Mobile / Drawer on Desktop) */
         #node-inspector {
             position: absolute;
-            top: 18px;
-            right: 18px;
-            width: 380px;
-            max-height: calc(100% - 36px);
-            background: rgba(10, 17, 34, 0.97);
-            backdrop-filter: var(--glass);
-            border: 1px solid var(--border-glow);
-            border-radius: var(--radius-xl);
-            padding: 22px;
+            top: 14px;
+            right: 14px;
+            width: 360px;
+            max-height: calc(100% - 28px);
+            background: rgba(14, 22, 41, 0.98);
+            backdrop-filter: blur(24px);
+            border: 1px solid var(--md-sys-color-primary);
+            border-radius: var(--md-shape-xl);
+            padding: 20px;
             display: none;
             flex-direction: column;
-            gap: 14px;
+            gap: 12px;
             overflow-y: auto;
             z-index: 20;
-            box-shadow: 0 20px 48px rgba(0, 0, 0, 0.8), 0 0 32px rgba(56, 189, 248, 0.12);
-            animation: slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: var(--md-elevation-4);
         }
         #node-inspector.show { display: flex; }
-        @keyframes slideInRight { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: translateX(0); } }
 
         /* ── Tab 2: Execution Pipeline & Stepper ─────────────── */
-        #pipeline-view {
-            padding: 24px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-
-        /* 5-Phase Visual Stepper */
-        .stepper-deck {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 12px;
-        }
-
-        .step-node-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-lg);
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            position: relative;
-            transition: all 0.3s;
-        }
-        .step-node-card.active {
-            border-color: var(--cyan);
-            background: rgba(56, 189, 248, 0.09);
-            box-shadow: 0 0 24px rgba(56, 189, 248, 0.2);
-        }
-        .step-node-card.done {
-            border-color: rgba(16, 185, 129, 0.4);
-            background: rgba(16, 185, 129, 0.06);
-        }
-        .step-idx {
-            font-size: 10px;
-            font-family: var(--font-mono);
-            color: var(--text-dim);
-            font-weight: 700;
-        }
-        .step-title {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--text-main);
-        }
-        .step-desc {
-            font-size: 11px;
-            color: var(--text-dim);
-        }
-        .step-node-card.active .step-title { color: var(--cyan-bright); }
-        .step-node-card.done .step-title { color: var(--emerald); }
-
-        /* Live AI Consciousness Stream Box */
-        .ai-thought-deck {
-            background: linear-gradient(135deg, rgba(15, 25, 48, 0.95), rgba(28, 45, 84, 0.65));
-            border: 1px solid var(--border-glow);
-            border-radius: var(--radius-lg);
-            padding: 18px 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
-        }
-
-        .thought-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .thought-label {
-            font-size: 11px;
-            font-family: var(--font-mono);
-            font-weight: 700;
-            color: var(--violet);
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .thought-text-content {
-            font-family: var(--font-mono);
-            font-size: 12px;
-            line-height: 1.7;
-            color: var(--text-secondary);
-            background: rgba(0, 0, 0, 0.35);
-            padding: 14px 18px;
-            border-radius: var(--radius-md);
-            border-left: 3px solid var(--violet);
-            min-height: 60px;
-            white-space: pre-wrap;
-            position: relative;
-        }
-
-        /* Active Task Card */
-        .active-task-deck {
-            background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(139, 92, 246, 0.06));
-            border: 1px solid var(--cyan);
-            border-radius: var(--radius-lg);
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            box-shadow: 0 0 30px rgba(56, 189, 248, 0.18);
-            animation: pulseActiveCard 2.2s infinite ease-in-out;
-        }
-        @keyframes pulseActiveCard { 0%, 100% { border-color: var(--cyan); } 50% { border-color: rgba(56, 189, 248, 0.4); } }
-
-        .active-task-meta-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        /* Manual Task Injection Bar */
-        .injection-deck {
-            background: rgba(15, 25, 48, 0.5);
-            border: 1px dashed var(--border-subtle);
-            border-radius: var(--radius-lg);
-            padding: 14px 18px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .injection-deck input {
+        #pipeline-scroll-area {
             flex: 1;
-            background: var(--bg-surface);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-md);
-            padding: 8px 14px;
-            color: var(--text-main);
-            font-size: 12px;
-            outline: none;
-        }
-        .injection-deck select {
-            background: var(--bg-surface);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-md);
-            padding: 8px 12px;
-            color: var(--text-main);
-            font-size: 12px;
-            outline: none;
-        }
-
-        /* Timeline Rows */
-        .tasks-timeline-container {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .task-step-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-lg);
-            padding: 16px 18px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            transition: all 0.2s;
-        }
-        .task-step-card:hover {
-            border-color: var(--border-glow);
-            background: var(--bg-card-hover);
-        }
-
-        .task-step-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .tool-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 11px;
-            font-family: var(--font-mono);
-            font-weight: 700;
-            padding: 3px 10px;
-            border-radius: var(--radius-xs);
-            background: rgba(56, 189, 248, 0.12);
-            color: var(--cyan-bright);
-            border: 1px solid rgba(56, 189, 248, 0.25);
-        }
-
-        .verdict-badge {
-            font-size: 10px;
-            font-weight: 800;
-            padding: 3px 10px;
-            border-radius: var(--radius-xs);
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            font-family: var(--font-mono);
-        }
-        .verdict-badge.CONFIRMED { background: rgba(16, 185, 129, 0.2); color: var(--emerald); border: 1px solid rgba(16, 185, 129, 0.4); }
-        .verdict-badge.PLAUSIBLE { background: rgba(245, 158, 11, 0.2); color: var(--amber); border: 1px solid rgba(245, 158, 11, 0.4); }
-        .verdict-badge.REJECTED { background: rgba(244, 63, 94, 0.2); color: var(--rose); border: 1px solid rgba(244, 63, 94, 0.4); }
-
-        .task-output-preview {
-            font-size: 12px;
-            color: var(--text-secondary);
-            line-height: 1.6;
-            font-family: var(--font-mono);
-            background: rgba(0, 0, 0, 0.35);
-            padding: 12px 16px;
-            border-radius: var(--radius-md);
-            border-left: 3px solid rgba(56, 189, 248, 0.4);
-        }
-
-        /* ── Tab 3: Dossier ──────────────────────────────────── */
-        #dossier-view {
-            padding: 28px;
             overflow-y: auto;
+            padding: 20px;
             display: flex;
             flex-direction: column;
             gap: 20px;
         }
 
-        .dossier-sheet {
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-xl);
-            padding: 36px 44px;
-            font-size: 14px;
-            line-height: 1.8;
-            color: var(--text-main);
-            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+        /* 5-Phase Adaptive Stepper */
+        .adaptive-stepper {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 10px;
+            width: 100%;
         }
-        .dossier-sheet h1 { font-size: 22px; color: var(--cyan-bright); margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px; }
-        .dossier-sheet h2 { font-size: 16px; color: var(--text-main); margin-top: 24px; margin-bottom: 10px; }
-        .dossier-sheet ul { margin-left: 20px; margin-bottom: 14px; }
-        .dossier-sheet li { margin-bottom: 6px; }
-        .dossier-sheet code { font-family: var(--font-mono); background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; color: var(--cyan); }
 
-        /* ── Tab 4: Telemetry ────────────────────────────────── */
-        #telemetry-view {
+        .m3-step-card {
+            background: var(--md-sys-color-surface-container);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-shape-lg);
+            padding: 14px;
             display: flex;
             flex-direction: column;
-            height: 100%;
-            background: var(--bg-void);
+            gap: 6px;
+            transition: all 0.3s;
         }
+        .m3-step-card.active {
+            border-color: var(--md-sys-color-primary);
+            background: rgba(56, 189, 248, 0.08);
+            box-shadow: 0 0 16px rgba(56, 189, 248, 0.15);
+        }
+        .m3-step-card.done {
+            border-color: rgba(16, 185, 129, 0.4);
+            background: rgba(16, 185, 129, 0.06);
+        }
+        .step-num { font-size: 9.5px; font-family: var(--font-mono); font-weight: 700; color: var(--md-sys-color-outline); }
+        .step-label { font-size: 12px; font-weight: 700; color: var(--md-sys-color-on-surface); }
+        .step-desc { font-size: 10.5px; color: var(--md-sys-color-outline); }
+        .m3-step-card.active .step-label { color: var(--md-sys-color-primary); }
+        .m3-step-card.done .step-label { color: var(--md-sys-color-tertiary); }
 
-        .telemetry-filter-bar {
+        /* Live Token Stream Box */
+        .m3-thought-box {
+            background: var(--md-sys-color-surface-container);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-shape-lg);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: var(--md-elevation-1);
+        }
+        .thought-top-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 10px 20px;
-            background: rgba(10, 17, 34, 0.7);
-            border-bottom: 1px solid var(--border-subtle);
         }
-
-        .terminal-viewport {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px 24px;
+        .thought-title {
+            font-size: 11px;
+            font-family: var(--font-mono);
+            font-weight: 700;
+            color: var(--md-sys-color-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .thought-stream-viewport {
             font-family: var(--font-mono);
             font-size: 11.5px;
+            line-height: 1.7;
+            color: var(--md-sys-color-on-surface-variant);
+            background: rgba(0, 0, 0, 0.35);
+            padding: 12px 16px;
+            border-radius: var(--md-shape-md);
+            border-left: 3px solid var(--md-sys-color-secondary);
+            min-height: 60px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        /* Task Injection Form */
+        .m3-inject-bar {
+            background: var(--md-sys-color-surface-container-low);
+            border: 1px dashed var(--md-sys-color-outline-variant);
+            border-radius: var(--md-shape-lg);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .m3-inject-bar input {
+            flex: 1;
+            min-width: 160px;
+            background: var(--md-sys-color-surface-container);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-shape-sm);
+            padding: 8px 12px;
+            color: var(--md-sys-color-on-surface);
+            font-size: 12px;
+            outline: none;
+        }
+        .m3-inject-bar select {
+            background: var(--md-sys-color-surface-container);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-shape-sm);
+            padding: 8px 10px;
+            color: var(--md-sys-color-on-surface);
+            font-size: 12px;
+            outline: none;
+        }
+
+        /* Active Task Card */
+        .m3-active-task {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(139, 92, 246, 0.06));
+            border: 1px solid var(--md-sys-color-primary);
+            border-radius: var(--md-shape-lg);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: 0 0 24px rgba(56, 189, 248, 0.15);
+        }
+
+        /* Task Cards */
+        .m3-task-step {
+            background: var(--md-sys-color-surface-container);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-shape-lg);
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .tool-pill {
+            font-family: var(--font-mono);
+            font-size: 10.5px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: var(--md-shape-xs);
+            background: rgba(56, 189, 248, 0.12);
+            color: var(--md-sys-color-primary);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+        }
+        .verdict-tag {
+            font-family: var(--font-mono);
+            font-size: 9.5px;
+            font-weight: 800;
+            padding: 2px 8px;
+            border-radius: var(--md-shape-xs);
+            text-transform: uppercase;
+        }
+        .verdict-tag.CONFIRMED { background: rgba(16, 185, 129, 0.2); color: var(--md-sys-color-tertiary); border: 1px solid rgba(16, 185, 129, 0.4); }
+        .verdict-tag.PLAUSIBLE { background: rgba(245, 158, 11, 0.2); color: var(--md-sys-color-warning); border: 1px solid rgba(245, 158, 11, 0.4); }
+        .verdict-tag.REJECTED { background: rgba(244, 63, 94, 0.2); color: var(--md-sys-color-error); border: 1px solid rgba(244, 63, 94, 0.4); }
+
+        /* ── Tab 3: Dossier ──────────────────────────────────── */
+        #dossier-scroll-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+        .m3-dossier-card {
+            background: var(--md-sys-color-surface-container);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-shape-xl);
+            padding: 32px 40px;
+            font-size: 13.5px;
+            line-height: 1.8;
+            max-width: 960px;
+            margin: 0 auto;
+            box-shadow: var(--md-elevation-3);
+        }
+        .m3-dossier-card h1 { font-size: 20px; color: var(--md-sys-color-primary); margin-bottom: 14px; border-bottom: 1px solid var(--md-sys-color-outline-variant); padding-bottom: 8px; }
+        .m3-dossier-card h2 { font-size: 15px; color: var(--md-sys-color-on-surface); margin-top: 20px; margin-bottom: 8px; }
+        .m3-dossier-card ul { margin-left: 20px; margin-bottom: 12px; }
+        .m3-dossier-card code { font-family: var(--font-mono); background: rgba(0,0,0,0.35); padding: 2px 6px; border-radius: 4px; color: var(--md-sys-color-primary); font-size: 12px; }
+
+        /* ── Tab 4: Telemetry Terminal ───────────────────────── */
+        #telemetry-stage {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: var(--md-sys-color-surface-container-lowest);
+        }
+        .telemetry-header {
+            padding: 10px 16px;
+            background: var(--md-sys-color-surface);
+            border-bottom: 1px solid var(--md-sys-color-outline-variant);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .terminal-scroll-view {
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px 20px;
+            font-family: var(--font-mono);
+            font-size: 11px;
             line-height: 1.8;
             display: flex;
             flex-direction: column;
             gap: 2px;
         }
+        .term-row { display: flex; align-items: flex-start; gap: 10px; }
+        .term-time { color: var(--md-sys-color-outline); }
+        .term-tag { font-weight: 700; padding: 0 4px; border-radius: 3px; font-size: 9.5px; text-transform: uppercase; }
+        .term-tag.INFO { color: var(--md-sys-color-primary); }
+        .term-tag.MODEL { color: var(--md-sys-color-secondary); }
+        .term-tag.THOUGHT { color: var(--md-sys-color-tertiary); }
+        .term-tag.SUCCESS { color: var(--md-sys-color-tertiary); }
+        .term-tag.WARN { color: var(--md-sys-color-warning); }
+        .term-tag.ERROR { color: var(--md-sys-color-error); }
+        .term-msg { color: var(--md-sys-color-on-surface-variant); flex: 1; word-break: break-all; }
 
-        .term-row {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-        }
-        .term-time { color: var(--text-dim); }
-        .term-tag {
-            font-weight: 700;
-            padding: 0 5px;
-            border-radius: 3px;
-            font-size: 10px;
-            text-transform: uppercase;
-        }
-        .term-tag.INFO { color: var(--cyan); }
-        .term-tag.MODEL { color: var(--violet); }
-        .term-tag.THOUGHT { color: var(--emerald); }
-        .term-tag.SUCCESS { color: var(--emerald); }
-        .term-tag.WARN { color: var(--amber); }
-        .term-tag.ERROR { color: var(--rose); }
-        .term-msg { color: var(--text-muted); flex: 1; word-break: break-all; }
-
-        /* ── Modals ──────────────────────────────────────────── */
-        .modal-backdrop {
+        /* ── M3 Modal Dialog ─────────────────────────────────── */
+        .m3-dialog-backdrop {
             display: none;
             position: fixed;
             inset: 0;
@@ -982,259 +937,309 @@
             z-index: 100;
             align-items: center;
             justify-content: center;
+            padding: 16px;
         }
-        .modal-backdrop.show { display: flex; animation: fadeIn 0.2s ease; }
+        .m3-dialog-backdrop.show { display: flex; animation: fadeIn 0.2s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        .modal-panel {
-            width: 580px;
-            max-width: 92vw;
-            background: var(--bg-panel);
-            border: 1px solid var(--border-glow);
-            border-radius: var(--radius-xl);
-            padding: 28px;
+        .m3-dialog-panel {
+            width: 540px;
+            max-width: 100%;
+            background: var(--md-sys-color-surface-container-high);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-shape-xl);
+            padding: 24px;
             display: flex;
             flex-direction: column;
-            gap: 18px;
-            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.85), 0 0 48px rgba(56, 189, 248, 0.12);
+            gap: 16px;
+            box-shadow: var(--md-elevation-4);
         }
 
-        .modal-title-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .modal-title-text {
-            font-size: 16px;
-            font-weight: 800;
-            color: var(--text-main);
-        }
-
-        .form-field {
+        .m3-field {
             display: flex;
             flex-direction: column;
-            gap: 7px;
+            gap: 6px;
         }
-        .form-field label {
+        .m3-field label {
             font-size: 11px;
             font-weight: 700;
-            letter-spacing: 1px;
+            letter-spacing: 0.8px;
             text-transform: uppercase;
-            color: var(--text-dim);
+            color: var(--md-sys-color-outline);
         }
-        .form-field input, .form-field select, .form-field textarea {
-            background: var(--bg-surface);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-md);
-            padding: 11px 16px;
-            color: var(--text-main);
+        .m3-field input, .m3-field select, .m3-field textarea {
+            background: var(--md-sys-color-surface-container);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-shape-md);
+            padding: 10px 14px;
+            color: var(--md-sys-color-on-surface);
             font-size: 13px;
             font-family: var(--font-sans);
             outline: none;
             transition: all 0.2s;
         }
-        .form-field textarea {
-            min-height: 110px;
-            resize: vertical;
-            line-height: 1.6;
-        }
-        .form-field input:focus, .form-field select:focus, .form-field textarea:focus {
-            border-color: var(--cyan);
-            box-shadow: 0 0 0 2px var(--cyan-glow);
+        .m3-field textarea { min-height: 90px; resize: vertical; }
+        .m3-field input:focus, .m3-field select:focus, .m3-field textarea:focus {
+            border-color: var(--md-sys-color-primary);
+            box-shadow: 0 0 0 2px var(--md-sys-color-primary-glow);
         }
 
-        .modal-footer-btns {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 12px;
-            margin-top: 10px;
+        /* ── Responsive Breakpoints ──────────────────────────── */
+        @media (max-width: 1024px) {
+            .drawer-toggle-btn { display: inline-flex; }
+            #nav-drawer {
+                position: fixed;
+                top: 0;
+                bottom: 0;
+                left: 0;
+                z-index: 50;
+                transform: translateX(-100%);
+                box-shadow: var(--md-elevation-4);
+            }
+            #nav-drawer.open {
+                transform: translateX(0);
+            }
+            .drawer-scrim.open {
+                display: block;
+            }
+            .hud-telemetry-cluster { display: none; }
         }
 
-        /* ── Scrollbars ──────────────────────────────────────── */
+        @media (max-width: 768px) {
+            .top-app-bar { padding: 0 10px; }
+            .brand-chip { display: none; }
+            .m3-btn { padding: 0 12px; font-size: 11.5px; height: 32px; }
+            .m3-tab { padding: 0 10px; font-size: 11px; }
+            #node-inspector {
+                width: calc(100% - 28px);
+                top: auto;
+                bottom: 14px;
+                max-height: 60vh;
+            }
+            .m3-dossier-card { padding: 20px; }
+        }
+
+        /* Custom Scrollbars */
         ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.18); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--cyan); }
+        ::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.3); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--md-sys-color-primary); }
     </style>
 </head>
 <body>
     <div id="app">
-        <!-- ── Top Header & Neural Telemetry HUD ──────────────── -->
-        <header id="header">
-            <div class="brand-section">
-                <div class="brand-logo-text">AETHER</div>
-                <div class="brand-pill"><span>◆</span> OSINT Core v2.0</div>
+        <!-- ── Top App Bar (M3 Header) ────────────────────────── -->
+        <header class="top-app-bar">
+            <div class="brand-cluster">
+                <button class="drawer-toggle-btn" title="Toggle Investigations Drawer" onclick="toggleDrawer()">
+                    <span class="icon">menu</span>
+                </button>
+                <div class="brand-title">AETHER</div>
+                <div class="brand-chip">M3 OSINT Core</div>
             </div>
 
-            <!-- Neural Model Telemetry HUD -->
-            <div class="model-telemetry-hud" id="modelTelemetryHud">
+            <!-- Neural Telemetry HUD Pill (Desktop) -->
+            <div class="hud-telemetry-cluster" id="modelTelemetryHud">
                 <div class="hud-item">
-                    <span class="hud-label">Neural Engine:</span>
-                    <span class="model-name-badge" id="hudActiveModel">Gemma4-12B [Planner]</span>
+                    <span class="hud-label">Model:</span>
+                    <span class="model-badge" id="hudActiveModel">Gemma4-12B [Planner]</span>
                 </div>
                 <div class="hud-item">
                     <span class="hud-label">Role:</span>
-                    <span id="hudModelRole" style="font-weight:600;color:var(--text-main)">Fast Heuristic Ops</span>
+                    <span id="hudModelRole" style="font-weight:600;color:var(--md-sys-color-on-surface);">Fast Heuristic Ops</span>
                 </div>
                 <div class="hud-item">
-                    <span class="hud-label">VRAM Arbiter:</span>
-                    <span class="vram-lock-badge unlocked" id="hudVramBadge">Ready</span>
+                    <span class="hud-label">VRAM:</span>
+                    <span class="vram-badge unlocked" id="hudVramBadge">Ready</span>
                 </div>
             </div>
 
             <div class="header-actions">
-                <button class="audio-toggle-btn active" id="audioToggle" title="Toggle Cyber Audio FX" onclick="toggleAudioFx()">🔊</button>
-                <button class="btn btn-secondary btn-sm" onclick="openNewProjectModal()">+ New Project</button>
-                <button class="btn btn-primary btn-sm" id="btnRunCurrent" onclick="runCurrentProject()" disabled>▶ Launch</button>
-                <button class="btn btn-danger btn-sm" id="btnStopCurrent" onclick="stopCurrentProject()" disabled>⏹ Abort</button>
-                <button class="btn btn-secondary btn-sm" onclick="runBatchAll()">⚡ Run All Queue</button>
+                <button class="icon-btn active" id="audioToggle" title="Toggle Cyber Audio FX" onclick="toggleAudioFx()">
+                    <span class="icon">volume_up</span>
+                </button>
+                <button class="m3-btn m3-btn-tonal" onclick="openNewProjectModal()">
+                    <span class="icon" style="font-size:16px;">add</span> New Project
+                </button>
+                <button class="m3-btn m3-btn-filled" id="btnRunCurrent" onclick="runCurrentProject()" disabled>
+                    <span class="icon" style="font-size:16px;">play_arrow</span> Launch
+                </button>
+                <button class="m3-btn m3-btn-danger" id="btnStopCurrent" onclick="stopCurrentProject()" disabled>
+                    <span class="icon" style="font-size:16px;">stop</span> Abort
+                </button>
+                <button class="m3-btn m3-btn-tonal" onclick="runBatchAll()">
+                    <span class="icon" style="font-size:16px;">bolt</span> Run All
+                </button>
             </div>
         </header>
 
         <!-- ── Main Workspace ─────────────────────────────────── -->
-        <div id="workspace">
-            <!-- Left Sidebar (Projects Matrix) -->
-            <aside id="sidebar">
-                <div class="sidebar-header">
-                    <div class="sidebar-title-row">
-                        <div class="sidebar-title">📁 Investigations (<span id="projectTotalCount">0</span>)</div>
-                        <button class="btn btn-secondary btn-sm" onclick="loadProjects()">↻</button>
+        <div id="workspace-container">
+            <!-- Scrim for Mobile Drawer -->
+            <div class="drawer-scrim" id="drawerScrim" onclick="closeDrawer()"></div>
+
+            <!-- M3 Navigation Drawer (Sidebar) -->
+            <aside id="nav-drawer">
+                <div class="drawer-header">
+                    <div class="drawer-title-row">
+                        <div class="drawer-title">
+                            <span class="icon" style="font-size:16px;">folder_open</span>
+                            Investigations (<span id="projectTotalCount">0</span>)
+                        </div>
+                        <button class="icon-btn" style="width:28px;height:28px;" onclick="loadProjects()">
+                            <span class="icon" style="font-size:16px;">refresh</span>
+                        </button>
                     </div>
 
-                    <div class="search-box">
-                        <span class="icon">🔍</span>
+                    <div class="m3-search-bar">
+                        <span class="icon">search</span>
                         <input type="text" id="projectSearchInput" placeholder="Filter targets or seeds..." oninput="filterProjects()">
                     </div>
 
-                    <div class="filter-pills">
-                        <div class="filter-pill active" onclick="setProjectFilter('all', this)">All</div>
-                        <div class="filter-pill" onclick="setProjectFilter('running', this)">Active</div>
-                        <div class="filter-pill" onclick="setProjectFilter('completed', this)">Completed</div>
+                    <div class="filter-segmented-chips">
+                        <div class="filter-chip active" onclick="setProjectFilter('all', this)">All</div>
+                        <div class="filter-chip" onclick="setProjectFilter('running', this)">Active</div>
+                        <div class="filter-chip" onclick="setProjectFilter('completed', this)">Completed</div>
                     </div>
                 </div>
 
-                <div class="project-list" id="projectList">
+                <div class="project-scroll-list" id="projectList">
                     <!-- Project Cards Injected Dynamically -->
                 </div>
             </aside>
 
-            <!-- Right Main Area -->
-            <main id="main-content">
-                <!-- Active Project Context Banner -->
-                <div class="active-project-bar" id="activeProjectBanner">
-                    <div class="active-proj-left">
-                        <div class="active-proj-title" id="bannerProjTitle">Select an Investigation</div>
-                        <div class="active-proj-seed" id="bannerProjSeed">No Target</div>
-                        <div class="type-tag" id="bannerProjType">UNKNOWN</div>
+            <!-- Main Stage Area -->
+            <main id="stage-container">
+                <!-- Active Target Banner -->
+                <div class="active-target-bar">
+                    <div class="active-target-left">
+                        <div class="active-target-title" id="bannerProjTitle">Select an Investigation</div>
+                        <div class="active-target-seed" id="bannerProjSeed">No Target</div>
+                        <div class="m3-type-tag" id="bannerProjType">UNKNOWN</div>
                     </div>
-
-                    <div style="display:flex;align-items:center;gap:12px;">
-                        <div class="status-badge-lg idle" id="bannerStatusBadge">IDLE</div>
+                    <div>
+                        <span class="card-status-badge" id="bannerStatusBadge" style="background:rgba(255,255,255,0.08);color:var(--md-sys-color-outline);">IDLE</span>
                     </div>
                 </div>
 
-                <!-- Tab Navigation -->
-                <div class="tab-bar">
-                    <div class="tabs-group">
-                        <button class="tab-btn active" onclick="switchTab('graph', this)">🌐 Intelligence Topology</button>
-                        <button class="tab-btn" onclick="switchTab('pipeline', this)">⚡ Pipeline & Task Matrix</button>
-                        <button class="tab-btn" onclick="switchTab('dossier', this)">📄 Intelligence Dossier</button>
-                        <button class="tab-btn" onclick="switchTab('telemetry', this)">📡 Matrix Telemetry</button>
+                <!-- M3 Tab Navigation Bar -->
+                <div class="m3-tab-bar">
+                    <div class="m3-tabs">
+                        <button class="m3-tab active" onclick="switchTab('graph', this)">
+                            <span class="icon" style="font-size:17px;">hub</span> Topology Graph
+                        </button>
+                        <button class="m3-tab" onclick="switchTab('pipeline', this)">
+                            <span class="icon" style="font-size:17px;">dynamic_feed</span> Task Matrix
+                        </button>
+                        <button class="m3-tab" onclick="switchTab('dossier', this)">
+                            <span class="icon" style="font-size:17px;">description</span> Executive Dossier
+                        </button>
+                        <button class="m3-tab" onclick="switchTab('telemetry', this)">
+                            <span class="icon" style="font-size:17px;">terminal</span> Telemetry
+                        </button>
                     </div>
 
-                    <div style="display:flex;align-items:center;gap:10px;">
-                        <button class="btn btn-secondary btn-sm" onclick="exportDossierMarkdown()">📥 Export Report (.md)</button>
-                        <button class="btn btn-secondary btn-sm" onclick="window.print()">🖨 Print</button>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <button class="m3-btn m3-btn-tonal" style="height:30px;padding:0 10px;" onclick="exportDossierMarkdown()">
+                            <span class="icon" style="font-size:14px;">download</span> Export .md
+                        </button>
+                        <button class="m3-btn m3-btn-tonal" style="height:30px;padding:0 10px;" onclick="window.print()">
+                            <span class="icon" style="font-size:14px;">print</span> Print
+                        </button>
                     </div>
                 </div>
 
                 <!-- Tab 1: Topology Graph -->
-                <div class="tab-pane active" id="pane-graph">
-                    <div id="graph-container">
+                <div class="m3-pane active" id="pane-graph">
+                    <div id="graph-view">
                         <div id="cy"></div>
                         
-                        <div class="graph-controls-hud">
-                            <div class="hud-glass-card">
+                        <div class="graph-hud-top-left">
+                            <div class="graph-hud-pill">
                                 <span>Entities: <strong id="hudNodeCount">0</strong></span>
                                 <span>Edges: <strong id="hudEdgeCount">0</strong></span>
                             </div>
                         </div>
 
-                        <!-- Graph Toolbar (Physics & Controls) -->
-                        <div class="graph-toolbar">
-                            <button class="btn btn-secondary btn-sm" title="Physics Layout" onclick="setLayout('cose')">⚡ Force</button>
-                            <button class="btn btn-secondary btn-sm" title="Concentric Rings" onclick="setLayout('concentric')">🪐 Orbit</button>
-                            <button class="btn btn-secondary btn-sm" title="Hierarchy" onclick="setLayout('breadthfirst')">🌲 Tree</button>
-                            <button class="btn btn-secondary btn-sm" title="Fit to Screen" onclick="cy.fit(null, 50)">🔍 Fit</button>
-                            <button class="btn btn-primary btn-sm" title="Export HD Image" onclick="exportGraphImage()">📸 Image</button>
+                        <!-- Floating Graph Controls Toolbar -->
+                        <div class="graph-floating-toolbar">
+                            <button class="m3-btn m3-btn-tonal" style="height:28px;padding:0 10px;" onclick="setLayout('cose')">⚡ Force</button>
+                            <button class="m3-btn m3-btn-tonal" style="height:28px;padding:0 10px;" onclick="setLayout('concentric')">🪐 Orbit</button>
+                            <button class="m3-btn m3-btn-tonal" style="height:28px;padding:0 10px;" onclick="setLayout('breadthfirst')">🌲 Tree</button>
+                            <button class="m3-btn m3-btn-tonal" style="height:28px;padding:0 10px;" onclick="cy.fit(null, 50)">🔍 Fit</button>
+                            <button class="m3-btn m3-btn-filled" style="height:28px;padding:0 10px;" onclick="exportGraphImage()">📸 Image</button>
                         </div>
 
-                        <div class="graph-legend-bar">
+                        <div class="graph-legend-pill">
                             <div class="legend-chip"><div class="legend-dot" style="background:#f87171"></div> Person</div>
                             <div class="legend-chip"><div class="legend-dot" style="background:#fbbf24"></div> Company</div>
                             <div class="legend-chip"><div class="legend-dot" style="background:#34d399"></div> Domain</div>
                             <div class="legend-chip"><div class="legend-dot" style="background:#60a5fa"></div> IP</div>
                             <div class="legend-chip"><div class="legend-dot" style="background:#a78bfa"></div> Email</div>
-                            <div class="legend-chip"><div class="legend-dot" style="background:#f472b6"></div> Social Handle</div>
-                            <div class="legend-chip"><div class="legend-dot" style="background:#38bdf8"></div> Artifact / Finding</div>
+                            <div class="legend-chip"><div class="legend-dot" style="background:#f472b6"></div> Handle</div>
+                            <div class="legend-chip"><div class="legend-dot" style="background:#38bdf8"></div> Artifact</div>
                         </div>
 
-                        <!-- Node Property Inspector -->
+                        <!-- Node Inspector (Drawer / Bottom Sheet) -->
                         <div id="node-inspector">
                             <div style="display:flex;align-items:center;justify-content:space-between;">
-                                <strong id="inspectorTitle" style="color:var(--cyan);font-size:14px;">Entity Inspector</strong>
-                                <button class="btn btn-secondary btn-sm" onclick="closeInspector()">✕</button>
+                                <strong id="inspectorTitle" style="color:var(--md-sys-color-primary);font-size:13.5px;">Entity Inspector</strong>
+                                <button class="icon-btn" style="width:28px;height:28px;" onclick="closeInspector()">
+                                    <span class="icon" style="font-size:16px;">close</span>
+                                </button>
                             </div>
-                            <div id="inspectorBody" style="display:flex;flex-direction:column;gap:10px;font-size:12px;"></div>
+                            <div id="inspectorBody" style="display:flex;flex-direction:column;gap:8px;font-size:11.5px;"></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Tab 2: Execution Pipeline & Tasks Matrix -->
-                <div class="tab-pane" id="pane-pipeline">
-                    <div id="pipeline-view">
-                        <!-- 5-Phase Progression Stepper -->
-                        <div class="stepper-deck">
-                            <div class="step-node-card" id="phaseCard-planning">
-                                <div class="step-idx">PHASE 01</div>
-                                <div class="step-title">Strategic Planning</div>
+                <!-- Tab 2: Execution Pipeline & Task Matrix -->
+                <div class="m3-pane" id="pane-pipeline">
+                    <div id="pipeline-scroll-area">
+                        <!-- 5-Phase Adaptive Stepper -->
+                        <div class="adaptive-stepper">
+                            <div class="m3-step-card" id="phaseCard-planning">
+                                <div class="step-num">PHASE 01</div>
+                                <div class="step-label">Strategic Planning</div>
                                 <div class="step-desc">Gemma 12B Heuristic Graph</div>
                             </div>
-                            <div class="step-node-card" id="phaseCard-collecting">
-                                <div class="step-idx">PHASE 02</div>
-                                <div class="step-title">OSINT Collection</div>
+                            <div class="m3-step-card" id="phaseCard-collecting">
+                                <div class="step-num">PHASE 02</div>
+                                <div class="step-label">OSINT Collection</div>
                                 <div class="step-desc">Web, DNS, Social, OCR</div>
                             </div>
-                            <div class="step-node-card" id="phaseCard-reasoning">
-                                <div class="step-idx">PHASE 03</div>
-                                <div class="step-title">Abductive Reasoning</div>
+                            <div class="m3-step-card" id="phaseCard-reasoning">
+                                <div class="step-num">PHASE 03</div>
+                                <div class="step-label">Abductive Reasoning</div>
                                 <div class="step-desc">Hermes 35B Hypotheses</div>
                             </div>
-                            <div class="step-node-card" id="phaseCard-verifying">
-                                <div class="step-idx">PHASE 04</div>
-                                <div class="step-title">Adversarial Refutation</div>
+                            <div class="m3-step-card" id="phaseCard-verifying">
+                                <div class="step-num">PHASE 04</div>
+                                <div class="step-label">Adversarial Refutation</div>
                                 <div class="step-desc">Gemma 26B Red-Team Critic</div>
                             </div>
-                            <div class="step-node-card" id="phaseCard-synthesizing">
-                                <div class="step-idx">PHASE 05</div>
-                                <div class="step-title">Dossier Synthesis</div>
+                            <div class="m3-step-card" id="phaseCard-synthesizing">
+                                <div class="step-num">PHASE 05</div>
+                                <div class="step-label">Dossier Synthesis</div>
                                 <div class="step-desc">Executive Intelligence Report</div>
                             </div>
                         </div>
 
-                        <!-- Live AI Consciousness Stream -->
-                        <div class="ai-thought-deck">
-                            <div class="thought-header">
-                                <div class="thought-label"><span>🧠</span> AI Live Reasoning & Token Stream</div>
-                                <span style="font-size:10px;font-family:var(--font-mono);color:var(--text-dim)" id="thoughtModelTag">Hermes 35B / Gemma 12B</span>
+                        <!-- Live AI Token Stream Box -->
+                        <div class="m3-thought-box">
+                            <div class="thought-top-row">
+                                <div class="thought-title">
+                                    <span class="icon" style="font-size:16px;">psychology</span>
+                                    AI Live Reasoning & Token Stream
+                                </div>
+                                <span style="font-size:10px;font-family:var(--font-mono);color:var(--md-sys-color-outline);" id="thoughtModelTag">Hermes 35B / Gemma 12B</span>
                             </div>
-                            <div class="thought-text-content" id="liveThoughtStream">Awaiting investigation start... AI model internal monologue and strategic reasoning will stream here token-by-token in real-time.</div>
+                            <div class="thought-stream-viewport" id="liveThoughtStream">Awaiting investigation start... AI model internal monologue and strategic reasoning will stream here token-by-token in real-time.</div>
                         </div>
 
-                        <!-- Manual Task Injection -->
-                        <div class="injection-deck">
-                            <span style="font-size:11px;font-weight:700;color:var(--cyan);letter-spacing:1px;">⚡ INJECT TASK:</span>
+                        <!-- Manual Task Injection Bar -->
+                        <div class="m3-inject-bar">
+                            <span style="font-size:11px;font-weight:700;color:var(--md-sys-color-primary);">⚡ INJECT TASK:</span>
                             <select id="injectToolSelect">
                                 <option value="web_search">DuckDuckGo Web Search</option>
                                 <option value="social_recon">Social Username Recon</option>
@@ -1242,16 +1247,16 @@
                                 <option value="metadata_extractor">EXIF & File Metadata</option>
                             </select>
                             <input type="text" id="injectQueryInput" placeholder="Enter target query or parameter to force search...">
-                            <button class="btn btn-secondary btn-sm" onclick="injectManualTask()">Inject ▶</button>
+                            <button class="m3-btn m3-btn-tonal" onclick="injectManualTask()">Inject ▶</button>
                         </div>
 
                         <!-- Current Active Task -->
                         <div>
-                            <div style="font-size:11px;font-weight:800;letter-spacing:1.5px;color:var(--text-dim);text-transform:uppercase;margin-bottom:10px;">
+                            <div style="font-size:11px;font-weight:800;letter-spacing:1px;color:var(--md-sys-color-outline);text-transform:uppercase;margin-bottom:8px;">
                                 ⚡ Active Heuristic Execution
                             </div>
                             <div id="activeTaskContainer">
-                                <div style="color:var(--text-dim);font-size:12px;padding:18px;background:var(--bg-card);border-radius:var(--radius-lg);border:1px solid var(--border-subtle);">
+                                <div style="color:var(--md-sys-color-outline);font-size:12px;padding:16px;background:var(--md-sys-color-surface-container);border-radius:var(--md-shape-lg);border:1px solid var(--md-sys-color-outline-variant);">
                                     No active task currently running. Launch investigation to start execution cycle.
                                 </div>
                             </div>
@@ -1259,68 +1264,70 @@
 
                         <!-- Queued Hypotheses & Pending Searches -->
                         <div>
-                            <div style="font-size:11px;font-weight:800;letter-spacing:1.5px;color:var(--text-dim);text-transform:uppercase;margin-bottom:10px;">
+                            <div style="font-size:11px;font-weight:800;letter-spacing:1px;color:var(--md-sys-color-outline);text-transform:uppercase;margin-bottom:8px;">
                                 📋 Queued Abductive Hypotheses & Pending Tasks (<span id="pendingCountBadge">0</span>)
                             </div>
-                            <div class="tasks-timeline-container" id="pendingTasksList">
-                                <div style="color:var(--text-dim);font-size:12px;padding:8px;">No pending tasks in queue.</div>
+                            <div style="display:flex;flex-direction:column;gap:8px;" id="pendingTasksList">
+                                <div style="color:var(--md-sys-color-outline);font-size:12px;padding:8px;">No pending tasks in queue.</div>
                             </div>
                         </div>
 
                         <!-- Completed Tasks History -->
                         <div>
-                            <div style="font-size:11px;font-weight:800;letter-spacing:1.5px;color:var(--text-dim);text-transform:uppercase;margin-bottom:10px;">
+                            <div style="font-size:11px;font-weight:800;letter-spacing:1px;color:var(--md-sys-color-outline);text-transform:uppercase;margin-bottom:8px;">
                                 ✔ Completed Investigation Steps (<span id="completedCountBadge">0</span>)
                             </div>
-                            <div class="tasks-timeline-container" id="completedTasksList">
-                                <div style="color:var(--text-dim);font-size:12px;padding:8px;">No completed tasks yet.</div>
+                            <div style="display:flex;flex-direction:column;gap:8px;" id="completedTasksList">
+                                <div style="color:var(--md-sys-color-outline);font-size:12px;padding:8px;">No completed tasks yet.</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Tab 3: Intelligence Dossier -->
-                <div class="tab-pane" id="pane-dossier">
-                    <div id="dossier-view">
-                        <div class="dossier-sheet" id="dossierContent">
+                <div class="m3-pane" id="pane-dossier">
+                    <div id="dossier-scroll-area">
+                        <div class="m3-dossier-card" id="dossierContent">
                             Select an investigation project and run the engine to synthesize an executive intelligence dossier.
                         </div>
                     </div>
                 </div>
 
                 <!-- Tab 4: Telemetry Feed -->
-                <div class="tab-pane" id="pane-telemetry">
-                    <div id="telemetry-view">
-                        <div class="telemetry-filter-bar">
-                            <span style="font-size:11px;font-weight:700;color:var(--text-dim);letter-spacing:1px;">TELEMETRY FEED:</span>
-                            <span style="font-size:11px;font-family:var(--font-mono);color:var(--cyan)" id="telemetryEventCount">0 events</span>
+                <div class="m3-pane" id="pane-telemetry">
+                    <div id="telemetry-stage">
+                        <div class="telemetry-header">
+                            <span style="font-size:11px;font-weight:700;color:var(--md-sys-color-outline);letter-spacing:1px;">TELEMETRY FEED:</span>
+                            <span style="font-size:11px;font-family:var(--font-mono);color:var(--md-sys-color-primary);" id="telemetryEventCount">0 events</span>
                         </div>
-                        <div class="terminal-viewport" id="logTerminal"></div>
+                        <div class="terminal-scroll-view" id="logTerminal"></div>
                     </div>
                 </div>
             </main>
         </div>
     </div>
 
-    <!-- ── New Project Modal ──────────────────────────────────── -->
-    <div class="modal-backdrop" id="newProjectModal">
-        <div class="modal-panel">
-            <div class="modal-title-row">
-                <span class="modal-title-text">New Intelligence Investigation</span>
-                <button class="btn btn-secondary btn-sm" onclick="closeNewProjectModal()">✕</button>
+    <!-- ── M3 New Project Dialog ──────────────────────────────── -->
+    <div class="m3-dialog-backdrop" id="newProjectModal">
+        <div class="m3-dialog-panel">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span style="font-size:15px;font-weight:800;color:var(--md-sys-color-on-surface);">New Intelligence Investigation</span>
+                <button class="icon-btn" style="width:28px;height:28px;" onclick="closeNewProjectModal()">
+                    <span class="icon" style="font-size:16px;">close</span>
+                </button>
             </div>
 
-            <div class="form-field">
+            <div class="m3-field">
                 <label>Investigation Name</label>
                 <input type="text" id="inputProjName" placeholder="e.g., Operation DarkHorizon - Threat Actor Recon">
             </div>
 
-            <div class="form-field">
+            <div class="m3-field">
                 <label>Target Identifier (Seed) *</label>
                 <input type="text" id="inputProjSeed" placeholder="e.g., @hacker_handle, suspicious-c2.net, 194.26.29.11, email@domain.com">
             </div>
 
-            <div class="form-field">
+            <div class="m3-field">
                 <label>Target Type</label>
                 <select id="inputProjType">
                     <option value="unknown">Auto Detect</option>
@@ -1333,15 +1340,15 @@
                 </select>
             </div>
 
-            <div class="form-field">
+            <div class="m3-field">
                 <label>Target Intelligence Briefing & Context (Condition AI Models)</label>
                 <textarea id="inputProjBriefing" placeholder="Explain what this target is, suspected affiliations, known aliases, attack vectors, or specific questions you want the AI to answer..."></textarea>
             </div>
 
-            <div class="modal-footer-btns">
-                <button class="btn btn-secondary" onclick="closeNewProjectModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="createProjectAndRun(false)">Save Investigation</button>
-                <button class="btn btn-success" onclick="createProjectAndRun(true)">Save & Launch ▶</button>
+            <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:8px;">
+                <button class="m3-btn m3-btn-tonal" onclick="closeNewProjectModal()">Cancel</button>
+                <button class="m3-btn m3-btn-tonal" onclick="createProjectAndRun(false)">Save</button>
+                <button class="m3-btn m3-btn-filled" onclick="createProjectAndRun(true)">Save & Launch ▶</button>
             </div>
         </div>
     </div>
@@ -1362,6 +1369,19 @@
             image: '#fb923c', document: '#a3a3a3', artifact: '#38bdf8',
             unknown: '#64748b',
         };
+
+        // ── Responsive Drawer Toggle ─────────────────────────────
+        function toggleDrawer() {
+            const drawer = document.getElementById('nav-drawer');
+            const scrim = document.getElementById('drawerScrim');
+            drawer.classList.toggle('open');
+            scrim.classList.toggle('open');
+        }
+
+        function closeDrawer() {
+            document.getElementById('nav-drawer').classList.remove('open');
+            document.getElementById('drawerScrim').classList.remove('open');
+        }
 
         // ── Web Audio Synthesizer (Zero Assets Audio FX) ───────────
         let audioCtx = null;
@@ -1387,17 +1407,17 @@
 
                 if (type === 'discovery') {
                     osc.type = 'sine';
-                    osc.frequency.setValueAtTime(587.33, now); // D5
-                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.15); // A5
+                    osc.frequency.setValueAtTime(587.33, now);
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
                     gain.gain.setValueAtTime(0.08, now);
                     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
                     osc.start(now);
                     osc.stop(now + 0.3);
                 } else if (type === 'complete') {
                     osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(523.25, now); // C5
-                    osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
-                    osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.1);
+                    osc.frequency.setValueAtTime(783.99, now + 0.2);
                     gain.gain.setValueAtTime(0.1, now);
                     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
                     osc.start(now);
@@ -1416,7 +1436,7 @@
         function toggleAudioFx() {
             audioEnabled = !audioEnabled;
             const btn = document.getElementById('audioToggle');
-            btn.textContent = audioEnabled ? '🔊' : '🔇';
+            btn.querySelector('.icon').textContent = audioEnabled ? 'volume_up' : 'volume_off';
             btn.classList.toggle('active', audioEnabled);
             if (audioEnabled) playSound('click');
         }
@@ -1432,29 +1452,29 @@
                         'label': 'data(label)',
                         'color': '#f8fafc',
                         'font-size': '11px',
-                        'font-family': 'Inter, sans-serif',
+                        'font-family': 'Inter, Roboto, sans-serif',
                         'font-weight': '600',
                         'text-valign': 'bottom',
                         'text-margin-y': 6,
-                        'width': 32,
-                        'height': 32,
+                        'width': 30,
+                        'height': 30,
                         'border-width': 2,
                         'border-color': (ele) => TYPE_COLORS[ele.data('type')] || '#38bdf8',
                         'border-opacity': 0.6,
                         'text-outline-width': 2,
-                        'text-outline-color': '#02050b',
+                        'text-outline-color': '#0a0f1d',
                     },
                 },
                 {
                     selector: 'node[type="seed"], node[role="seed"]',
                     style: {
-                        'width': 48, 'height': 48,
+                        'width': 44, 'height': 44,
                         'background-color': '#38bdf8',
                         'border-width': 3,
                         'border-color': '#7dd3fc',
-                        'font-size': '13px',
+                        'font-size': '12.5px',
                         'font-weight': '800',
-                        'text-outline-color': '#02050b',
+                        'text-outline-color': '#0a0f1d',
                     },
                 },
                 {
@@ -1470,7 +1490,7 @@
                         'color': '#94a3b8',
                         'text-rotation': 'autorotate',
                         'text-outline-width': 1.5,
-                        'text-outline-color': '#02050b',
+                        'text-outline-color': '#0a0f1d',
                     },
                 },
             ],
@@ -1498,12 +1518,19 @@
 
         function exportGraphImage() {
             playSound('click');
-            const png64 = cy.png({ full: true, scale: 2, bg: '#02050b' });
+            const png64 = cy.png({ full: true, scale: 2, bg: '#050811' });
             const a = document.createElement('a');
             a.href = png64;
             a.download = `AETHER_Graph_${activeProjectId || 'network'}.png`;
             a.click();
         }
+
+        // ── Resize Observer for Cytoscape ────────────────────────
+        window.addEventListener('resize', () => {
+            if (cy) {
+                cy.resize();
+            }
+        });
 
         // ── Init ─────────────────────────────────────────────────
         window.addEventListener('DOMContentLoaded', () => {
@@ -1544,36 +1571,41 @@
             });
 
             if (filtered.length === 0) {
-                listEl.innerHTML = '<div style="color:var(--text-dim);font-size:12px;text-align:center;padding:32px;">No matching investigations found.</div>';
+                listEl.innerHTML = '<div style="color:var(--md-sys-color-outline);font-size:12px;text-align:center;padding:32px;">No matching investigations found.</div>';
                 return;
             }
 
             listEl.innerHTML = '';
             filtered.forEach(p => {
                 const card = document.createElement('div');
-                card.className = `project-card ${p.id === activeProjectId ? 'active' : ''}`;
-                card.onclick = () => selectProject(p.id);
+                card.className = `m3-card ${p.id === activeProjectId ? 'active' : ''}`;
+                card.onclick = () => {
+                    selectProject(p.id);
+                    if (window.innerWidth <= 1024) closeDrawer();
+                };
 
-                const statusColor = p.status === 'completed' ? 'var(--emerald)' :
-                                   ['planning','collecting','reasoning','verifying','synthesizing'].includes(p.status) ? 'var(--amber)' :
-                                   p.status === 'failed' ? 'var(--rose)' : 'var(--text-dim)';
+                const statusColor = p.status === 'completed' ? 'var(--md-sys-color-tertiary)' :
+                                   ['planning','collecting','reasoning','verifying','synthesizing'].includes(p.status) ? 'var(--md-sys-color-warning)' :
+                                   p.status === 'failed' ? 'var(--md-sys-color-error)' : 'var(--md-sys-color-outline)';
 
                 card.innerHTML = `
-                    <div class="project-card-header">
-                        <div class="project-card-name">${escapeHtml(p.name)}</div>
-                        <span style="font-size:10px;font-weight:800;color:${statusColor};text-transform:uppercase;">${p.status}</span>
+                    <div class="card-header-row">
+                        <div class="card-name">${escapeHtml(p.name)}</div>
+                        <span class="card-status-badge" style="background:rgba(255,255,255,0.06);color:${statusColor}">${p.status}</span>
                     </div>
-                    <div class="project-card-seed-row">
-                        <span class="project-card-seed">${escapeHtml(p.target_seed)}</span>
-                        <span class="type-tag">${p.target_type}</span>
+                    <div class="card-seed-row">
+                        <span class="card-seed">${escapeHtml(p.target_seed)}</span>
+                        <span class="m3-type-tag">${p.target_type}</span>
                     </div>
-                    <div class="project-card-briefing">${escapeHtml(p.context_briefing || 'No intelligence briefing context provided.')}</div>
-                    <div class="project-card-footer">
-                        <div class="project-stats-row">
-                            <span class="project-stat-item">🌐 ${p.entities_count}</span>
-                            <span class="project-stat-item">⚡ ${p.completed_tasks_count}</span>
+                    <div class="card-briefing">${escapeHtml(p.context_briefing || 'No intelligence briefing context provided.')}</div>
+                    <div class="card-footer-row">
+                        <div style="display:flex;gap:12px;font-family:var(--font-mono);font-size:10.5px;">
+                            <span>🌐 ${p.entities_count}</span>
+                            <span>⚡ ${p.completed_tasks_count}</span>
                         </div>
-                        <button class="btn btn-danger btn-sm" style="padding:2px 7px;" onclick="event.stopPropagation(); deleteProject('${p.id}')">✕</button>
+                        <button class="icon-btn" style="width:24px;height:24px;color:var(--md-sys-color-error);" onclick="event.stopPropagation(); deleteProject('${p.id}')">
+                            <span class="icon" style="font-size:14px;">delete</span>
+                        </button>
                     </div>
                 `;
                 listEl.appendChild(card);
@@ -1603,9 +1635,9 @@
                 
                 const badge = document.getElementById('bannerStatusBadge');
                 badge.textContent = p.status.toUpperCase();
-                badge.className = `status-badge-lg ${['planning','collecting','reasoning','verifying','synthesizing'].includes(p.status) ? 'running' : p.status === 'completed' ? 'completed' : p.status === 'failed' ? 'failed' : 'idle'}`;
-
                 const isRunning = ['planning','collecting','reasoning','verifying','synthesizing'].includes(p.status);
+                badge.style.color = isRunning ? 'var(--md-sys-color-warning)' : p.status === 'completed' ? 'var(--md-sys-color-tertiary)' : 'var(--md-sys-color-outline)';
+
                 document.getElementById('btnRunCurrent').disabled = isRunning;
                 document.getElementById('btnStopCurrent').disabled = !isRunning;
 
@@ -1637,7 +1669,7 @@
                         levelWidth: () => 2,
                         animate: true,
                         animationDuration: 500,
-                        padding: 70,
+                        padding: 60,
                     }).run();
                 }
 
@@ -1659,17 +1691,19 @@
                 const activeBox = document.getElementById('activeTaskContainer');
                 if (data.active_task) {
                     activeBox.innerHTML = `
-                        <div class="active-task-deck">
-                            <div class="active-task-meta-row">
-                                <span class="tool-chip">⚡ EXECUTING: ${escapeHtml(data.active_task.tool_name)}</span>
-                                <span style="font-size:11px;font-family:var(--font-mono);color:var(--cyan)">LIVE HEURISTIC</span>
+                        <div class="m3-active-task">
+                            <div style="display:flex;align-items:center;justify-content:space-between;">
+                                <span class="tool-pill">⚡ EXECUTING: ${escapeHtml(data.active_task.tool_name)}</span>
+                                <span style="font-size:10.5px;font-family:var(--font-mono);color:var(--md-sys-color-primary);">RUNNING</span>
                             </div>
-                            <div style="font-size:13px;font-weight:700;color:var(--text-main);">${escapeHtml(data.active_task.reasoning || 'Executing tactical search...')}</div>
-                            <div class="task-output-preview">Params: ${JSON.stringify(data.active_task.params, null, 2)}</div>
+                            <div style="font-size:12.5px;font-weight:700;color:var(--md-sys-color-on-surface);">${escapeHtml(data.active_task.reasoning || 'Executing search...')}</div>
+                            <div style="font-size:11px;font-family:var(--font-mono);color:var(--md-sys-color-outline);background:rgba(0,0,0,0.3);padding:8px 12px;border-radius:var(--md-shape-sm);">
+                                Params: ${JSON.stringify(data.active_task.params, null, 2)}
+                            </div>
                         </div>
                     `;
                 } else {
-                    activeBox.innerHTML = `<div style="color:var(--text-dim);font-size:12px;padding:18px;background:var(--bg-card);border-radius:var(--radius-lg);border:1px solid var(--border-subtle);">No active task currently running. Launch investigation to begin execution.</div>`;
+                    activeBox.innerHTML = `<div style="color:var(--md-sys-color-outline);font-size:12px;padding:16px;background:var(--md-sys-color-surface-container);border-radius:var(--md-shape-lg);border:1px solid var(--md-sys-color-outline-variant);">No active task currently running. Launch investigation to begin execution.</div>`;
                 }
 
                 // Pending Tasks
@@ -1679,28 +1713,28 @@
                 pendingCount.textContent = totalPending;
 
                 if (totalPending === 0) {
-                    pendingEl.innerHTML = `<div style="color:var(--text-dim);font-size:12px;padding:8px;">No pending tasks in queue.</div>`;
+                    pendingEl.innerHTML = `<div style="color:var(--md-sys-color-outline);font-size:12px;padding:8px;">No pending tasks in queue.</div>`;
                 } else {
                     pendingEl.innerHTML = '';
                     (data.active_hypotheses || []).forEach(h => {
                         const row = document.createElement('div');
-                        row.className = 'task-step-card';
+                        row.className = 'm3-task-step';
                         row.innerHTML = `
-                            <div class="task-step-top">
-                                <span class="tool-chip" style="color:var(--violet);background:rgba(139,92,246,0.12)">💡 Abductive Hypothesis (Hermes 35B)</span>
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                <span class="tool-pill" style="color:var(--md-sys-color-secondary);background:rgba(167,139,250,0.12)">💡 Abductive Hypothesis (Hermes 35B)</span>
                             </div>
-                            <div style="font-size:12px;color:var(--text-main);font-weight:600;">${escapeHtml(h)}</div>
+                            <div style="font-size:12px;color:var(--md-sys-color-on-surface);font-weight:600;">${escapeHtml(h)}</div>
                         `;
                         pendingEl.appendChild(row);
                     });
                     (data.pending_tasks || []).forEach(t => {
                         const row = document.createElement('div');
-                        row.className = 'task-step-card';
+                        row.className = 'm3-task-step';
                         row.innerHTML = `
-                            <div class="task-step-top">
-                                <span class="tool-chip">📋 Queued Search Action</span>
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                <span class="tool-pill">📋 Queued Search Action</span>
                             </div>
-                            <div style="font-size:12px;color:var(--text-main);">${escapeHtml(t)}</div>
+                            <div style="font-size:12px;color:var(--md-sys-color-on-surface);">${escapeHtml(t)}</div>
                         `;
                         pendingEl.appendChild(row);
                     });
@@ -1713,22 +1747,22 @@
                 compCount.textContent = tasks.length;
 
                 if (tasks.length === 0) {
-                    compEl.innerHTML = `<div style="color:var(--text-dim);font-size:12px;padding:8px;">No completed tasks yet.</div>`;
+                    compEl.innerHTML = `<div style="color:var(--md-sys-color-outline);font-size:12px;padding:8px;">No completed tasks yet.</div>`;
                 } else {
                     compEl.innerHTML = '';
                     tasks.slice().reverse().forEach(t => {
                         const row = document.createElement('div');
-                        row.className = 'task-step-card';
+                        row.className = 'm3-task-step';
                         row.innerHTML = `
-                            <div class="task-step-top">
-                                <span class="tool-chip">🔧 ${escapeHtml(t.tool_name)}</span>
-                                <div style="display:flex;align-items:center;gap:10px;">
-                                    <span style="font-size:11px;font-family:var(--font-mono);color:var(--text-dim)">${t.duration_seconds}s</span>
-                                    <span class="verdict-badge ${t.verdict || 'CONFIRMED'}">${t.verdict || 'CONFIRMED'} (${(t.confidence * 100).toFixed(0)}%)</span>
+                            <div style="display:flex;align-items:center;justify-content:space-between;">
+                                <span class="tool-pill">🔧 ${escapeHtml(t.tool_name)}</span>
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                    <span style="font-size:10.5px;font-family:var(--font-mono);color:var(--md-sys-color-outline);">${t.duration_seconds}s</span>
+                                    <span class="verdict-tag ${t.verdict || 'CONFIRMED'}">${t.verdict || 'CONFIRMED'} (${(t.confidence * 100).toFixed(0)}%)</span>
                                 </div>
                             </div>
-                            <div style="font-size:12px;font-weight:600;color:var(--text-main);">${escapeHtml(t.reasoning || 'Step executed')}</div>
-                            <div class="task-output-preview">${escapeHtml(t.output_summary)}</div>
+                            <div style="font-size:12px;font-weight:600;color:var(--md-sys-color-on-surface);">${escapeHtml(t.reasoning || 'Step executed')}</div>
+                            <div style="font-size:11px;font-family:var(--font-mono);color:var(--md-sys-color-on-surface-variant);background:rgba(0,0,0,0.3);padding:8px 12px;border-radius:var(--md-shape-sm);">${escapeHtml(t.output_summary)}</div>
                         `;
                         compEl.appendChild(row);
                     });
@@ -1792,7 +1826,7 @@
                     }),
                 });
                 if (resp.ok) {
-                    logEvent('SUCCESS', `⚡ Task injected into queue: [${tool}] ${query}`);
+                    logEvent('SUCCESS', `⚡ Task injected: [${tool}] ${query}`);
                     document.getElementById('injectQueryInput').value = '';
                     loadProjectTasks(activeProjectId);
                 }
@@ -1932,12 +1966,12 @@
             const vramBadge = document.getElementById('hudVramBadge');
             if (data.vram_locked) {
                 vramBadge.textContent = 'VRAM Locked (Active)';
-                vramBadge.className = 'vram-lock-badge locked';
+                vramBadge.className = 'vram-badge locked';
             } else {
                 vramBadge.textContent = 'Ready';
-                vramBadge.className = 'vram-lock-badge unlocked';
+                vramBadge.className = 'vram-badge unlocked';
             }
-            logEvent('MODEL', `Neural Engine [${data.active_model}]: ${data.task_label || 'Executing'} (${data.status})`);
+            logEvent('MODEL', `[${data.active_model}] ${data.task_label || 'Executing'} (${data.status})`);
         }
 
         function handleThoughtStream(data) {
@@ -1946,7 +1980,7 @@
                 el.textContent = data.thought;
             }
             document.getElementById('thoughtModelTag').textContent = `Active Model: ${data.model || 'LLM'}`;
-            logEvent('THOUGHT', `[${data.model}] ${data.thought.slice(0, 100)}...`);
+            logEvent('THOUGHT', `[${data.model}] ${data.thought.slice(0, 80)}...`);
         }
 
         function handleProjectEvent(msg) {
@@ -1991,7 +2025,7 @@
                     refreshActiveProject();
                     break;
                 default:
-                    logEvent('INFO', `${type}: ${JSON.stringify(data).slice(0, 120)}`);
+                    logEvent('INFO', `${type}: ${JSON.stringify(data).slice(0, 100)}`);
             }
         }
 
@@ -2001,11 +2035,11 @@
             document.getElementById('inspectorTitle').textContent = `[${(data.type || 'ENTITY').toUpperCase()}] ${data.label || data.id}`;
             const body = document.getElementById('inspectorBody');
             
-            let html = `<div><strong style="color:var(--text-dim)">ID:</strong> <span style="font-family:var(--font-mono)">${data.id}</span></div>`;
+            let html = `<div><strong style="color:var(--md-sys-color-outline)">ID:</strong> <span style="font-family:var(--font-mono)">${data.id}</span></div>`;
             if (data.properties) {
                 Object.entries(data.properties).forEach(([k, v]) => {
                     const val = typeof v === 'object' ? JSON.stringify(v, null, 2) : String(v);
-                    html += `<div><strong style="color:var(--text-dim)">${k}:</strong> <span style="font-family:var(--font-mono);color:var(--text-main);">${escapeHtml(val.slice(0, 250))}</span></div>`;
+                    html += `<div><strong style="color:var(--md-sys-color-outline)">${k}:</strong> <span style="font-family:var(--font-mono);color:var(--md-sys-color-on-surface);">${escapeHtml(val.slice(0, 250))}</span></div>`;
                 });
             }
             body.innerHTML = html;
@@ -2034,8 +2068,8 @@
 
         function switchTab(tabId, btn) {
             playSound('click');
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.m3-tab').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.m3-pane').forEach(p => p.classList.remove('active'));
 
             btn.classList.add('active');
             document.getElementById(`pane-${tabId}`).classList.add('active');
@@ -2048,7 +2082,7 @@
         function setProjectFilter(filter, el) {
             playSound('click');
             activeFilter = filter;
-            document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.filter-chip').forEach(p => p.classList.remove('active'));
             el.classList.add('active');
             renderProjectList();
         }
