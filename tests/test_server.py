@@ -168,3 +168,12 @@ class TestProjectEndpoints:
         assert sdata["spec_version"] == "2.1"
         assert len(sdata["objects"]) >= 1
         assert sdata["objects"][0]["type"] == "identity"
+
+    def test_system_update_check_endpoint(self, client: TestClient):
+        resp = client.get("/api/system/update-check")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "current_version" in data
+        assert "current_commit" in data
+        assert "repo_url" in data
+        assert "update_available" in data

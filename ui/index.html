@@ -1409,6 +1409,7 @@
                 <button class="filter-chip active" id="tabBtnModels" onclick="switchSettingsTab('models')">🤖 Model Roles</button>
                 <button class="filter-chip" id="tabBtnReasoning" onclick="switchSettingsTab('reasoning')">🧠 Cognitive Depth</button>
                 <button class="filter-chip" id="tabBtnHardware" onclick="switchSettingsTab('hardware')">⚡ Hardware & VRAM</button>
+                <button class="filter-chip" id="tabBtnUpdate" onclick="switchSettingsTab('update')">🔄 System & Updates</button>
             </div>
 
             <!-- Settings Tab 1: Models -->
@@ -1503,6 +1504,28 @@
                         <option value="true">Enabled (Prevents VRAM OOM crashes)</option>
                         <option value="false">Disabled</option>
                     </select>
+                </div>
+            </div>
+
+            <!-- Settings Tab 4: System & Updates -->
+            <div class="settings-tab-content" id="settingsTabUpdate" style="display:none;flex-direction:column;gap:14px;max-height:55vh;overflow-y:auto;padding-right:4px;">
+                <div style="background:rgba(255,255,255,0.03);border:1px solid var(--md-sys-color-outline-variant);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:12px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+                        <div>
+                            <div style="font-size:14px;font-weight:800;color:var(--md-sys-color-on-surface);">AETHER Engine Version</div>
+                            <div style="font-size:12px;font-family:var(--font-mono);color:var(--md-sys-color-primary);" id="updateCurrentVer">v2.0.0 (Commit: local)</div>
+                        </div>
+                        <button class="m3-btn m3-btn-filled" id="btnCheckUpdate" style="height:34px;" onclick="triggerCheckUpdate()">
+                            <span class="icon" style="font-size:15px;">refresh</span> Check for Updates
+                        </button>
+                    </div>
+                    
+                    <div id="updateStatusBox" style="display:none;padding:12px;border-radius:6px;font-size:12px;line-height:1.5;"></div>
+                </div>
+
+                <div style="font-size:11px;color:var(--md-sys-color-outline);line-height:1.6;">
+                    <span>GitHub Repository: </span><a href="https://github.com/ark4ng3l/aether" target="_blank" style="color:var(--md-sys-color-primary);text-decoration:none;">github.com/ark4ng3l/aether</a><br/>
+                    <span>Automatically compares your local Git commit and releases against the remote <code>main</code> branch.</span>
                 </div>
             </div>
 
@@ -2488,6 +2511,70 @@
             } else if (tabName === 'hardware') {
                 document.getElementById('settingsTabHardware').style.display = 'flex';
                 document.getElementById('tabBtnHardware').classList.add('active');
+            } else if (tabName === 'update') {
+                document.getElementById('settingsTabUpdate').style.display = 'flex';
+                document.getElementById('tabBtnUpdate').classList.add('active');
+            }
+        }
+
+        async function triggerCheckUpdate() {
+            playSound('click');
+            const btn = document.getElementById('btnCheckUpdate');
+            const box = document.getElementById('updateStatusBox');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="icon" style="font-size:15px;animation:spin 1s linear infinite;">refresh</span> Checking GitHub...';
+            box.style.display = 'block';
+            box.style.background = 'rgba(255,255,255,0.05)';
+            box.style.border = '1px solid var(--md-sys-color-outline-variant)';
+            box.style.color = 'var(--md-sys-color-on-surface)';
+            box.innerHTML = 'Connecting to GitHub API repository <code>ark4ng3l/aether</code>...';
+
+            try {
+                const resp = await fetch('/api/system/update-check');
+                const data = await resp.json();
+                
+                document.getElementById('updateCurrentVer').textContent = `v${data.current_version} (Commit: ${data.current_commit})`;
+
+                if (data.update_available) {
+                    box.style.background = 'rgba(56, 189, 248, 0.12)';
+                    box.style.border = '1px solid var(--md-sys-color-primary)';
+                    box.style.color = '#7dd3fc';
+                    box.innerHTML = `
+                        <div style="display:flex;align-items:flex-start;gap:8px;">
+                            <span class="icon" style="font-size:18px;color:var(--md-sys-color-primary)">system_update</span>
+                            <div>
+                                <strong style="font-size:13px;">New Update Available!</strong><br/>
+                                <span style="font-size:11.5px;color:var(--md-sys-color-on-surface);">Latest Commit: <code style="color:var(--md-sys-color-primary)">${data.latest_commit}</code></span><br/>
+                                <span style="font-size:11.5px;color:var(--md-sys-color-outline);">${escapeHtml(data.latest_commit_message || '')}</span><br/>
+                                <div style="margin-top:8px;">
+                                    <span style="font-size:11px;">To update your local installation, run in your terminal:</span><br/>
+                                    <code style="background:rgba(0,0,0,0.4);padding:4px 8px;border-radius:4px;display:inline-block;margin-top:4px;">git pull origin main</code>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    box.style.background = 'rgba(34, 197, 94, 0.12)';
+                    box.style.border = '1px solid var(--md-sys-color-tertiary)';
+                    box.style.color = '#86efac';
+                    box.innerHTML = `
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span class="icon" style="font-size:18px;color:var(--md-sys-color-tertiary)">check_circle</span>
+                            <div>
+                                <strong style="font-size:13px;">You are up to date!</strong><br/>
+                                <span style="font-size:11.5px;color:var(--md-sys-color-on-surface-variant);">You are running the latest version of AETHER (Commit: <code>${data.current_commit}</code>).</span>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch(e) {
+                box.style.background = 'rgba(239, 68, 68, 0.12)';
+                box.style.border = '1px solid var(--md-sys-color-error)';
+                box.style.color = '#fca5a5';
+                box.innerHTML = `⚠️ Update check failed: ${escapeHtml(e.message)}`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span class="icon" style="font-size:15px;">refresh</span> Check for Updates';
             }
         }
 

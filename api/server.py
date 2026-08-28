@@ -423,6 +423,15 @@ async def update_settings_endpoint(req: UpdateSettingsRequest):
     return {"status": "updated", "settings": updates}
 
 
+@app.get("/api/system/update-check")
+async def check_for_updates():
+    """Checks GitHub for new commits, tags, and releases."""
+    from aether.core.updater import check_github_update
+    update_info = await check_github_update()
+    return update_info
+
+
+
 # ── WebSocket Real-Time Streaming ─────────────────────────────────────────────
 
 @app.websocket("/ws/{channel_id:path}")
