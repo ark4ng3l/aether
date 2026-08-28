@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AETHER // Cyber OSINT Operations Command</title>
+    <title>AETHER // Autonomous Cyber OSINT & Neural Intelligence Operations</title>
     <meta name="description" content="AETHER — Autonomous Extraction, Tactical Heuristic Exploration & Resolution Intelligence Platform">
     
-    <!-- Google Fonts & Material Symbols (M3) -->
+    <!-- Google Fonts: Outfit (Headlines), Inter (UI), JetBrains Mono (Code/Telemetry) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..24,300..700,0..1,0" />
     
     <!-- Cytoscape Graph, Leaflet Geo Map & Markdown Parser -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.4/cytoscape.min.js"></script>
@@ -19,87 +19,122 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <style>
-        /* ── Material Design 3 (M3) Token System ──────────────── */
+        /* ── AETHER Ultra-Modern Cyber Design System ──────────── */
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         
         :root {
-            /* M3 Dark Theme Surface Roles */
-            --md-sys-color-surface: #0a0f1d;
-            --md-sys-color-surface-dim: #050811;
-            --md-sys-color-surface-container-lowest: #020409;
-            --md-sys-color-surface-container-low: #0e1629;
-            --md-sys-color-surface-container: #141f38;
-            --md-sys-color-surface-container-high: #1c2a4c;
-            --md-sys-color-surface-container-highest: #24355f;
-            
-            /* M3 Primary Roles (Electric Cyan & Neon Accents) */
-            --md-sys-color-primary: #38bdf8;
-            --md-sys-color-on-primary: #003548;
-            --md-sys-color-primary-container: #004d67;
-            --md-sys-color-on-primary-container: #c2e8ff;
-            --md-sys-color-primary-glow: rgba(56, 189, 248, 0.28);
+            /* Deep Cyber Obsidian Surfaces */
+            --bg-void: #030712;
+            --bg-base: #060a17;
+            --bg-surface: rgba(11, 18, 38, 0.75);
+            --bg-surface-elevated: rgba(16, 26, 54, 0.85);
+            --bg-surface-highest: rgba(22, 36, 74, 0.95);
+            --bg-glass: rgba(15, 23, 42, 0.65);
+            --bg-input: rgba(4, 8, 20, 0.6);
 
-            /* M3 Secondary / Tertiary Roles */
-            --md-sys-color-secondary: #a78bfa;
-            --md-sys-color-on-secondary: #2e1065;
-            --md-sys-color-secondary-container: #4c1d95;
-            --md-sys-color-tertiary: #34d399;
-            --md-sys-color-error: #f43f5e;
-            --md-sys-color-warning: #f59e0b;
+            /* High-Tech Accent Palette */
+            --cyan-core: #00f0ff;
+            --cyan-primary: #38bdf8;
+            --cyan-glow: rgba(0, 240, 255, 0.35);
+            --cyan-subtle: rgba(56, 189, 248, 0.12);
 
-            /* M3 Text & Outline Roles */
-            --md-sys-color-on-surface: #f8fafc;
-            --md-sys-color-on-surface-variant: #cbd5e1;
-            --md-sys-color-outline: #64748b;
-            --md-sys-color-outline-variant: rgba(100, 116, 139, 0.25);
-            
-            /* M3 Elevation Shadows */
-            --md-elevation-1: 0 1px 3px 1px rgba(0, 0, 0, 0.25), 0 1px 2px 0 rgba(0, 0, 0, 0.35);
-            --md-elevation-2: 0 2px 6px 2px rgba(0, 0, 0, 0.3), 0 1px 2px 0 rgba(0, 0, 0, 0.4);
-            --md-elevation-3: 0 4px 12px 3px rgba(0, 0, 0, 0.4), 0 2px 4px 0 rgba(0, 0, 0, 0.45);
-            --md-elevation-4: 0 8px 24px 4px rgba(0, 0, 0, 0.5), 0 4px 8px 0 rgba(0, 0, 0, 0.55);
+            --violet-neon: #a855f7;
+            --violet-primary: #818cf8;
+            --violet-glow: rgba(168, 85, 247, 0.3);
 
-            /* Shape Tokens */
-            --md-shape-xs: 4px;
-            --md-shape-sm: 8px;
-            --md-shape-md: 12px;
-            --md-shape-lg: 16px;
-            --md-shape-xl: 24px;
-            --md-shape-full: 9999px;
+            --emerald-neon: #10b981;
+            --emerald-primary: #34d399;
+            --emerald-glow: rgba(16, 185, 129, 0.3);
 
-            /* Fonts */
-            --font-sans: 'Inter', 'Roboto', system-ui, sans-serif;
+            --amber-neon: #f59e0b;
+            --amber-primary: #fbbf24;
+
+            --rose-neon: #f43f5e;
+            --rose-primary: #fb7185;
+            --rose-glow: rgba(244, 63, 94, 0.3);
+
+            /* Typography Colors */
+            --text-high: #f8fafc;
+            --text-medium: #cbd5e1;
+            --text-low: #64748b;
+            --text-code: #7dd3fc;
+
+            /* Borders & Micro-Lines */
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --border-highlight: rgba(56, 189, 248, 0.28);
+            --border-active: #00f0ff;
+
+            /* Elevation & Glows */
+            --shadow-glass: 0 16px 40px -10px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            --shadow-glow: 0 0 20px rgba(56, 189, 248, 0.2);
+            --shadow-card-hover: 0 12px 30px -5px rgba(0, 0, 0, 0.8), 0 0 20px rgba(56, 189, 248, 0.15);
+
+            /* Typography Stacks */
+            --font-display: 'Outfit', 'Inter', system-ui, sans-serif;
+            --font-body: 'Inter', system-ui, sans-serif;
             --font-mono: 'JetBrains Mono', monospace;
+
+            /* Shapes */
+            --radius-xs: 4px;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            --radius-full: 9999px;
+
+            /* Compatibility Aliases for M3 tokens */
+            --md-sys-color-surface: var(--bg-surface);
+            --md-sys-color-surface-dim: var(--bg-base);
+            --md-sys-color-surface-container: var(--bg-surface-elevated);
+            --md-sys-color-surface-container-low: var(--bg-surface);
+            --md-sys-color-surface-container-high: var(--bg-surface-elevated);
+            --md-sys-color-surface-container-highest: var(--bg-surface-highest);
+            --md-sys-color-primary: var(--cyan-primary);
+            --md-sys-color-on-primary: #002230;
+            --md-sys-color-secondary: var(--violet-primary);
+            --md-sys-color-tertiary: var(--emerald-primary);
+            --md-sys-color-warning: var(--amber-primary);
+            --md-sys-color-error: var(--rose-primary);
+            --md-sys-color-on-surface: var(--text-high);
+            --md-sys-color-on-surface-variant: var(--text-medium);
+            --md-sys-color-outline: var(--text-low);
+            --md-sys-color-outline-variant: var(--border-subtle);
+            --md-sys-color-primary-glow: var(--cyan-glow);
+            --font-sans: var(--font-body);
         }
 
         html, body {
             height: 100%;
             width: 100%;
             overflow: hidden;
-            background-color: var(--md-sys-color-surface-dim);
-            color: var(--md-sys-color-on-surface);
-            font-family: var(--font-sans);
+            background-color: var(--bg-void);
+            background-image: 
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(56, 189, 248, 0.12), transparent 70%),
+                radial-gradient(ellipse 60% 40% at 90% 90%, rgba(168, 85, 247, 0.08), transparent 60%),
+                radial-gradient(ellipse 40% 30% at 10% 80%, rgba(16, 185, 129, 0.05), transparent 60%),
+                linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 100% 100%, 36px 36px, 36px 36px;
+            color: var(--text-high);
+            font-family: var(--font-body);
             -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
-        /* ── M3 Icons ────────────────────────────────────────── */
+        /* ── Icon Glyph Style ─────────────────────────────────── */
         .icon {
             font-family: 'Material Symbols Outlined';
-            font-weight: normal;
+            font-weight: 400;
             font-style: normal;
-            font-size: 20px;
+            font-size: 19px;
             line-height: 1;
-            letter-spacing: normal;
-            text-transform: none;
             display: inline-block;
             white-space: nowrap;
-            word-wrap: normal;
-            direction: ltr;
             vertical-align: middle;
             user-select: none;
         }
 
-        /* ── Master App Layout ───────────────────────────────── */
+        /* ── App Shell Layout ─────────────────────────────────── */
         #app {
             display: flex;
             flex-direction: column;
@@ -108,19 +143,21 @@
             overflow: hidden;
         }
 
-        /* ── M3 Top App Bar (Header) ─────────────────────────── */
+        /* ── Ultra-Glassmorphic Top HUD Bar ──────────────────── */
         .top-app-bar {
             height: 64px;
             min-height: 64px;
-            background: var(--md-sys-color-surface);
-            border-bottom: 1px solid var(--md-sys-color-outline-variant);
+            background: rgba(6, 10, 23, 0.82);
+            backdrop-filter: blur(24px) saturate(190%);
+            -webkit-backdrop-filter: blur(24px) saturate(190%);
+            border-bottom: 1px solid var(--border-highlight);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 16px;
-            gap: 12px;
+            padding: 0 20px;
+            gap: 16px;
             z-index: 40;
-            box-shadow: var(--md-elevation-1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.6);
         }
 
         .brand-cluster {
@@ -130,167 +167,218 @@
             flex-shrink: 0;
         }
 
+        .brand-logo-gem {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, rgba(56,189,248,0.25), rgba(168,85,247,0.25));
+            border: 1px solid rgba(56,189,248,0.5);
+            box-shadow: 0 0 16px rgba(56,189,248,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .brand-logo-gem::after {
+            content: '';
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--cyan-core);
+            box-shadow: 0 0 8px var(--cyan-core);
+            top: 4px;
+            right: 4px;
+            animation: pulseFast 1.5s infinite;
+        }
+
         .drawer-toggle-btn {
             display: none;
             background: transparent;
             border: none;
-            color: var(--md-sys-color-on-surface);
+            color: var(--text-high);
             cursor: pointer;
             padding: 8px;
-            border-radius: var(--md-shape-full);
-            transition: background 0.2s;
+            border-radius: var(--radius-full);
+            transition: all 0.2s;
         }
-        .drawer-toggle-btn:hover { background: rgba(255,255,255,0.08); }
+        .drawer-toggle-btn:hover { background: rgba(255,255,255,0.08); color: var(--cyan-primary); }
 
         .brand-title {
-            font-size: 17px;
+            font-family: var(--font-display);
+            font-size: 20px;
             font-weight: 900;
-            letter-spacing: 2.5px;
-            background: linear-gradient(135deg, #7dd3fc 0%, #38bdf8 50%, #a78bfa 100%);
+            letter-spacing: 3px;
+            background: linear-gradient(135deg, #ffffff 0%, #7dd3fc 45%, #c084fc 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             white-space: nowrap;
+            text-shadow: 0 0 30px rgba(56, 189, 248, 0.4);
         }
 
         .brand-chip {
             font-family: var(--font-mono);
-            font-size: 10px;
-            letter-spacing: 1px;
-            color: var(--md-sys-color-primary);
-            background: rgba(56, 189, 248, 0.1);
-            border: 1px solid rgba(56, 189, 248, 0.25);
-            padding: 2px 8px;
-            border-radius: var(--md-shape-xs);
+            font-size: 9.5px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            color: var(--cyan-core);
+            background: rgba(0, 240, 255, 0.08);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            padding: 3px 8px;
+            border-radius: var(--radius-xs);
             white-space: nowrap;
+            text-transform: uppercase;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.15);
         }
 
         /* Top HUD Telemetry Pill */
         .hud-telemetry-cluster {
             display: flex;
             align-items: center;
-            gap: 14px;
-            background: var(--md-sys-color-surface-container);
-            border: 1px solid var(--md-sys-color-outline-variant);
-            padding: 4px 14px;
-            border-radius: var(--md-shape-full);
-            font-size: 12px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            gap: 16px;
+            background: rgba(13, 20, 38, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-highlight);
+            padding: 5px 16px;
+            border-radius: var(--radius-full);
+            font-size: 11.5px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 4px 16px rgba(0,0,0,0.4);
         }
 
         .hud-item {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 7px;
         }
         .hud-label {
-            font-size: 10px;
+            font-size: 9.5px;
             font-family: var(--font-mono);
-            color: var(--md-sys-color-outline);
+            font-weight: 700;
+            color: var(--text-low);
             text-transform: uppercase;
+            letter-spacing: 0.8px;
         }
         .model-badge {
             font-family: var(--font-mono);
             font-size: 11px;
-            font-weight: 600;
-            color: var(--md-sys-color-primary);
+            font-weight: 700;
+            color: var(--cyan-primary);
             background: rgba(56, 189, 248, 0.12);
-            padding: 2px 7px;
-            border-radius: var(--md-shape-xs);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            padding: 2px 8px;
+            border-radius: var(--radius-xs);
         }
 
         .vram-badge {
-            font-size: 10px;
-            font-weight: 700;
-            padding: 2px 8px;
-            border-radius: var(--md-shape-full);
+            font-family: var(--font-mono);
+            font-size: 9.5px;
+            font-weight: 800;
+            padding: 2px 9px;
+            border-radius: var(--radius-full);
             text-transform: uppercase;
+            letter-spacing: 0.8px;
         }
         .vram-badge.locked {
-            background: rgba(245, 158, 11, 0.2);
-            color: var(--md-sys-color-warning);
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--amber-primary);
             border: 1px solid rgba(245, 158, 11, 0.4);
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.25);
             animation: pulseFast 1.2s infinite ease-in-out;
         }
         .vram-badge.unlocked {
-            background: rgba(16, 185, 129, 0.2);
-            color: var(--md-sys-color-tertiary);
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--emerald-primary);
             border: 1px solid rgba(16, 185, 129, 0.4);
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
         }
-        @keyframes pulseFast { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes pulseFast { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
 
         .header-actions {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             flex-shrink: 0;
         }
 
-        /* ── M3 Buttons ──────────────────────────────────────── */
+        /* ── Cyber Buttons ────────────────────────────────────── */
         .m3-btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
+            gap: 7px;
             height: 36px;
             padding: 0 16px;
-            border-radius: var(--md-shape-full);
+            border-radius: var(--radius-sm);
+            font-family: var(--font-display);
             font-size: 12.5px;
-            font-weight: 600;
-            letter-spacing: 0.2px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
             cursor: pointer;
             border: 1px solid transparent;
             outline: none;
-            transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+            transition: all 0.25s cubic-bezier(0.2, 0, 0, 1);
             white-space: nowrap;
             user-select: none;
+            position: relative;
+            overflow: hidden;
         }
 
         .m3-btn-filled {
-            background: var(--md-sys-color-primary);
-            color: var(--md-sys-color-on-primary);
-            box-shadow: var(--md-elevation-1);
+            background: linear-gradient(135deg, #0284c7 0%, #0284c7 30%, #38bdf8 100%);
+            color: #030712;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 16px rgba(56, 189, 248, 0.35);
         }
         .m3-btn-filled:hover:not(:disabled) {
-            box-shadow: 0 0 16px var(--md-sys-color-primary-glow);
-            transform: translateY(-1px);
+            box-shadow: 0 0 24px var(--cyan-glow), 0 4px 12px rgba(0,0,0,0.5);
+            transform: translateY(-1.5px);
+            filter: brightness(1.1);
         }
 
         .m3-btn-tonal {
-            background: var(--md-sys-color-surface-container-high);
-            color: var(--md-sys-color-on-surface);
-            border-color: var(--md-sys-color-outline-variant);
+            background: rgba(16, 26, 54, 0.85);
+            backdrop-filter: blur(10px);
+            color: var(--text-high);
+            border-color: var(--border-subtle);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
         }
         .m3-btn-tonal:hover:not(:disabled) {
-            background: var(--md-sys-color-surface-container-highest);
-            border-color: var(--md-sys-color-primary);
+            background: rgba(24, 38, 76, 0.95);
+            border-color: var(--cyan-primary);
+            color: var(--cyan-primary);
+            box-shadow: 0 0 14px rgba(56, 189, 248, 0.2);
+            transform: translateY(-1px);
         }
 
         .m3-btn-danger {
             background: rgba(244, 63, 94, 0.15);
-            color: var(--md-sys-color-error);
-            border-color: rgba(244, 63, 94, 0.3);
+            color: var(--rose-primary);
+            border-color: rgba(244, 63, 94, 0.35);
+            box-shadow: 0 0 12px rgba(244, 63, 94, 0.15);
         }
         .m3-btn-danger:hover:not(:disabled) {
-            background: rgba(244, 63, 94, 0.25);
+            background: rgba(244, 63, 94, 0.28);
+            border-color: var(--rose-primary);
+            box-shadow: 0 0 20px var(--rose-glow);
+            transform: translateY(-1px);
         }
 
         .m3-btn:disabled {
-            opacity: 0.4;
+            opacity: 0.35;
             cursor: not-allowed;
             transform: none !important;
             box-shadow: none !important;
+            filter: grayscale(0.8);
         }
 
         .icon-btn {
             width: 36px;
             height: 36px;
             padding: 0;
-            border-radius: var(--md-shape-full);
-            background: transparent;
-            border: 1px solid var(--md-sys-color-outline-variant);
-            color: var(--md-sys-color-on-surface-variant);
+            border-radius: var(--radius-sm);
+            background: rgba(16, 26, 54, 0.7);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-medium);
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -298,14 +386,16 @@
             transition: all 0.2s;
         }
         .icon-btn:hover {
-            color: var(--md-sys-color-on-surface);
-            background: rgba(255, 255, 255, 0.08);
-            border-color: var(--md-sys-color-primary);
+            color: var(--cyan-primary);
+            background: rgba(24, 38, 76, 0.9);
+            border-color: var(--cyan-primary);
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
         }
         .icon-btn.active {
-            color: var(--md-sys-color-primary);
-            border-color: var(--md-sys-color-primary);
-            background: rgba(56, 189, 248, 0.12);
+            color: var(--cyan-core);
+            border-color: var(--cyan-core);
+            background: rgba(0, 240, 255, 0.12);
+            box-shadow: 0 0 14px var(--cyan-glow);
         }
 
         /* ── Workspace Responsive Split ──────────────────────── */
@@ -318,26 +408,29 @@
             position: relative;
         }
 
-        /* ── M3 Navigation Drawer (Sidebar) ─────────────────── */
+        /* ── Operations Command Deck (Sidebar) ───────────────── */
         #nav-drawer {
-            width: 340px;
-            min-width: 340px;
-            max-width: 340px;
-            background: var(--md-sys-color-surface-container-low);
-            border-right: 1px solid var(--md-sys-color-outline-variant);
+            width: 350px;
+            min-width: 350px;
+            max-width: 350px;
+            background: rgba(8, 13, 28, 0.85);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--border-highlight);
             display: flex;
             flex-direction: column;
             overflow: hidden;
             z-index: 30;
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
             transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1);
         }
 
         .drawer-header {
-            padding: 16px;
-            border-bottom: 1px solid var(--md-sys-color-outline-variant);
+            padding: 18px;
+            border-bottom: 1px solid var(--border-subtle);
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 14px;
+            background: rgba(13, 20, 42, 0.4);
         }
 
         .drawer-title-row {
@@ -346,14 +439,15 @@
             justify-content: space-between;
         }
         .drawer-title {
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: 1.2px;
+            font-family: var(--font-display);
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 1.5px;
             text-transform: uppercase;
-            color: var(--md-sys-color-outline);
+            color: var(--text-medium);
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
         }
 
         .m3-search-bar {
@@ -362,25 +456,27 @@
         }
         .m3-search-bar input {
             width: 100%;
-            background: var(--md-sys-color-surface-container);
-            border: 1px solid var(--md-sys-color-outline-variant);
-            border-radius: var(--md-shape-full);
-            padding: 8px 14px 8px 36px;
-            color: var(--md-sys-color-on-surface);
+            background: var(--bg-input);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 9px 14px 9px 38px;
+            color: var(--text-high);
             font-size: 12px;
+            font-family: var(--font-body);
             outline: none;
             transition: all 0.2s;
         }
         .m3-search-bar input:focus {
-            border-color: var(--md-sys-color-primary);
-            box-shadow: 0 0 0 2px var(--md-sys-color-primary-glow);
+            border-color: var(--cyan-primary);
+            box-shadow: 0 0 16px var(--cyan-glow);
+            background: rgba(6, 12, 30, 0.9);
         }
         .m3-search-bar .icon {
             position: absolute;
-            left: 10px;
+            left: 12px;
             top: 50%;
             transform: translateY(-50%);
-            color: var(--md-sys-color-outline);
+            color: var(--text-low);
             font-size: 18px;
         }
 
@@ -390,51 +486,61 @@
             overflow-x: auto;
         }
         .filter-chip {
-            padding: 4px 12px;
-            border-radius: var(--md-shape-full);
+            padding: 4px 14px;
+            border-radius: var(--radius-full);
+            font-family: var(--font-display);
             font-size: 11px;
-            font-weight: 600;
-            background: transparent;
-            color: var(--md-sys-color-outline);
-            border: 1px solid var(--md-sys-color-outline-variant);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-low);
+            border: 1px solid var(--border-subtle);
             cursor: pointer;
             transition: all 0.2s;
             white-space: nowrap;
         }
+        .filter-chip:hover {
+            color: var(--text-high);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
         .filter-chip.active {
-            background: rgba(56, 189, 248, 0.12);
-            color: var(--md-sys-color-primary);
-            border-color: var(--md-sys-color-primary);
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(168, 85, 247, 0.15));
+            color: var(--cyan-core);
+            border-color: var(--cyan-primary);
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
         }
 
         /* Project Cards List */
         .project-scroll-list {
             flex: 1;
             overflow-y: auto;
-            padding: 12px;
+            padding: 14px;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 10px;
         }
 
         .m3-card {
-            background: var(--md-sys-color-surface-container);
-            border: 1px solid var(--md-sys-color-outline-variant);
-            border-radius: var(--md-shape-lg);
-            padding: 14px;
+            background: rgba(13, 20, 42, 0.65);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 15px;
             cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+            transition: all 0.25s cubic-bezier(0.2, 0, 0, 1);
             position: relative;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
         }
         .m3-card:hover {
-            background: var(--md-sys-color-surface-container-high);
-            border-color: rgba(56, 189, 248, 0.4);
-            transform: translateY(-1px);
+            background: rgba(18, 29, 60, 0.85);
+            border-color: var(--border-highlight);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-card-hover);
         }
         .m3-card.active {
-            background: var(--md-sys-color-surface-container-highest);
-            border-color: var(--md-sys-color-primary);
-            box-shadow: 0 0 16px rgba(56, 189, 248, 0.15);
+            background: rgba(22, 36, 76, 0.95);
+            border-color: var(--cyan-primary);
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.25), inset 0 1px 0 rgba(56, 189, 248, 0.3);
         }
 
         .card-header-row {
@@ -445,32 +551,34 @@
             gap: 8px;
         }
         .card-name {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--md-sys-color-on-surface);
+            font-family: var(--font-display);
+            font-size: 13.5px;
+            font-weight: 800;
+            color: var(--text-high);
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
         .card-status-badge {
+            font-family: var(--font-mono);
             font-size: 9.5px;
             font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding: 2px 6px;
-            border-radius: var(--md-shape-xs);
+            letter-spacing: 0.8px;
+            padding: 3px 7px;
+            border-radius: var(--radius-xs);
         }
 
         .card-seed-row {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 7px;
             margin-bottom: 6px;
         }
         .card-seed {
             font-size: 11px;
             font-family: var(--font-mono);
-            color: var(--md-sys-color-primary);
+            color: var(--cyan-primary);
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -478,21 +586,23 @@
         .m3-type-tag {
             font-size: 9px;
             font-family: var(--font-mono);
-            padding: 1px 5px;
-            border-radius: var(--md-shape-xs);
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: var(--radius-xs);
             background: rgba(255, 255, 255, 0.06);
-            color: var(--md-sys-color-outline);
+            color: var(--text-low);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .card-briefing {
             font-size: 11px;
-            color: var(--md-sys-color-outline);
+            color: var(--text-low);
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
-            line-height: 1.4;
-            margin-bottom: 8px;
+            line-height: 1.5;
+            margin-bottom: 10px;
         }
 
         .card-footer-row {
@@ -500,9 +610,9 @@
             align-items: center;
             justify-content: space-between;
             font-size: 11px;
-            color: var(--md-sys-color-outline);
-            border-top: 1px solid var(--md-sys-color-outline-variant);
-            padding-top: 8px;
+            color: var(--text-low);
+            border-top: 1px solid var(--border-subtle);
+            padding-top: 10px;
         }
 
         /* Scrim overlay for mobile drawer */
@@ -510,8 +620,8 @@
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.65);
-            backdrop-filter: blur(4px);
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
             z-index: 25;
         }
 
@@ -522,7 +632,7 @@
             flex-direction: column;
             height: 100%;
             overflow: hidden;
-            background: var(--md-sys-color-surface-dim);
+            background: transparent;
             min-width: 0;
         }
 
@@ -531,44 +641,52 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 10px 20px;
-            background: var(--md-sys-color-surface-container-low);
-            border-bottom: 1px solid var(--md-sys-color-outline-variant);
-            gap: 12px;
+            padding: 12px 24px;
+            background: rgba(8, 13, 28, 0.75);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border-subtle);
+            gap: 14px;
             flex-wrap: wrap;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.3);
         }
         .active-target-left {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             min-width: 0;
         }
         .active-target-title {
-            font-size: 14px;
-            font-weight: 700;
+            font-family: var(--font-display);
+            font-size: 15px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            color: var(--text-high);
         }
         .active-target-seed {
             font-family: var(--font-mono);
             font-size: 11.5px;
-            color: var(--md-sys-color-primary);
-            background: rgba(56, 189, 248, 0.08);
-            border: 1px solid rgba(56, 189, 248, 0.2);
-            padding: 2px 8px;
-            border-radius: var(--md-shape-xs);
+            font-weight: 600;
+            color: var(--cyan-core);
+            background: rgba(0, 240, 255, 0.08);
+            border: 1px solid rgba(0, 240, 255, 0.25);
+            padding: 3px 10px;
+            border-radius: var(--radius-xs);
             white-space: nowrap;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.12);
         }
 
-        /* M3 Primary Tabs */
+        /* Cyber Tabs Navigation */
         .m3-tab-bar {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 16px;
-            background: var(--md-sys-color-surface);
-            border-bottom: 1px solid var(--md-sys-color-outline-variant);
+            padding: 0 20px;
+            background: rgba(6, 10, 23, 0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-subtle);
             min-height: 48px;
             height: 48px;
             overflow-x: auto;
@@ -576,7 +694,7 @@
         .m3-tabs {
             display: flex;
             height: 100%;
-            gap: 4px;
+            gap: 6px;
         }
         .m3-tab {
             display: inline-flex;
@@ -587,17 +705,23 @@
             background: transparent;
             border: none;
             border-bottom: 2px solid transparent;
-            color: var(--md-sys-color-outline);
-            font-size: 12px;
-            font-weight: 600;
+            color: var(--text-low);
+            font-family: var(--font-display);
+            font-size: 12.5px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
             cursor: pointer;
             transition: all 0.2s;
             white-space: nowrap;
         }
-        .m3-tab:hover { color: var(--md-sys-color-on-surface); }
+        .m3-tab:hover {
+            color: var(--text-high);
+            border-bottom-color: rgba(56, 189, 248, 0.4);
+        }
         .m3-tab.active {
-            color: var(--md-sys-color-primary);
-            border-bottom-color: var(--md-sys-color-primary);
+            color: var(--cyan-core);
+            border-bottom-color: var(--cyan-core);
+            text-shadow: 0 0 16px rgba(0, 240, 255, 0.4);
         }
 
         .m3-pane {
@@ -628,140 +752,147 @@
 
         .graph-hud-top-left {
             position: absolute;
-            top: 14px;
-            left: 14px;
+            top: 16px;
+            left: 16px;
             display: flex;
             flex-direction: column;
             gap: 8px;
             z-index: 10;
         }
         .graph-hud-pill {
-            background: rgba(14, 22, 41, 0.9);
-            backdrop-filter: blur(16px);
-            border: 1px solid var(--md-sys-color-outline-variant);
-            border-radius: var(--md-shape-full);
-            padding: 6px 14px;
-            font-size: 11px;
-            box-shadow: var(--md-elevation-2);
+            background: rgba(11, 18, 38, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-highlight);
+            border-radius: var(--radius-full);
+            padding: 7px 16px;
+            font-size: 11.5px;
+            box-shadow: var(--shadow-glass);
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
         }
-        .graph-hud-pill strong { color: var(--md-sys-color-primary); font-family: var(--font-mono); }
+        .graph-hud-pill strong { color: var(--cyan-core); font-family: var(--font-mono); }
 
         .graph-floating-toolbar {
             position: absolute;
-            top: 14px;
-            right: 14px;
+            top: 16px;
+            right: 16px;
             display: flex;
             align-items: center;
             gap: 6px;
-            background: rgba(14, 22, 41, 0.9);
-            backdrop-filter: blur(16px);
-            border: 1px solid var(--md-sys-color-outline-variant);
-            border-radius: var(--md-shape-full);
-            padding: 4px 8px;
+            background: rgba(11, 18, 38, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-highlight);
+            border-radius: var(--radius-full);
+            padding: 5px 10px;
             z-index: 10;
-            box-shadow: var(--md-elevation-2);
-            max-width: calc(100% - 28px);
+            box-shadow: var(--shadow-glass);
+            max-width: calc(100% - 32px);
             overflow-x: auto;
         }
 
         .graph-legend-pill {
             position: absolute;
-            bottom: 14px;
-            left: 14px;
-            background: rgba(14, 22, 41, 0.9);
-            backdrop-filter: blur(16px);
-            border: 1px solid var(--md-sys-color-outline-variant);
-            border-radius: var(--md-shape-md);
-            padding: 8px 14px;
+            bottom: 16px;
+            left: 16px;
+            background: rgba(11, 18, 38, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-highlight);
+            border-radius: var(--radius-md);
+            padding: 10px 16px;
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
-            font-size: 10.5px;
-            color: var(--md-sys-color-outline);
+            gap: 12px;
+            font-size: 11px;
+            color: var(--text-medium);
             z-index: 10;
-            box-shadow: var(--md-elevation-2);
-            max-width: calc(100% - 28px);
+            box-shadow: var(--shadow-glass);
+            max-width: calc(100% - 32px);
         }
-        .legend-chip { display: flex; align-items: center; gap: 5px; }
-        .legend-dot { width: 7px; height: 7px; border-radius: 50%; }
+        .legend-chip { display: flex; align-items: center; gap: 6px; }
+        .legend-dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 6px currentColor; }
 
-        /* Node Inspector (M3 Bottom Sheet on Mobile / Drawer on Desktop) */
+        /* Node Inspector Drawer */
         #node-inspector {
             position: absolute;
-            top: 14px;
-            right: 14px;
-            width: 360px;
-            max-height: calc(100% - 28px);
-            background: rgba(14, 22, 41, 0.98);
-            backdrop-filter: blur(24px);
-            border: 1px solid var(--md-sys-color-primary);
-            border-radius: var(--md-shape-xl);
-            padding: 20px;
+            top: 16px;
+            right: 16px;
+            width: 380px;
+            max-height: calc(100% - 32px);
+            background: rgba(11, 18, 42, 0.95);
+            backdrop-filter: blur(28px);
+            border: 1px solid var(--cyan-primary);
+            border-radius: var(--radius-xl);
+            padding: 22px;
             display: none;
             flex-direction: column;
-            gap: 12px;
+            gap: 14px;
             overflow-y: auto;
             z-index: 20;
-            box-shadow: var(--md-elevation-4);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 30px var(--cyan-glow);
         }
-        #node-inspector.show { display: flex; }
+        #node-inspector.show { display: flex; animation: slideInRight 0.25s ease; }
+        @keyframes slideInRight { from { transform: translateX(30px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
         /* ── Tab 2: Execution Pipeline & Stepper ─────────────── */
         #pipeline-scroll-area {
             flex: 1;
             overflow-y: auto;
-            padding: 20px;
+            padding: 24px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 22px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
         }
 
         /* 5-Phase Adaptive Stepper */
         .adaptive-stepper {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 12px;
             width: 100%;
         }
 
         .m3-step-card {
-            background: var(--md-sys-color-surface-container);
-            border: 1px solid var(--md-sys-color-outline-variant);
-            border-radius: var(--md-shape-lg);
-            padding: 14px;
+            background: rgba(13, 20, 42, 0.7);
+            backdrop-filter: blur(14px);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 16px;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 8px;
             transition: all 0.3s;
+            position: relative;
         }
         .m3-step-card.active {
-            border-color: var(--md-sys-color-primary);
-            background: rgba(56, 189, 248, 0.08);
-            box-shadow: 0 0 16px rgba(56, 189, 248, 0.15);
+            border-color: var(--cyan-primary);
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(168, 85, 247, 0.08));
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.2), inset 0 1px 0 rgba(56, 189, 248, 0.3);
         }
         .m3-step-card.done {
             border-color: rgba(16, 185, 129, 0.4);
             background: rgba(16, 185, 129, 0.06);
         }
-        .step-num { font-size: 9.5px; font-family: var(--font-mono); font-weight: 700; color: var(--md-sys-color-outline); }
-        .step-label { font-size: 12px; font-weight: 700; color: var(--md-sys-color-on-surface); }
-        .step-desc { font-size: 10.5px; color: var(--md-sys-color-outline); }
-        .m3-step-card.active .step-label { color: var(--md-sys-color-primary); }
-        .m3-step-card.done .step-label { color: var(--md-sys-color-tertiary); }
+        .step-num { font-size: 9.5px; font-family: var(--font-mono); font-weight: 800; color: var(--text-low); letter-spacing: 1px; }
+        .step-label { font-family: var(--font-display); font-size: 13px; font-weight: 800; color: var(--text-high); }
+        .step-desc { font-size: 11px; color: var(--text-low); line-height: 1.4; }
+        .m3-step-card.active .step-label { color: var(--cyan-core); text-shadow: 0 0 10px rgba(0, 240, 255, 0.3); }
+        .m3-step-card.done .step-label { color: var(--emerald-primary); }
 
         /* Live Token Stream Box */
         .m3-thought-box {
-            background: var(--md-sys-color-surface-container);
-            border: 1px solid var(--md-sys-color-outline-variant);
-            border-radius: var(--md-shape-lg);
-            padding: 16px;
+            background: rgba(11, 18, 38, 0.75);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-highlight);
+            border-radius: var(--radius-lg);
+            padding: 18px 22px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            box-shadow: var(--md-elevation-1);
+            gap: 12px;
+            box-shadow: var(--shadow-glass);
         }
         .thought-top-row {
             display: flex;
@@ -769,127 +900,148 @@
             justify-content: space-between;
         }
         .thought-title {
-            font-size: 11px;
             font-family: var(--font-mono);
-            font-weight: 700;
-            color: var(--md-sys-color-secondary);
+            font-size: 11.5px;
+            font-weight: 800;
+            color: var(--violet-primary);
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 1.2px;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
         }
         .thought-stream-viewport {
             font-family: var(--font-mono);
-            font-size: 11.5px;
-            line-height: 1.7;
-            color: var(--md-sys-color-on-surface-variant);
-            background: rgba(0, 0, 0, 0.35);
-            padding: 12px 16px;
-            border-radius: var(--md-shape-md);
-            border-left: 3px solid var(--md-sys-color-secondary);
-            min-height: 60px;
+            font-size: 12px;
+            line-height: 1.8;
+            color: var(--text-medium);
+            background: rgba(3, 7, 18, 0.75);
+            padding: 14px 18px;
+            border-radius: var(--radius-sm);
+            border-left: 3px solid var(--violet-neon);
+            min-height: 70px;
             white-space: pre-wrap;
             word-break: break-word;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.5);
         }
 
         /* Task Injection Form */
         .m3-inject-bar {
-            background: var(--md-sys-color-surface-container-low);
-            border: 1px dashed var(--md-sys-color-outline-variant);
-            border-radius: var(--md-shape-lg);
-            padding: 12px 16px;
+            background: rgba(11, 18, 38, 0.6);
+            backdrop-filter: blur(14px);
+            border: 1px dashed var(--border-highlight);
+            border-radius: var(--radius-md);
+            padding: 14px 18px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             flex-wrap: wrap;
         }
         .m3-inject-bar input {
             flex: 1;
-            min-width: 160px;
-            background: var(--md-sys-color-surface-container);
-            border: 1px solid var(--md-sys-color-outline-variant);
-            border-radius: var(--md-shape-sm);
-            padding: 8px 12px;
-            color: var(--md-sys-color-on-surface);
+            min-width: 180px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 9px 14px;
+            color: var(--text-high);
             font-size: 12px;
             outline: none;
         }
         .m3-inject-bar select {
-            background: var(--md-sys-color-surface-container);
-            border: 1px solid var(--md-sys-color-outline-variant);
-            border-radius: var(--md-shape-sm);
-            padding: 8px 10px;
-            color: var(--md-sys-color-on-surface);
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 9px 12px;
+            color: var(--text-high);
             font-size: 12px;
             outline: none;
         }
 
         /* Active Task Card */
         .m3-active-task {
-            background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(139, 92, 246, 0.06));
-            border: 1px solid var(--md-sys-color-primary);
-            border-radius: var(--md-shape-lg);
-            padding: 16px;
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.15), rgba(168, 85, 247, 0.08));
+            border: 1px solid var(--cyan-primary);
+            border-radius: var(--radius-lg);
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: 0 0 24px var(--cyan-glow);
+        }
+
+        /* Task Step Cards */
+        .m3-task-step {
+            background: rgba(13, 20, 42, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 16px 18px;
             display: flex;
             flex-direction: column;
             gap: 10px;
-            box-shadow: 0 0 24px rgba(56, 189, 248, 0.15);
-        }
-
-        /* Task Cards */
-        .m3-task-step {
-            background: var(--md-sys-color-surface-container);
-            border: 1px solid var(--md-sys-color-outline-variant);
-            border-radius: var(--md-shape-lg);
-            padding: 14px 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
+            transition: all 0.2s;
         }
         .tool-pill {
             font-family: var(--font-mono);
-            font-size: 10.5px;
+            font-size: 11px;
             font-weight: 700;
-            padding: 2px 8px;
-            border-radius: var(--md-shape-xs);
+            padding: 2px 9px;
+            border-radius: var(--radius-xs);
             background: rgba(56, 189, 248, 0.12);
-            color: var(--md-sys-color-primary);
-            border: 1px solid rgba(56, 189, 248, 0.25);
+            color: var(--cyan-core);
+            border: 1px solid rgba(56, 189, 248, 0.3);
         }
         .verdict-tag {
             font-family: var(--font-mono);
-            font-size: 9.5px;
+            font-size: 10px;
             font-weight: 800;
-            padding: 2px 8px;
-            border-radius: var(--md-shape-xs);
+            padding: 3px 9px;
+            border-radius: var(--radius-xs);
             text-transform: uppercase;
+            letter-spacing: 0.8px;
         }
-        .verdict-tag.CONFIRMED { background: rgba(16, 185, 129, 0.2); color: var(--md-sys-color-tertiary); border: 1px solid rgba(16, 185, 129, 0.4); }
-        .verdict-tag.PLAUSIBLE { background: rgba(245, 158, 11, 0.2); color: var(--md-sys-color-warning); border: 1px solid rgba(245, 158, 11, 0.4); }
-        .verdict-tag.REJECTED { background: rgba(244, 63, 94, 0.2); color: var(--md-sys-color-error); border: 1px solid rgba(244, 63, 94, 0.4); }
+        .verdict-tag.CONFIRMED { background: rgba(16, 185, 129, 0.2); color: var(--emerald-primary); border: 1px solid rgba(16, 185, 129, 0.4); box-shadow: 0 0 8px rgba(16, 185, 129, 0.2); }
+        .verdict-tag.PLAUSIBLE { background: rgba(245, 158, 11, 0.2); color: var(--amber-primary); border: 1px solid rgba(245, 158, 11, 0.4); }
+        .verdict-tag.REJECTED { background: rgba(244, 63, 94, 0.2); color: var(--rose-primary); border: 1px solid rgba(244, 63, 94, 0.4); }
 
         /* ── Tab 3: Dossier ──────────────────────────────────── */
         #dossier-scroll-area {
             flex: 1;
             overflow-y: auto;
-            padding: 24px;
+            padding: 28px;
         }
         .m3-dossier-card {
-            background: var(--md-sys-color-surface-container);
-            border: 1px solid var(--md-sys-color-outline-variant);
-            border-radius: var(--md-shape-xl);
-            padding: 32px 40px;
-            font-size: 13.5px;
+            background: rgba(11, 18, 38, 0.85);
+            backdrop-filter: blur(24px);
+            border: 1px solid var(--border-highlight);
+            border-radius: var(--radius-xl);
+            padding: 36px 48px;
+            font-size: 14px;
             line-height: 1.8;
-            max-width: 960px;
+            max-width: 980px;
             margin: 0 auto;
-            box-shadow: var(--md-elevation-3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+            position: relative;
         }
-        .m3-dossier-card h1 { font-size: 20px; color: var(--md-sys-color-primary); margin-bottom: 14px; border-bottom: 1px solid var(--md-sys-color-outline-variant); padding-bottom: 8px; }
-        .m3-dossier-card h2 { font-size: 15px; color: var(--md-sys-color-on-surface); margin-top: 20px; margin-bottom: 8px; }
-        .m3-dossier-card ul { margin-left: 20px; margin-bottom: 12px; }
-        .m3-dossier-card code { font-family: var(--font-mono); background: rgba(0,0,0,0.35); padding: 2px 6px; border-radius: 4px; color: var(--md-sys-color-primary); font-size: 12px; }
+        .m3-dossier-card::before {
+            content: 'CLASSIFIED // CYBER OSINT INTEL';
+            position: absolute;
+            top: 14px;
+            right: 24px;
+            font-family: var(--font-mono);
+            font-size: 9.5px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            color: rgba(244, 63, 94, 0.5);
+            border: 1px solid rgba(244, 63, 94, 0.3);
+            padding: 2px 8px;
+            border-radius: 3px;
+        }
+        .m3-dossier-card h1 { font-family: var(--font-display); font-size: 22px; color: var(--cyan-core); margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px; }
+        .m3-dossier-card h2 { font-family: var(--font-display); font-size: 16px; color: var(--text-high); margin-top: 24px; margin-bottom: 10px; }
+        .m3-dossier-card ul { margin-left: 24px; margin-bottom: 14px; }
+        .m3-dossier-card code { font-family: var(--font-mono); background: rgba(0,0,0,0.4); padding: 2px 8px; border-radius: 4px; color: var(--cyan-core); font-size: 12.5px; }
 
         /* ── Tab 4: Telemetry Terminal ───────────────────────── */
         #telemetry-stage {
@@ -897,12 +1049,12 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            background: var(--md-sys-color-surface-container-lowest);
+            background: #02050e;
         }
         .telemetry-header {
-            padding: 10px 16px;
-            background: var(--md-sys-color-surface);
-            border-bottom: 1px solid var(--md-sys-color-outline-variant);
+            padding: 12px 20px;
+            background: rgba(6, 10, 23, 0.9);
+            border-bottom: 1px solid var(--border-subtle);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -910,80 +1062,83 @@
         .terminal-scroll-view {
             flex: 1;
             overflow-y: auto;
-            padding: 14px 20px;
+            padding: 16px 24px;
             font-family: var(--font-mono);
-            font-size: 11px;
+            font-size: 11.5px;
             line-height: 1.8;
             display: flex;
             flex-direction: column;
-            gap: 2px;
+            gap: 3px;
         }
-        .term-row { display: flex; align-items: flex-start; gap: 10px; }
-        .term-time { color: var(--md-sys-color-outline); }
-        .term-tag { font-weight: 700; padding: 0 4px; border-radius: 3px; font-size: 9.5px; text-transform: uppercase; }
-        .term-tag.INFO { color: var(--md-sys-color-primary); }
-        .term-tag.MODEL { color: var(--md-sys-color-secondary); }
-        .term-tag.THOUGHT { color: var(--md-sys-color-tertiary); }
-        .term-tag.SUCCESS { color: var(--md-sys-color-tertiary); }
-        .term-tag.WARN { color: var(--md-sys-color-warning); }
-        .term-tag.ERROR { color: var(--md-sys-color-error); }
-        .term-msg { color: var(--md-sys-color-on-surface-variant); flex: 1; word-break: break-all; }
+        .term-row { display: flex; align-items: flex-start; gap: 12px; }
+        .term-time { color: var(--text-low); }
+        .term-tag { font-weight: 800; padding: 0 6px; border-radius: 3px; font-size: 10px; text-transform: uppercase; }
+        .term-tag.INFO { color: var(--cyan-core); background: rgba(0,240,255,0.08); }
+        .term-tag.MODEL { color: var(--violet-neon); background: rgba(168,85,247,0.08); }
+        .term-tag.THOUGHT { color: var(--emerald-neon); background: rgba(16,185,129,0.08); }
+        .term-tag.SUCCESS { color: var(--emerald-neon); background: rgba(16,185,129,0.12); }
+        .term-tag.WARN { color: var(--amber-neon); background: rgba(245,158,11,0.1); }
+        .term-tag.ERROR { color: var(--rose-neon); background: rgba(244,63,94,0.12); }
+        .term-msg { color: var(--text-medium); flex: 1; word-break: break-all; }
 
-        /* ── M3 Modal Dialog ─────────────────────────────────── */
+        /* ── Modal Dialogs ───────────────────────────────────── */
         .m3-dialog-backdrop {
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.75);
-            backdrop-filter: blur(10px);
+            background: rgba(0, 0, 0, 0.82);
+            backdrop-filter: blur(16px);
             z-index: 100;
             align-items: center;
             justify-content: center;
-            padding: 16px;
+            padding: 20px;
         }
-        .m3-dialog-backdrop.show { display: flex; animation: fadeIn 0.2s ease; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .m3-dialog-backdrop.show { display: flex; animation: fadeIn 0.25s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
 
         .m3-dialog-panel {
-            width: 540px;
+            width: 580px;
             max-width: 100%;
-            background: var(--md-sys-color-surface-container-high);
-            border: 1px solid var(--md-sys-color-outline-variant);
-            border-radius: var(--md-shape-xl);
-            padding: 24px;
+            background: rgba(11, 18, 42, 0.95);
+            backdrop-filter: blur(28px);
+            border: 1px solid var(--border-highlight);
+            border-radius: var(--radius-xl);
+            padding: 28px;
             display: flex;
             flex-direction: column;
-            gap: 16px;
-            box-shadow: var(--md-elevation-4);
+            gap: 18px;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.9), 0 0 40px rgba(56, 189, 248, 0.15);
         }
 
         .m3-field {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 7px;
         }
         .m3-field label {
+            font-family: var(--font-display);
             font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.8px;
+            font-weight: 800;
+            letter-spacing: 1px;
             text-transform: uppercase;
-            color: var(--md-sys-color-outline);
+            color: var(--text-low);
         }
         .m3-field input, .m3-field select, .m3-field textarea {
-            background: var(--md-sys-color-surface-container);
-            border: 1px solid var(--md-sys-color-outline-variant);
-            border-radius: var(--md-shape-md);
-            padding: 10px 14px;
-            color: var(--md-sys-color-on-surface);
+            background: var(--bg-input);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 11px 16px;
+            color: var(--text-high);
             font-size: 13px;
-            font-family: var(--font-sans);
+            font-family: var(--font-body);
             outline: none;
             transition: all 0.2s;
         }
-        .m3-field textarea { min-height: 90px; resize: vertical; }
+        .m3-field textarea { min-height: 95px; resize: vertical; line-height: 1.5; }
         .m3-field input:focus, .m3-field select:focus, .m3-field textarea:focus {
-            border-color: var(--md-sys-color-primary);
-            box-shadow: 0 0 0 2px var(--md-sys-color-primary-glow);
+            border-color: var(--cyan-primary);
+            box-shadow: 0 0 16px var(--cyan-glow);
+            background: rgba(6, 12, 30, 0.9);
         }
 
         /* ── Responsive Breakpoints ──────────────────────────── */
@@ -996,7 +1151,7 @@
                 left: 0;
                 z-index: 50;
                 transform: translateX(-100%);
-                box-shadow: var(--md-elevation-4);
+                box-shadow: 0 0 40px rgba(0,0,0,0.9);
             }
             #nav-drawer.open {
                 transform: translateX(0);
@@ -1008,51 +1163,54 @@
         }
 
         @media (max-width: 768px) {
-            .top-app-bar { padding: 0 10px; }
+            .top-app-bar { padding: 0 12px; }
             .brand-chip { display: none; }
-            .m3-btn { padding: 0 12px; font-size: 11.5px; height: 32px; }
-            .m3-tab { padding: 0 10px; font-size: 11px; }
+            .m3-btn { padding: 0 12px; font-size: 11.5px; height: 34px; }
+            .m3-tab { padding: 0 12px; font-size: 11.5px; }
             #node-inspector {
-                width: calc(100% - 28px);
+                width: calc(100% - 32px);
                 top: auto;
-                bottom: 14px;
-                max-height: 60vh;
+                bottom: 16px;
+                max-height: 65vh;
             }
-            .m3-dossier-card { padding: 20px; }
+            .m3-dossier-card { padding: 24px; }
         }
 
-        /* Custom Scrollbars */
-        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        /* Custom Modern Scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.3); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--md-sys-color-primary); }
+        ::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.35); border-radius: 6px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--cyan-primary); }
     </style>
 </head>
 <body>
     <div id="app">
-        <!-- ── Top App Bar (M3 Header) ────────────────────────── -->
+        <!-- ── Top App Bar (Master Cyber HUD Header) ───────────── -->
         <header class="top-app-bar">
             <div class="brand-cluster">
                 <button class="drawer-toggle-btn" title="Toggle Investigations Drawer" onclick="toggleDrawer()">
                     <span class="icon">menu</span>
                 </button>
+                <div class="brand-logo-gem">
+                    <span class="icon" style="color:var(--cyan-core);font-size:20px;">radar</span>
+                </div>
                 <div class="brand-title">AETHER</div>
-                <div class="brand-chip">M3 OSINT Core</div>
+                <div class="brand-chip">v2.0 Neural OSINT</div>
             </div>
 
             <!-- Neural Telemetry HUD Pill (Desktop) -->
             <div class="hud-telemetry-cluster" id="modelTelemetryHud">
                 <div class="hud-item">
-                    <span class="hud-label">Model:</span>
-                    <span class="model-badge" id="hudActiveModel">Gemma4-12B [Planner]</span>
+                    <span class="hud-label">Planner:</span>
+                    <span class="model-badge" id="hudActiveModel">Gemma4-12B</span>
                 </div>
                 <div class="hud-item">
-                    <span class="hud-label">Role:</span>
-                    <span id="hudModelRole" style="font-weight:600;color:var(--md-sys-color-on-surface);">Fast Heuristic Ops</span>
+                    <span class="hud-label">Cognitive Mode:</span>
+                    <span id="hudModelRole" style="font-weight:700;color:var(--cyan-primary);">Abductive Heuristics</span>
                 </div>
                 <div class="hud-item">
-                    <span class="hud-label">VRAM:</span>
-                    <span class="vram-badge unlocked" id="hudVramBadge">Ready</span>
+                    <span class="hud-label">VRAM Hardware:</span>
+                    <span class="vram-badge unlocked" id="hudVramBadge">Unlocked</span>
                 </div>
             </div>
 
@@ -1061,19 +1219,19 @@
                     <span class="icon">volume_up</span>
                 </button>
                 <button class="icon-btn" id="settingsBtn" title="Neural Models & Cognitive Settings" onclick="openSettingsModal()">
-                    <span class="icon">settings</span>
+                    <span class="icon">tune</span>
                 </button>
                 <button class="m3-btn m3-btn-tonal" onclick="openNewProjectModal()">
-                    <span class="icon" style="font-size:16px;">add</span> New Project
+                    <span class="icon" style="font-size:16px;">add</span> New Target
                 </button>
                 <button class="m3-btn m3-btn-filled" id="btnRunCurrent" onclick="runCurrentProject()" disabled>
-                    <span class="icon" style="font-size:16px;">play_arrow</span> Launch
+                    <span class="icon" style="font-size:16px;">bolt</span> Launch
                 </button>
                 <button class="m3-btn m3-btn-danger" id="btnStopCurrent" onclick="stopCurrentProject()" disabled>
                     <span class="icon" style="font-size:16px;">stop</span> Abort
                 </button>
                 <button class="m3-btn m3-btn-tonal" onclick="runBatchAll()">
-                    <span class="icon" style="font-size:16px;">bolt</span> Run All
+                    <span class="icon" style="font-size:16px;">play_circle</span> Run All
                 </button>
             </div>
         </header>
@@ -1144,6 +1302,9 @@
                         </button>
                         <button class="m3-tab" onclick="switchTab('dossier', this)">
                             <span class="icon" style="font-size:17px;">description</span> Executive Dossier
+                        </button>
+                        <button class="m3-tab" onclick="switchTab('tools', this)">
+                            <span class="icon" style="font-size:17px;">construction</span> Tool Hub & Skills
                         </button>
                         <button class="m3-tab" onclick="switchTab('telemetry', this)">
                             <span class="icon" style="font-size:17px;">terminal</span> Telemetry
@@ -1341,6 +1502,65 @@
                         <div class="terminal-scroll-view" id="logTerminal"></div>
                     </div>
                 </div>
+
+                <!-- Tab 5: Tool Hub & Capabilities Matrix -->
+                <div class="m3-pane" id="pane-tools">
+                    <div style="flex:1;overflow-y:auto;padding:24px 32px;display:flex;flex-direction:column;gap:20px;max-width:1200px;margin:0 auto;width:100%;">
+                        <!-- Header & Actions -->
+                        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+                            <div>
+                                <div style="font-size:16px;font-weight:800;letter-spacing:1px;color:var(--md-sys-color-primary);text-transform:uppercase;">
+                                    🛠️ OSINT & Perception Capabilities Arsenal
+                                </div>
+                                <div style="font-size:12px;color:var(--md-sys-color-outline);">
+                                    Active tools, perception modules, and autonomous AI toolmakers in the engine.
+                                </div>
+                            </div>
+
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <input type="text" id="filterToolsInput" placeholder="Filter capabilities..." oninput="filterToolsArsenal()" style="height:34px;width:200px;background:rgba(255,255,255,0.05);border:1px solid var(--md-sys-color-outline-variant);border-radius:6px;padding:0 12px;color:var(--md-sys-color-on-surface);font-size:12px;">
+                                <button class="m3-btn m3-btn-filled" style="height:34px;" onclick="openSynthesizeToolModal()">
+                                    <span class="icon" style="font-size:16px;">auto_fix_high</span> Synthesize New Tool (AI)
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Live Tool Testing & Verification Tray -->
+                        <div id="liveToolTesterBox" style="display:none;background:rgba(15,23,42,0.8);border:1px solid var(--md-sys-color-primary);border-radius:10px;padding:18px;position:relative;">
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                    <span class="icon" id="testerToolIcon" style="color:var(--md-sys-color-primary);">build</span>
+                                    <strong style="font-size:14px;color:var(--md-sys-color-on-surface);" id="testerToolTitle">Test Tool Live</strong>
+                                    <span class="card-status-badge" style="background:rgba(56,189,248,0.15);color:var(--md-sys-color-primary);" id="testerToolCategory">Category</span>
+                                </div>
+                                <button class="icon-btn" style="width:26px;height:26px;" onclick="closeToolTester()">
+                                    <span class="icon" style="font-size:16px;">close</span>
+                                </button>
+                            </div>
+
+                            <div style="display:flex;gap:10px;margin-bottom:12px;">
+                                <input type="text" id="testerParamInput" style="flex:1;height:38px;background:rgba(0,0,0,0.4);border:1px solid var(--md-sys-color-outline-variant);border-radius:6px;padding:0 12px;color:var(--md-sys-color-on-surface);font-family:var(--font-mono);font-size:12px;">
+                                <button class="m3-btn m3-btn-filled" id="btnRunToolTest" style="height:38px;padding:0 18px;" onclick="executeToolLive()">
+                                    <span class="icon" style="font-size:16px;">play_arrow</span> Run Live Test
+                                </button>
+                            </div>
+
+                            <!-- Tester Output Area -->
+                            <div id="testerOutputContainer" style="display:none;">
+                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;font-size:11px;font-family:var(--font-mono);">
+                                    <span style="color:var(--md-sys-color-outline);">OUTPUT STREAM / TELEMETRY:</span>
+                                    <span id="testerLatency" style="color:var(--md-sys-color-tertiary);">0 ms</span>
+                                </div>
+                                <pre id="testerOutputJson" style="background:#030712;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:14px;max-height:300px;overflow-y:auto;font-family:var(--font-mono);font-size:11px;color:#38bdf8;line-height:1.4;white-space:pre-wrap;"></pre>
+                            </div>
+                        </div>
+
+                        <!-- Tool Cards Grid -->
+                        <div id="toolsArsenalGrid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:16px;">
+                            <!-- Injected dynamically -->
+                        </div>
+                    </div>
+                </div>
             </main>
         </div>
     </div>
@@ -1395,6 +1615,39 @@
                 <button class="m3-btn m3-btn-tonal" onclick="closeNewProjectModal()">Cancel</button>
                 <button class="m3-btn m3-btn-tonal" onclick="createProjectAndRun(false)">Save</button>
                 <button class="m3-btn m3-btn-filled" onclick="createProjectAndRun(true)">Save & Launch ▶</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── M3 Tool Synthesizer Dialog ────────────────────────── -->
+    <div class="m3-dialog-backdrop" id="synthesizeToolModal">
+        <div class="m3-dialog-panel" style="width:640px;max-width:95vw;">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span class="icon" style="color:var(--md-sys-color-primary);">auto_fix_high</span>
+                    <span style="font-size:15px;font-weight:800;color:var(--md-sys-color-on-surface);">Autonomous Tool Synthesis (Hermes 35B)</span>
+                </div>
+                <button class="icon-btn" style="width:28px;height:28px;" onclick="closeSynthesizeToolModal()">
+                    <span class="icon" style="font-size:16px;">close</span>
+                </button>
+            </div>
+
+            <div style="font-size:12px;color:var(--md-sys-color-outline);line-height:1.5;">
+                Describe the new capability, target API, website, or scraping logic you want the engine to build. The AI will write the Python tool, compile it, sandbox-test it, and hot-register it in your active arsenal.
+            </div>
+
+            <div class="m3-field">
+                <label>Tool Specification / Prompt *</label>
+                <textarea id="inputSynthesizePrompt" style="height:110px;" placeholder="e.g., Build a tool that queries the free Censys/Shodan InternetDB API (https://internetdb.shodan.io/{ip}) to discover open ports, hostnames, and CVE vulnerabilities for any IP address."></textarea>
+            </div>
+
+            <div id="synthesizeStatusBox" style="display:none;padding:12px;border-radius:6px;font-size:12px;line-height:1.5;"></div>
+
+            <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:8px;">
+                <button class="m3-btn m3-btn-tonal" onclick="closeSynthesizeToolModal()">Cancel</button>
+                <button class="m3-btn m3-btn-filled" id="btnStartSynthesize" onclick="synthesizeToolLive()">
+                    <span class="icon" style="font-size:16px;">bolt</span> Synthesize & Hot-Register
+                </button>
             </div>
         </div>
     </div>
@@ -2397,6 +2650,204 @@
             } else if (tabId === 'geomap') {
                 initLeafletMap();
                 setTimeout(() => { if (mapInstance) mapInstance.invalidateSize(); }, 200);
+            } else if (tabId === 'tools') {
+                loadToolsArsenal();
+            }
+        }
+
+        // ── Capabilities Arsenal & Tool Maker Logic ──────────────
+        let allTools = [];
+        let activeTesterTool = null;
+
+        async function loadToolsArsenal() {
+            try {
+                const resp = await fetch('/api/tools');
+                if (!resp.ok) return;
+                const data = await resp.json();
+                allTools = data.tools || [];
+                renderToolsGrid(allTools);
+            } catch(e) {
+                logEvent('ERROR', `Failed to load tools: ${e.message}`);
+            }
+        }
+
+        function renderToolsGrid(toolsList) {
+            const grid = document.getElementById('toolsArsenalGrid');
+            grid.innerHTML = '';
+
+            if (toolsList.length === 0) {
+                grid.innerHTML = '<div style="color:var(--md-sys-color-outline);font-size:12px;">No tools found matching query.</div>';
+                return;
+            }
+
+            toolsList.forEach(t => {
+                const card = document.createElement('div');
+                card.className = 'm3-step-card';
+                card.style.cursor = 'default';
+                card.style.display = 'flex';
+                card.style.flexDirection = 'column';
+                card.style.justifyContent = 'space-between';
+                card.style.gap = '10px';
+                card.style.minHeight = '150px';
+
+                card.innerHTML = `
+                    <div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                <span class="icon" style="color:var(--md-sys-color-primary);font-size:18px;">${t.icon || 'build'}</span>
+                                <strong style="font-size:13px;color:var(--md-sys-color-on-surface);">${escapeHtml(t.name)}</strong>
+                            </div>
+                            <span class="card-status-badge" style="background:${t.is_dynamic ? 'rgba(168,85,247,0.15);color:#c084fc' : 'rgba(34,197,94,0.15);color:#86efac'};">
+                                ${t.is_dynamic ? '⚡ AI-Synthesized' : '🟢 Ready'}
+                            </span>
+                        </div>
+                        <span class="filter-chip" style="font-size:10px;padding:2px 8px;margin-bottom:6px;display:inline-block;">${escapeHtml(t.category)}</span>
+                        <div style="font-size:11.5px;color:var(--md-sys-color-on-surface-variant);line-height:1.4;margin-bottom:8px;">
+                            ${escapeHtml(t.description)}
+                        </div>
+                    </div>
+
+                    <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;">
+                        <span style="font-family:var(--font-mono);font-size:10px;color:var(--md-sys-color-outline);">Param: ${escapeHtml(t.default_param_key || 'query')}</span>
+                        <button class="m3-btn m3-btn-tonal" style="height:28px;padding:0 10px;font-size:11px;" onclick="openToolTester('${t.name}')">
+                            <span class="icon" style="font-size:13px;">play_arrow</span> Test Live
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function filterToolsArsenal() {
+            const q = (document.getElementById('filterToolsInput').value || '').toLowerCase();
+            const filtered = allTools.filter(t => 
+                t.name.toLowerCase().includes(q) ||
+                t.category.toLowerCase().includes(q) ||
+                t.description.toLowerCase().includes(q)
+            );
+            renderToolsGrid(filtered);
+        }
+
+        function openToolTester(toolName) {
+            playSound('click');
+            const tool = allTools.find(t => t.name === toolName);
+            if (!tool) return;
+            activeTesterTool = tool;
+
+            document.getElementById('testerToolTitle').textContent = `Live Test: ${tool.name}`;
+            document.getElementById('testerToolIcon').textContent = tool.icon || 'build';
+            document.getElementById('testerToolCategory').textContent = tool.category;
+            document.getElementById('testerParamInput').placeholder = `Enter ${tool.default_param_key} (e.g. ${tool.example_input || ''})`;
+            document.getElementById('testerParamInput').value = tool.example_input || '';
+            document.getElementById('testerOutputContainer').style.display = 'none';
+            document.getElementById('liveToolTesterBox').style.display = 'block';
+            document.getElementById('liveToolTesterBox').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function closeToolTester() {
+            document.getElementById('liveToolTesterBox').style.display = 'none';
+            activeTesterTool = null;
+        }
+
+        async function executeToolLive() {
+            if (!activeTesterTool) return;
+            playSound('click');
+            const btn = document.getElementById('btnRunToolTest');
+            const inputVal = document.getElementById('testerParamInput').value.trim();
+            btn.disabled = true;
+            btn.innerHTML = '<span class="icon" style="font-size:15px;animation:spin 1s linear infinite;">refresh</span> Testing...';
+            document.getElementById('testerOutputContainer').style.display = 'block';
+            document.getElementById('testerOutputJson').textContent = 'Executing tool via perception engine...';
+            document.getElementById('testerLatency').textContent = 'Running...';
+
+            try {
+                const params = {};
+                params[activeTesterTool.default_param_key || 'query'] = inputVal;
+
+                const resp = await fetch('/api/tools/execute', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tool_name: activeTesterTool.name,
+                        params: params,
+                    }),
+                });
+
+                const data = await resp.json();
+                document.getElementById('testerLatency').textContent = `Latency: ${data.execution_time_ms} ms (${data.success ? 'Success' : 'Error'})`;
+                document.getElementById('testerOutputJson').textContent = JSON.stringify(data.data || data.error, null, 2);
+                logEvent(data.success ? 'SUCCESS' : 'WARN', `Live test executed for [${activeTesterTool.name}]: ${data.execution_time_ms}ms`);
+            } catch(e) {
+                document.getElementById('testerOutputJson').textContent = `Error: ${e.message}`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span class="icon" style="font-size:16px;">play_arrow</span> Run Live Test';
+            }
+        }
+
+        function openSynthesizeToolModal() {
+            playSound('click');
+            document.getElementById('inputSynthesizePrompt').value = '';
+            document.getElementById('synthesizeStatusBox').style.display = 'none';
+            document.getElementById('synthesizeToolModal').classList.add('show');
+        }
+
+        function closeSynthesizeToolModal() {
+            document.getElementById('synthesizeToolModal').classList.remove('show');
+        }
+
+        async function synthesizeToolLive() {
+            playSound('click');
+            const prompt = document.getElementById('inputSynthesizePrompt').value.trim();
+            if (!prompt) {
+                alert('Please enter a tool specification / prompt.');
+                return;
+            }
+
+            const btn = document.getElementById('btnStartSynthesize');
+            const box = document.getElementById('synthesizeStatusBox');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="icon" style="font-size:15px;animation:spin 1s linear infinite;">refresh</span> Synthesizing with Hermes 35B...';
+            box.style.display = 'block';
+            box.style.background = 'rgba(255,255,255,0.05)';
+            box.style.border = '1px solid var(--md-sys-color-outline-variant)';
+            box.style.color = 'var(--md-sys-color-on-surface)';
+            box.innerHTML = '🤖 Hermes 35B is generating standalone Python tool code and AST validating...';
+
+            try {
+                const resp = await fetch('/api/tools/synthesize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ description: prompt }),
+                });
+                const data = await resp.json();
+
+                if (data.status === 'success') {
+                    box.style.background = 'rgba(34,197,94,0.12)';
+                    box.style.border = '1px solid var(--md-sys-color-tertiary)';
+                    box.style.color = '#86efac';
+                    box.innerHTML = `
+                        <strong>🎉 Tool Synthesized & Registered Successfully!</strong><br/>
+                        <span>Name: <code>${data.tool_name}</code></span><br/>
+                        <span>Category: ${data.category}</span><br/>
+                        <span>Description: ${data.description}</span>
+                    `;
+                    logEvent('SUCCESS', `Autonomous AI tool synthesized: [${data.tool_name}]`);
+                    await loadToolsArsenal();
+                } else {
+                    box.style.background = 'rgba(239,68,68,0.12)';
+                    box.style.border = '1px solid var(--md-sys-color-error)';
+                    box.style.color = '#fca5a5';
+                    box.innerHTML = `⚠️ Synthesis failed: ${escapeHtml(data.error || 'Unknown error')}`;
+                }
+            } catch(e) {
+                box.style.background = 'rgba(239,68,68,0.12)';
+                box.style.border = '1px solid var(--md-sys-color-error)';
+                box.style.color = '#fca5a5';
+                box.innerHTML = `⚠️ Request failed: ${escapeHtml(e.message)}`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span class="icon" style="font-size:16px;">bolt</span> Synthesize & Hot-Register';
             }
         }
 

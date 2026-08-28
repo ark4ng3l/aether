@@ -15,7 +15,11 @@ class SearchTools(BaseTool):
     def __init__(self):
         super().__init__(
             name="web_search",
-            description="Searches the web for a given query.",
+            description="Searches the web in real-time via DuckDuckGo without API keys.",
+            category="Search Engine",
+            icon="travel_explore",
+            default_param_key="query",
+            example_input="OSINT threat intelligence framework",
         )
 
     async def execute(self, query: str = "", **kwargs) -> ToolResult:  # noqa: D401

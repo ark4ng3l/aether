@@ -187,3 +187,28 @@ class TestProjectEndpoints:
         assert data["status"] == "uploaded"
         assert "filename" in data
         assert "file_path" in data
+
+    def test_list_tools_endpoint(self, client: TestClient):
+        resp = client.get("/api/tools")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "tools" in data
+        assert len(data["tools"]) >= 7
+        tool_names = [t["name"] for t in data["tools"]]
+        assert "web_search" in tool_names
+        assert "image_osint" in tool_names
+        assert "subdomain_finder" in tool_names
+        assert "ip_geolocate" in tool_names
+
+    def test_execute_tool_live_endpoint(self, client: TestClient):
+        payload = {
+            "tool_name": "ip_geolocate",
+            "params": {"ip": "1.1.1.1"}
+        }
+        resp = client.post("/api/tools/execute", json=payload)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["tool_name"] == "ip_geolocate"
+        assert "execution_time_ms" in data
+        assert "success" in data
+

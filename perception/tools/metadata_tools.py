@@ -21,7 +21,11 @@ class MetadataTools(BaseTool):
     def __init__(self):
         super().__init__(
             name="metadata_extractor",
-            description="Extracts metadata (EXIF) from images/files.",
+            description="Extracts forensic metadata (EXIF, format, resolution) from local files.",
+            category="File Forensics",
+            icon="document_scanner",
+            default_param_key="file_path",
+            example_input="ui/index.html",
         )
 
     async def execute(self, file_path: str = "", **kwargs) -> ToolResult:  # noqa: D401

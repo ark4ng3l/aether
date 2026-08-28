@@ -23,7 +23,11 @@ class BreachCheckerTool(BaseTool):
     def __init__(self):
         super().__init__(
             name="breach_lookup",
-            description="Searches public leak databases and paste archives for emails, handles, or domains.",
+            description="Searches public leak databases, paste archives, and code dumps for emails, handles, or tokens.",
+            category="Threat & Leaks",
+            icon="lock_open",
+            default_param_key="query",
+            example_input="target_user",
         )
 
     async def execute(self, query: str = "", **kwargs) -> ToolResult:

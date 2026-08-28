@@ -18,7 +18,11 @@ class NetworkTools(BaseTool):
     def __init__(self):
         super().__init__(
             name="network_recon",
-            description="Performs DNS lookups for a given domain.",
+            description="Performs comprehensive DNS lookups (A, AAAA, MX, TXT, NS, CNAME records).",
+            category="DNS & Protocols",
+            icon="lan",
+            default_param_key="domain",
+            example_input="cloudflare.com",
         )
 
     async def execute(self, domain: str = "", **kwargs) -> ToolResult:  # noqa: D401

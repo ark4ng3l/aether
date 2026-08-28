@@ -23,6 +23,10 @@ class IPGeoThreatTool(BaseTool):
         super().__init__(
             name="ip_geolocate",
             description="Extracts country, city, coordinates (lat/lon), ISP, and ASN for an IP address.",
+            category="Geo-OSINT & Infrastructure",
+            icon="public",
+            default_param_key="ip",
+            example_input="1.1.1.1",
         )
 
     async def execute(self, ip: str = "", **kwargs) -> ToolResult:

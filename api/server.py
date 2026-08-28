@@ -366,6 +366,65 @@ async def get_uploaded_image(filename: str):
     return FileResponse(image_path)
 
 
+# ── Capabilities & Tool Hub Endpoints ────────────────────────────────────────
+
+class ExecuteToolRequest(BaseModel):
+    tool_name: str
+    params: Dict[str, Any] = Field(default_factory=dict)
+
+
+class SynthesizeToolRequest(BaseModel):
+    description: str
+
+
+@app.get("/api/tools")
+async def list_tools_endpoint():
+    """List all registered OSINT and perception tools with capability metadata."""
+    from aether.perception.tools.registry import registry
+    return {"tools": registry.list_tools(), "count": len(registry.list_tools())}
+
+
+@app.post("/api/tools/execute")
+async def execute_tool_endpoint(req: ExecuteToolRequest):
+    """Executes a specific tool live on-demand for monitoring and verification."""
+    import time
+    from aether.perception.tools.registry import registry
+    tool = registry.get_tool(req.tool_name)
+    if not tool:
+        raise HTTPException(status_code=404, detail=f"Tool '{req.tool_name}' not found")
+
+    t_start = time.time()
+    try:
+        res = await tool.execute(**req.params)
+        duration_ms = round((time.time() - t_start) * 1000, 2)
+        res.execution_time_ms = duration_ms
+        return {
+            "tool_name": req.tool_name,
+            "execution_time_ms": duration_ms,
+            "success": res.success,
+            "data": res.data,
+            "error": res.error,
+        }
+    except Exception as exc:
+        duration_ms = round((time.time() - t_start) * 1000, 2)
+        return {
+            "tool_name": req.tool_name,
+            "execution_time_ms": duration_ms,
+            "success": False,
+            "data": {},
+            "error": str(exc),
+        }
+
+
+@app.post("/api/tools/synthesize")
+async def synthesize_tool_endpoint(req: SynthesizeToolRequest):
+    """Synthesizes a new custom OSINT tool using Hermes 35B and registers it live."""
+    from aether.core.tool_maker import synthesize_custom_tool
+    result = await synthesize_custom_tool(req.description)
+    return result
+
+
+
 
 # ── Legacy & Quick Investigate Compatibility ─────────────────────────────────
 

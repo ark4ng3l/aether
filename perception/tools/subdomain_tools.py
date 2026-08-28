@@ -23,7 +23,11 @@ class SubdomainFinderTool(BaseTool):
     def __init__(self):
         super().__init__(
             name="subdomain_finder",
-            description="Enumerates subdomains of a target domain using Certificate Transparency logs.",
+            description="Enumerates subdomains of a target domain using Certificate Transparency logs (crt.sh).",
+            category="Network & Subdomains",
+            icon="hub",
+            default_param_key="domain",
+            example_input="github.com",
         )
 
     async def execute(self, domain: str = "", **kwargs) -> ToolResult:

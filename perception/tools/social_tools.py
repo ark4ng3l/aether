@@ -19,7 +19,11 @@ class SocialTools(BaseTool):
     def __init__(self):
         super().__init__(
             name="social_recon",
-            description="Checks handle existence across social media, developer hubs, and threat repositories.",
+            description="Checks handle presence across 16+ social media, developer hubs, and threat repositories.",
+            category="Social & Handles",
+            icon="alternate_email",
+            default_param_key="username",
+            example_input="torvalds",
         )
         self.platforms = {
             "github": "https://github.com/{user}",

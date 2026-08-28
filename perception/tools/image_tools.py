@@ -103,6 +103,10 @@ class ImageOSINTTool(BaseTool):
         super().__init__(
             name="image_osint",
             description="Analyzes images for EXIF metadata, GPS location, reverse search URLs, hashes, and Vision OCR.",
+            category="Visual Forensics & OCR",
+            icon="image_search",
+            default_param_key="image_path",
+            example_input="https://upload.wikimedia.org/wikipedia/commons/4/47/PNG_transparency_demonstration_1.png",
         )
 
     async def execute(self, image_path: str = "", image_url: str = "", **kwargs) -> ToolResult:
