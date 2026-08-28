@@ -1362,13 +1362,21 @@
 
             <div class="m3-field">
                 <label>Target Identifier (Seed) *</label>
-                <input type="text" id="inputProjSeed" placeholder="e.g., @hacker_handle, suspicious-c2.net, 194.26.29.11, email@domain.com">
+                <input type="text" id="inputProjSeed" placeholder="e.g., @handle, example.com, 1.2.3.4, email@site.com, https://site.com/photo.jpg">
+            </div>
+
+            <!-- Drag & Drop / Image Upload Zone -->
+            <div id="imageUploadZone" style="border:1px dashed var(--md-sys-color-outline);border-radius:8px;padding:10px 14px;text-align:center;background:rgba(255,255,255,0.02);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px;" onclick="document.getElementById('fileImageUpload').click()">
+                <span class="icon" style="color:var(--md-sys-color-primary);font-size:20px;">add_photo_alternate</span>
+                <span style="font-size:12px;color:var(--md-sys-color-on-surface-variant);" id="imageUploadText">Click or Drop Image for EXIF & Vision OSINT</span>
+                <input type="file" id="fileImageUpload" accept="image/*" style="display:none;" onchange="handleImageFileSelect(this)">
             </div>
 
             <div class="m3-field">
                 <label>Target Type</label>
                 <select id="inputProjType">
                     <option value="unknown">Auto Detect</option>
+                    <option value="image">Image / Photo (EXIF & Vision OSINT)</option>
                     <option value="person">Person</option>
                     <option value="social_handle">Social Handle (@username)</option>
                     <option value="domain">Domain / Website</option>
@@ -2404,11 +2412,44 @@
             renderProjectList();
         }
 
+        async function handleImageFileSelect(input) {
+            if (!input.files || input.files.length === 0) return;
+            const file = input.files[0];
+            const textEl = document.getElementById('imageUploadText');
+            textEl.innerHTML = `<span style="color:var(--md-sys-color-primary)">Uploading ${escapeHtml(file.name)}...</span>`;
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const resp = await fetch('/api/upload/image', {
+                    method: 'POST',
+                    body: formData,
+                });
+                if (!resp.ok) throw new Error('Upload failed');
+                const data = await resp.json();
+
+                document.getElementById('inputProjSeed').value = data.file_path;
+                document.getElementById('inputProjType').value = 'image';
+                if (!document.getElementById('inputProjName').value) {
+                    document.getElementById('inputProjName').value = `Image OSINT: ${file.name}`;
+                }
+
+                textEl.innerHTML = `✅ <strong>${escapeHtml(file.name)}</strong> uploaded (${Math.round(data.size_bytes / 1024)} KB)`;
+                playSound('click');
+            } catch(e) {
+                textEl.innerHTML = `❌ Upload failed: ${escapeHtml(e.message)}`;
+            }
+        }
+
         function openNewProjectModal() {
             playSound('click');
             document.getElementById('inputProjName').value = '';
             document.getElementById('inputProjSeed').value = '';
+            document.getElementById('inputProjType').value = 'unknown';
             document.getElementById('inputProjBriefing').value = '';
+            document.getElementById('imageUploadText').textContent = 'Click or Drop Image for EXIF & Vision OSINT';
+            document.getElementById('fileImageUpload').value = '';
             document.getElementById('newProjectModal').classList.add('show');
         }
 

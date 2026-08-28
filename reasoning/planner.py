@@ -88,6 +88,7 @@ class Planner:
 
         # ── Ask the LLM for the next step ──
         available_tools = [
+            "image_osint", "subdomain_finder", "ip_geolocate", "breach_lookup",
             "web_search", "social_recon", "network_recon",
             "stealth_crawler", "vlm_processor", "metadata_extractor",
         ]
@@ -106,7 +107,7 @@ class Planner:
             f"DISCOVERED ENTITIES ({current_count}): "
             f"{[e.id for e in self.state.discovered_entities[:15]]}\n\n"
             f"AVAILABLE TOOLS: {available_tools}\n\n"
-            "Formulate the next strategic OSINT step to uncover hidden connections, owners, infrastructure, or accounts.\n"
+            "Formulate the next strategic OSINT step to uncover hidden connections, owners, infrastructure, images, or accounts.\n"
             "Respond ONLY with a JSON object:\n"
             '{"action":"tool_call","tool_name":"<tool>","params":{"query":"<value>"},"reasoning":"..."}\n'
             'OR {"action":"finish","reasoning":"..."}\n'
@@ -118,15 +119,41 @@ class Planner:
             )
             if isinstance(result, PlanAction):
                 return result
+            if isinstance(result, str):
+                return self._parse_raw_plan(result)
         except Exception as exc:
-            logger.warning(f"Structured plan parsing failed: {exc}")
+            logger.warning(f"Planner LLM call failed: {exc} — using heuristic plan")
 
-        # Fallback: raw text → best-effort parse
-        try:
-            raw = await model_manager.call_model(prompt, temperature=settings.PLANNER_TEMPERATURE)
-            return self._parse_raw_plan(str(raw))
-        except Exception:
-            # Ultimate fallback
+        # ── Deterministic Heuristic Fallback based on Target Type ──
+        if self.state.target_type == EntityType.IMAGE:
+            return PlanAction(
+                action="tool_call",
+                tool_name="image_osint",
+                params={"image_path": self.state.target_seed},
+                reasoning="Primary Image OSINT: EXIF, GPS, Perceptual Hashes, Reverse Search & Vision OCR",
+            )
+        elif self.state.target_type == EntityType.DOMAIN:
+            return PlanAction(
+                action="tool_call",
+                tool_name="subdomain_finder",
+                params={"domain": self.state.target_seed},
+                reasoning="Domain Target: Enumerate subdomains via Certificate Transparency",
+            )
+        elif self.state.target_type == EntityType.IP_ADDRESS:
+            return PlanAction(
+                action="tool_call",
+                tool_name="ip_geolocate",
+                params={"ip": self.state.target_seed},
+                reasoning="IP Target: Geolocate country, city, ISP, and ASN",
+            )
+        elif self.state.target_type == EntityType.SOCIAL_HANDLE:
+            return PlanAction(
+                action="tool_call",
+                tool_name="social_recon",
+                params={"username": self.state.target_seed},
+                reasoning="Social Target: Multi-platform profile verification",
+            )
+        else:
             return PlanAction(
                 action="tool_call",
                 tool_name="web_search",
@@ -142,14 +169,20 @@ class Planner:
     def _infer_tool(task: str) -> tuple[str, dict]:
         """Map a free-text task to a (tool_name, params) tuple."""
         lower = task.lower()
+        if "image" in lower or "photo" in lower or "exif" in lower or lower.endswith((".jpg", ".png", ".webp", ".jpeg")):
+            return "image_osint", {"image_path": task.split(":")[-1].strip()}
+        if "subdomain" in lower or "crt" in lower:
+            return "subdomain_finder", {"domain": task.split(":")[-1].strip()}
+        if "geo" in lower or "ip" in lower:
+            return "ip_geolocate", {"ip": task.split(":")[-1].strip()}
+        if "breach" in lower or "leak" in lower:
+            return "breach_lookup", {"query": task.split(":")[-1].strip()}
         if "social" in lower or "username" in lower or "handle" in lower:
             return "social_recon", {"username": task.split(":")[-1].strip()}
         if "dns" in lower or "domain" in lower or "whois" in lower:
             return "network_recon", {"domain": task.split(":")[-1].strip()}
         if "crawl" in lower or "http" in lower:
             return "stealth_crawler", {"url": task.split(":")[-1].strip()}
-        if "image" in lower or "photo" in lower or "ocr" in lower:
-            return "vlm_processor", {"image_path": task.split(":")[-1].strip()}
         # Default
         return "web_search", {"query": task}
 

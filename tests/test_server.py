@@ -177,3 +177,13 @@ class TestProjectEndpoints:
         assert "current_commit" in data
         assert "repo_url" in data
         assert "update_available" in data
+
+    def test_image_upload_endpoint(self, client: TestClient):
+        file_content = b"\xFF\xD8\xFF\xE0\x00\x10JFIF\x00\x01\x01\x01\x00`\x00`\x00\x00\xFF\xDB\x00C\x00"
+        files = {"file": ("test_pic.jpg", file_content, "image/jpeg")}
+        resp = client.post("/api/upload/image", files=files)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "uploaded"
+        assert "filename" in data
+        assert "file_path" in data

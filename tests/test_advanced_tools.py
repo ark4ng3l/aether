@@ -42,3 +42,21 @@ class TestAdvancedOSINTTools:
         assert result.success is True
         assert "leaks" in result.data
         assert "breach_indicators_found" in result.data
+
+    async def test_image_osint_tool(self, tmp_path):
+        from PIL import Image
+        from aether.perception.tools.image_tools import ImageOSINTTool
+
+        # Create dummy image
+        img_path = tmp_path / "test_osint.jpg"
+        img = Image.new("RGB", (100, 100), color="red")
+        img.save(img_path)
+
+        tool = ImageOSINTTool()
+        result = await tool.execute(image_path=str(img_path))
+        assert result.success is True
+        assert "md5" in result.data
+        assert "sha256" in result.data
+        assert "dhash" in result.data
+        assert result.data["width"] == 100
+        assert result.data["height"] == 100

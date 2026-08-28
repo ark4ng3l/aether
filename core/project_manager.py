@@ -108,7 +108,9 @@ class ProjectManager:
 
         # If target type is UNKNOWN, infer from seed
         if target_type == EntityType.UNKNOWN:
-            if target_seed.startswith("@"):
+            if target_seed.lower().endswith((".jpg", ".jpeg", ".png", ".webp", ".gif", ".tiff", ".bmp")) or "uploads" in target_seed:
+                target_type = EntityType.IMAGE
+            elif target_seed.startswith("@"):
                 target_type = EntityType.SOCIAL_HANDLE
             elif "@" in target_seed and "." in target_seed:
                 target_type = EntityType.EMAIL

@@ -23,6 +23,9 @@ registry.register(geo_tools)
 from aether.perception.tools.breach_tools import breach_tools
 registry.register(breach_tools)
 
+from aether.perception.tools.image_tools import image_tools
+registry.register(image_tools)
+
 # ── Optional tools (degrade gracefully) ─────────────────────────────
 try:
     from aether.perception.tools.network_tools import network_tools

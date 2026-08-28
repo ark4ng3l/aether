@@ -14,7 +14,7 @@ if str(PARENT_DIR) not in sys.path:
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query, File, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -326,6 +326,45 @@ async def get_project_timeline(project_id: str):
         })
 
     return {"project_id": project_id, "events": events}
+
+
+# ── Image Upload & Image OSINT Endpoints ─────────────────────────────────────
+
+@app.post("/api/upload/image")
+async def upload_image_endpoint(file: UploadFile = File(...)):
+    """Uploads an image file to local storage for Image OSINT investigation."""
+    import uuid
+    upload_dir = BASE_DIR / "data" / "uploads"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    ext = Path(file.filename or "image.jpg").suffix.lower()
+    if ext not in (".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tiff"):
+        ext = ".jpg"
+
+    unique_filename = f"upload_{uuid.uuid4().hex[:8]}{ext}"
+    saved_path = upload_dir / unique_filename
+
+    content = await file.read()
+    with open(saved_path, "wb") as f:
+        f.write(content)
+
+    return {
+        "status": "uploaded",
+        "file_path": str(saved_path),
+        "filename": unique_filename,
+        "original_filename": file.filename,
+        "size_bytes": len(content),
+    }
+
+
+@app.get("/api/images/{filename}")
+async def get_uploaded_image(filename: str):
+    """Serves uploaded images for UI previews."""
+    image_path = BASE_DIR / "data" / "uploads" / filename
+    if not image_path.exists():
+        raise HTTPException(status_code=404, detail="Image not found")
+    return FileResponse(image_path)
+
 
 
 # ── Legacy & Quick Investigate Compatibility ─────────────────────────────────
