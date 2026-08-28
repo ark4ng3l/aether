@@ -218,6 +218,116 @@ async def get_project_dossier(project_id: str):
     return {"project_id": project_id, "dossier": dossier}
 
 
+@app.get("/api/projects/{project_id}/export/stix")
+async def export_project_stix(project_id: str):
+    """Exports project findings as an official STIX 2.1 Threat Intel Bundle."""
+    import uuid
+    proj = project_manager.get_project(project_id)
+    if not proj:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    graph = project_manager.get_project_graph(project_id)
+    stix_objects = []
+
+    # 1. Identity
+    identity_id = f"identity--{uuid.uuid4()}"
+    stix_objects.append({
+        "type": "identity",
+        "spec_version": "2.1",
+        "id": identity_id,
+        "created": proj.created_at.isoformat() if proj.created_at else "2026-08-28T00:00:00Z",
+        "modified": proj.updated_at.isoformat() if proj.updated_at else "2026-08-28T00:00:00Z",
+        "name": proj.target_seed,
+        "identity_class": "unknown",
+        "description": proj.context_briefing or f"Target of AETHER investigation: {proj.name}",
+    })
+
+    # 2. Convert graph nodes to STIX SDOs
+    node_stix_map = {}
+    for node in graph.get("nodes", []):
+        ndata = node.get("data", {})
+        nid = ndata.get("id", "")
+        ntype = ndata.get("type", "artifact")
+        stix_id = f"infrastructure--{uuid.uuid4()}" if ntype in ("ip_address", "domain") else f"indicator--{uuid.uuid4()}"
+        node_stix_map[nid] = stix_id
+
+        stix_objects.append({
+            "type": "infrastructure" if ntype in ("ip_address", "domain") else "indicator",
+            "spec_version": "2.1",
+            "id": stix_id,
+            "created": proj.created_at.isoformat() if proj.created_at else "2026-08-28T00:00:00Z",
+            "modified": proj.updated_at.isoformat() if proj.updated_at else "2026-08-28T00:00:00Z",
+            "name": ndata.get("label", nid),
+            "description": f"AETHER discovered {ntype}: {nid}",
+            "confidence": int(ndata.get("confidence", 0.8) * 100),
+            "custom_properties": ndata.get("properties", {}),
+        })
+
+    # 3. Convert edges to STIX Relationships
+    for edge in graph.get("edges", []):
+        edata = edge.get("data", {})
+        src = edata.get("source")
+        tgt = edata.get("target")
+        if src in node_stix_map and tgt in node_stix_map:
+            stix_objects.append({
+                "type": "relationship",
+                "spec_version": "2.1",
+                "id": f"relationship--{uuid.uuid4()}",
+                "created": proj.created_at.isoformat() if proj.created_at else "2026-08-28T00:00:00Z",
+                "modified": proj.updated_at.isoformat() if proj.updated_at else "2026-08-28T00:00:00Z",
+                "relationship_type": edata.get("label", "related-to").lower().replace("_", "-"),
+                "source_ref": node_stix_map[src],
+                "target_ref": node_stix_map[tgt],
+            })
+
+    bundle = {
+        "type": "bundle",
+        "id": f"bundle--{uuid.uuid4()}",
+        "spec_version": "2.1",
+        "objects": stix_objects,
+    }
+    return bundle
+
+
+@app.get("/api/projects/{project_id}/timeline")
+async def get_project_timeline(project_id: str):
+    """Returns chronological timeline events of all discovery milestones."""
+    proj = project_manager.get_project(project_id)
+    if not proj:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    events = []
+    events.append({
+        "timestamp": proj.created_at.isoformat() if proj.created_at else "",
+        "title": "Investigation Initialized",
+        "category": "milestone",
+        "description": f"Target Seed: {proj.target_seed} ({proj.target_type.value})",
+    })
+
+    if proj.state and proj.state.completed_tasks:
+        for t in proj.state.completed_tasks:
+            events.append({
+                "timestamp": proj.updated_at.isoformat() if proj.updated_at else "",
+                "title": f"Executed: {t.tool_name}",
+                "category": "recon",
+                "description": f"Verdict: {t.verdict} ({int(t.confidence * 100)}% conf) — {t.reasoning}",
+                "summary": t.output_summary[:180],
+            })
+
+    graph = project_manager.get_project_graph(project_id)
+    for n in graph.get("nodes", []):
+        ndata = n.get("data", {})
+        events.append({
+            "timestamp": proj.updated_at.isoformat() if proj.updated_at else "",
+            "title": f"Entity Discovered: [{ndata.get('type', 'entity').upper()}]",
+            "category": "entity",
+            "description": ndata.get("label", ndata.get("id")),
+            "properties": ndata.get("properties", {}),
+        })
+
+    return {"project_id": project_id, "events": events}
+
+
 # ── Legacy & Quick Investigate Compatibility ─────────────────────────────────
 
 @app.post("/api/investigate/{seed:path}")

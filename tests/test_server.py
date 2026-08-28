@@ -149,3 +149,22 @@ class TestProjectEndpoints:
         )
         assert post_resp.status_code == 200
         assert post_resp.json()["status"] == "updated"
+
+    def test_stix_and_timeline_endpoints(self, client: TestClient, isolate_project_manager: ProjectManager):
+        p = isolate_project_manager.create_project(name="Threat Export Test", target_seed="threat.org")
+        
+        # 1. Timeline
+        timeline_resp = client.get(f"/api/projects/{p.id}/timeline")
+        assert timeline_resp.status_code == 200
+        tdata = timeline_resp.json()
+        assert tdata["project_id"] == p.id
+        assert len(tdata["events"]) >= 1
+
+        # 2. STIX 2.1
+        stix_resp = client.get(f"/api/projects/{p.id}/export/stix")
+        assert stix_resp.status_code == 200
+        sdata = stix_resp.json()
+        assert sdata["type"] == "bundle"
+        assert sdata["spec_version"] == "2.1"
+        assert len(sdata["objects"]) >= 1
+        assert sdata["objects"][0]["type"] == "identity"

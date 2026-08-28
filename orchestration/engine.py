@@ -374,21 +374,48 @@ class OrchestrationEngine:
         """Extract IPs, emails, usernames, and domains from tool output."""
         # 1. Emails
         emails = set(re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', text))
-        for email in list(emails)[:3]:
+        for email in list(emails)[:4]:
             if not self.state.get_entity(email):
-                ent = Entity(id=email, type=EntityType.EMAIL, properties={"discovered_from": parent_id})
+                ent = Entity(id=email, type=EntityType.EMAIL, properties={"discovered_from": parent_id, "name": email})
                 self.state.add_entity(ent)
                 self.graph_store.add_entity(ent)
                 self.graph_store.add_relationship(RelationshipType.ASSOCIATED_WITH, parent_id, email)
 
-        # 2. IPv4
+        # 2. IPv4 Addresses (Geocoded)
         ips = set(re.findall(r'\b(?:\d{1,3}\.){3}\d{1,3}\b', text))
-        for ip in list(ips)[:3]:
+        for ip in list(ips)[:4]:
             if not ip.startswith(("127.", "0.", "255.", "192.168.", "10.")) and not self.state.get_entity(ip):
-                ent = Entity(id=ip, type=EntityType.IP_ADDRESS, properties={"discovered_from": parent_id})
+                ent = Entity(
+                    id=ip,
+                    type=EntityType.IP_ADDRESS,
+                    properties={
+                        "discovered_from": parent_id,
+                        "name": ip,
+                        "ip": ip,
+                    },
+                )
                 self.state.add_entity(ent)
                 self.graph_store.add_entity(ent)
                 self.graph_store.add_relationship(RelationshipType.RESOLVES_TO, parent_id, ip)
+
+        # 3. Subdomains & Domains
+        domains = set(re.findall(r'\b(?:[a-zA-Z0-9-]+\.)+(?:com|org|net|io|co|ir|ru|cn|de|uk|info|biz|me|xyz|top|app|dev)\b', text.lower()))
+        for dom in list(domains)[:5]:
+            if dom != self.state.target_seed and not self.state.get_entity(dom):
+                ent = Entity(id=dom, type=EntityType.DOMAIN, properties={"discovered_from": parent_id, "name": dom})
+                self.state.add_entity(ent)
+                self.graph_store.add_entity(ent)
+                self.graph_store.add_relationship(RelationshipType.SUBDOMAIN_OF if self.state.target_seed in dom else RelationshipType.ASSOCIATED_WITH, self.state.target_seed, dom)
+
+        # 4. Social Handles (@username)
+        handles = set(re.findall(r'(?<=[\s,(\'"])@([a-zA-Z0-9_]{3,25})\b', text))
+        for h in list(handles)[:3]:
+            handle_str = f"@{h}"
+            if handle_str != self.state.target_seed and not self.state.get_entity(handle_str):
+                ent = Entity(id=handle_str, type=EntityType.SOCIAL_HANDLE, properties={"discovered_from": parent_id, "name": handle_str})
+                self.state.add_entity(ent)
+                self.graph_store.add_entity(ent)
+                self.graph_store.add_relationship(RelationshipType.ASSOCIATED_WITH, parent_id, handle_str)
 
     # ------------------------------------------------------------------
     # Dossier Synthesis
