@@ -20,10 +20,30 @@ class GraphStore:
     Suitable for single-process investigations — no external server required.
     """
 
-    def __init__(self, db_path: Optional[str] = None):
-        self.db_path = db_path or settings.GRAPH_DB_PATH
+    def __init__(self, db_path: Optional[str] = None, project_id: Optional[str] = None):
+        if db_path:
+            self.db_path = db_path
+        elif project_id:
+            self.db_path = f"aether/data/graphs/{project_id}.db"
+        else:
+            self.db_path = settings.GRAPH_DB_PATH
         os.makedirs(os.path.dirname(self.db_path) or ".", exist_ok=True)
         self._init_db()
+
+    def clear(self):
+        """Wipes all entities and edges from this store."""
+        with self._connect() as conn:
+            conn.execute("DELETE FROM edges;")
+            conn.execute("DELETE FROM nodes;")
+
+    def delete_database_file(self):
+        """Removes the SQLite database file from disk completely."""
+        try:
+            if os.path.exists(self.db_path):
+                os.remove(self.db_path)
+                logger.info(f"Deleted graph database file: {self.db_path}")
+        except Exception as exc:
+            logger.warning(f"Error removing db file {self.db_path}: {exc}")
 
     # ------------------------------------------------------------------
     # Schema

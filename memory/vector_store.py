@@ -107,6 +107,22 @@ class VectorStore:
         vector = self._embed_single(query)
         return self.search(vector, limit=limit)
 
+    def delete_by_project(self, project_id: str):
+        """Deletes all vector embeddings associated with a specific project."""
+        try:
+            from qdrant_client.models import Filter, FieldCondition, MatchValue, FilterSelector
+            self.client.delete(
+                collection_name=self.COLLECTION,
+                points_selector=FilterSelector(
+                    filter=Filter(
+                        must=[FieldCondition(key="project_id", match=MatchValue(value=project_id))]
+                    )
+                ),
+            )
+            logger.info(f"Purged vector memory for project [{project_id}]")
+        except Exception as exc:
+            logger.warning(f"Failed to delete project vectors for [{project_id}]: {exc}")
+
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------

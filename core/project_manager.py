@@ -186,16 +186,34 @@ class ProjectManager:
         return project
 
     def delete_project(self, project_id: str) -> bool:
-        """Stop any running execution and delete the project."""
+        """Stop any running execution, purge collected graph/vectors, and delete the project."""
         if project_id in self._active_tasks and not self._active_tasks[project_id].done():
             self._active_tasks[project_id].cancel()
 
+        # 1. Purge and delete isolated SQLite Graph database for this project
+        try:
+            graph_db = Path(f"aether/data/graphs/{project_id}.db")
+            if graph_db.exists():
+                graph_db.unlink()
+                logger.info(f"Purged graph database for project [{project_id}]")
+        except Exception as exc:
+            logger.warning(f"Could not remove graph db for {project_id}: {exc}")
+
+        # 2. Purge vector store points for this project
+        try:
+            from aether.memory.vector_store import VectorStore
+            vs = VectorStore()
+            vs.delete_by_project(project_id)
+        except Exception:
+            pass
+
+        # 3. Clean up in-memory engines and records
         if project_id in self._projects:
             del self._projects[project_id]
             self._active_engines.pop(project_id, None)
             self._active_tasks.pop(project_id, None)
             self._save_to_disk()
-            logger.info(f"Deleted project [{project_id}]")
+            logger.info(f"Deleted project [{project_id}] and purged all associated data.")
             return True
         return False
 
@@ -348,20 +366,27 @@ class ProjectManager:
             nodes = engine.graph_store.query_all_nodes()
             edges = engine.graph_store.query_all_edges()
         else:
-            project = self._projects.get(project_id)
-            if not project or not project.state:
-                return {"nodes": [], "edges": []}
-            # Reconstruct from saved state
-            nodes = [
-                {
-                    "id": e.id,
-                    "type": e.type.value,
-                    "properties": e.properties,
-                    "confidence": e.confidence,
-                }
-                for e in project.state.discovered_entities
-            ]
-            edges = []
+            project_db = Path(f"aether/data/graphs/{project_id}.db")
+            if project_db.exists():
+                from aether.memory.graph_store import GraphStore
+                store = GraphStore(db_path=str(project_db))
+                nodes = store.query_all_nodes()
+                edges = store.query_all_edges()
+            else:
+                project = self._projects.get(project_id)
+                if not project or not project.state:
+                    return {"nodes": [], "edges": []}
+                # Reconstruct from saved state
+                nodes = [
+                    {
+                        "id": e.id,
+                        "type": e.type.value,
+                        "properties": e.properties,
+                        "confidence": e.confidence,
+                    }
+                    for e in project.state.discovered_entities
+                ]
+                edges = []
 
         cy_nodes = [
             {

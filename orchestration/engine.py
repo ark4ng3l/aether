@@ -67,7 +67,7 @@ class OrchestrationEngine:
             target_type=target_type,
             context_briefing=context_briefing,
         )
-        self.graph_store = GraphStore()
+        self.graph_store = GraphStore(project_id=self.state.project_id)
         self.planner = Planner(self.state)
         self.hypothesis_engine = HypothesisEngine()
         self.critic = RedTeamCritic()
