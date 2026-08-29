@@ -2040,20 +2040,21 @@
             listEl.innerHTML = '';
             filtered.forEach(p => {
                 const card = document.createElement('div');
+                card.id = `proj-card-${p.id}`;
                 card.className = `m3-card ${p.id === activeProjectId ? 'active' : ''}`;
                 card.onclick = () => {
                     selectProject(p.id);
                     if (window.innerWidth <= 1024) closeDrawer();
                 };
 
-                const statusColor = p.status === 'completed' ? 'var(--md-sys-color-tertiary)' :
-                                   ['planning','collecting','reasoning','verifying','synthesizing'].includes(p.status) ? 'var(--md-sys-color-warning)' :
-                                   p.status === 'failed' ? 'var(--md-sys-color-error)' : 'var(--md-sys-color-outline)';
+                const statusColor = p.status === 'completed' ? 'var(--emerald-primary)' :
+                                   ['planning','collecting','reasoning','verifying','synthesizing'].includes(p.status) ? 'var(--amber-primary)' :
+                                   p.status === 'failed' ? 'var(--rose-neon)' : 'var(--text-low)';
 
                 card.innerHTML = `
                     <div class="card-header-row">
                         <div class="card-name">${escapeHtml(p.name)}</div>
-                        <span class="card-status-badge" style="background:rgba(255,255,255,0.06);color:${statusColor}">${p.status}</span>
+                        <span class="card-status-badge" style="background:rgba(255,255,255,0.06);color:${statusColor}">${(p.status || 'IDLE').toUpperCase()}</span>
                     </div>
                     <div class="card-seed-row">
                         <span class="card-seed">${escapeHtml(p.target_seed)}</span>
@@ -2072,6 +2073,53 @@
                 `;
                 listEl.appendChild(card);
             });
+        }
+
+        function updateBannerStatus(status) {
+            const badge = document.getElementById('bannerStatusBadge');
+            if (!badge) return;
+            const normStatus = (status || 'IDLE').toUpperCase();
+            badge.textContent = normStatus;
+            const isRunning = ['PLANNING','COLLECTING','REASONING','VERIFYING','SYNTHESIZING'].includes(normStatus);
+            if (isRunning) {
+                badge.style.background = 'rgba(245, 158, 11, 0.15)';
+                badge.style.color = 'var(--amber-primary)';
+                badge.style.border = '1px solid rgba(245, 158, 11, 0.4)';
+            } else if (normStatus === 'COMPLETED') {
+                badge.style.background = 'rgba(16, 185, 129, 0.15)';
+                badge.style.color = 'var(--emerald-primary)';
+                badge.style.border = '1px solid rgba(16, 185, 129, 0.4)';
+            } else if (normStatus === 'STOPPED') {
+                badge.style.background = 'rgba(255, 255, 255, 0.08)';
+                badge.style.color = 'var(--text-low)';
+                badge.style.border = '1px solid rgba(255, 255, 255, 0.12)';
+            } else if (normStatus === 'FAILED') {
+                badge.style.background = 'rgba(239, 68, 68, 0.15)';
+                badge.style.color = 'var(--rose-neon)';
+                badge.style.border = '1px solid rgba(239, 68, 68, 0.4)';
+            } else {
+                badge.style.background = 'rgba(255, 255, 255, 0.06)';
+                badge.style.color = 'var(--text-low)';
+                badge.style.border = '1px solid rgba(255, 255, 255, 0.08)';
+            }
+
+            const runBtn = document.getElementById('btnRunCurrent');
+            const stopBtn = document.getElementById('btnStopCurrent');
+            if (runBtn) runBtn.disabled = isRunning;
+            if (stopBtn) stopBtn.disabled = !isRunning;
+        }
+
+        function updateSidebarCardStatus(projectId, status) {
+            const card = document.getElementById(`proj-card-${projectId}`);
+            if (card) {
+                const badge = card.querySelector('.card-status-badge');
+                if (badge) {
+                    const normStatus = (status || 'IDLE').toUpperCase();
+                    badge.textContent = normStatus;
+                    const isRunning = ['PLANNING','COLLECTING','REASONING','VERIFYING','SYNTHESIZING'].includes(normStatus);
+                    badge.style.color = isRunning ? 'var(--amber-primary)' : normStatus === 'COMPLETED' ? 'var(--emerald-primary)' : 'var(--text-low)';
+                }
+            }
         }
 
         async function selectProject(projectId) {
@@ -2095,13 +2143,8 @@
                 document.getElementById('bannerProjSeed').textContent = p.target_seed;
                 document.getElementById('bannerProjType').textContent = p.target_type.toUpperCase();
                 
-                const badge = document.getElementById('bannerStatusBadge');
-                badge.textContent = p.status.toUpperCase();
-                const isRunning = ['planning','collecting','reasoning','verifying','synthesizing'].includes(p.status);
-                badge.style.color = isRunning ? 'var(--md-sys-color-warning)' : p.status === 'completed' ? 'var(--md-sys-color-tertiary)' : 'var(--md-sys-color-outline)';
-
-                document.getElementById('btnRunCurrent').disabled = isRunning;
-                document.getElementById('btnStopCurrent').disabled = !isRunning;
+                updateBannerStatus(p.status);
+                updateSidebarCardStatus(p.id, p.status);
 
                 // Update Subviews
                 loadProjectGraph(activeProjectId);
@@ -2412,7 +2455,14 @@
             globalWs = new WebSocket(`${proto}//${location.host}/ws/global`);
             globalWs.onmessage = (e) => {
                 const msg = JSON.parse(e.data);
-                if (msg.type === 'project_updated') {
+                if (msg.type === 'project_updated' || msg.type === 'project_finished') {
+                    if (msg.data && msg.data.project_id) {
+                        updateSidebarCardStatus(msg.data.project_id, msg.data.status);
+                        if (msg.data.project_id === activeProjectId) {
+                            updateBannerStatus(msg.data.status);
+                            updatePhaseStepper(msg.data.status);
+                        }
+                    }
                     loadProjects();
                 } else if (msg.type === 'model_telemetry') {
                     handleModelTelemetry(msg.data);
@@ -2459,6 +2509,10 @@
                     break;
                 case 'status_change':
                     updatePhaseStepper(data.status);
+                    updateBannerStatus(data.status);
+                    if (activeProjectId) {
+                        updateSidebarCardStatus(activeProjectId, data.status);
+                    }
                     loadProjectTasks(activeProjectId);
                     break;
                 case 'entity_discovered':

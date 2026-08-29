@@ -138,8 +138,16 @@ class ProjectManager:
         """Return list of all projects summarized for UI dashboard."""
         summaries = []
         for p in sorted(self._projects.values(), key=lambda x: x.updated_at, reverse=True):
-            ent_count = len(p.state.discovered_entities) if p.state else p.entities_count
-            comp_count = len(p.state.completed_tasks) if p.state else p.completed_tasks_count
+            if p.id in self._active_engines:
+                eng = self._active_engines[p.id]
+                status = eng.state.status
+                ent_count = len(eng.state.discovered_entities)
+                comp_count = len(eng.state.completed_tasks)
+            else:
+                status = p.status
+                ent_count = len(p.state.discovered_entities) if p.state else p.entities_count
+                comp_count = len(p.state.completed_tasks) if p.state else p.completed_tasks_count
+
             summaries.append(
                 ProjectSummary(
                     id=p.id,
@@ -147,7 +155,7 @@ class ProjectManager:
                     target_seed=p.target_seed,
                     target_type=p.target_type,
                     context_briefing=p.context_briefing,
-                    status=p.status,
+                    status=status,
                     entities_count=ent_count,
                     completed_tasks_count=comp_count,
                     has_dossier=bool(p.dossier or (p.state and p.state.dossier)),
@@ -158,8 +166,15 @@ class ProjectManager:
         return summaries
 
     def get_project(self, project_id: str) -> Optional[Project]:
-        """Retrieve full project details by ID."""
-        return self._projects.get(project_id)
+        """Retrieve full project details by ID with live state sync."""
+        project = self._projects.get(project_id)
+        if project and project_id in self._active_engines:
+            eng = self._active_engines[project_id]
+            project.status = eng.state.status
+            project.state = eng.state
+            project.entities_count = len(eng.state.discovered_entities)
+            project.completed_tasks_count = len(eng.state.completed_tasks)
+        return project
 
     def update_project(
         self,
@@ -295,11 +310,18 @@ class ProjectManager:
         task = self._active_tasks.get(project_id)
         if task and not task.done():
             task.cancel()
-            project = self._projects.get(project_id)
-            if project:
-                project.status = InvestigationStatus.STOPPED
-                project.updated_at = _now_utc()
-                self._save_to_disk()
+
+        engine = self._active_engines.get(project_id)
+        if engine:
+            engine.state.status = InvestigationStatus.STOPPED
+
+        project = self._projects.get(project_id)
+        if project:
+            project.status = InvestigationStatus.STOPPED
+            project.updated_at = _now_utc()
+            self._save_to_disk()
+            asyncio.create_task(event_bus.emit(project_id, {"type": "status_change", "data": {"status": "stopped"}}))
+            asyncio.create_task(event_bus.emit_global({"type": "project_updated", "data": {"project_id": project_id, "status": "stopped"}}))
             return True
         return False
 
