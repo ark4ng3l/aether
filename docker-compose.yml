@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  aether-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aether-engine
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/aether/data
+      - ./data/uploads:/app/aether/data/uploads
+    environment:
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - AETHER_HOST=0.0.0.0
+      - AETHER_PORT=8000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

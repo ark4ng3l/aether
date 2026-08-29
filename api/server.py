@@ -14,7 +14,9 @@ if str(PARENT_DIR) not in sys.path:
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query, File, UploadFile
+import secrets
+import re
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query, File, UploadFile, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -24,16 +26,59 @@ from aether.core.state import EntityType, InvestigationStatus
 from aether.core.project_manager import project_manager
 from aether.core.events import event_bus
 
-app = FastAPI(title="AETHER Intelligence Engine API", version="2.0.0")
+# ── Local API Security Token ──────────────────────────────────────────────────
+AUTH_TOKEN_FILE = BASE_DIR / "data" / "auth_token.txt"
+AUTH_TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
+if not AUTH_TOKEN_FILE.exists():
+    AUTH_TOKEN = secrets.token_hex(24)
+    AUTH_TOKEN_FILE.write_text(AUTH_TOKEN, encoding="utf-8")
+    logger.mission_critical(f"AETHER Local API Security Token: {AUTH_TOKEN}")
+else:
+    AUTH_TOKEN = AUTH_TOKEN_FILE.read_text(encoding="utf-8").strip()
 
-# Enable CORS for full UI access
+app = FastAPI(title="AETHER Intelligence Engine API", version="3.0.0")
+
+# Enable secure CORS for Localhost / 127.0.0.1
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Local Bearer Token Authentication Middleware
+@app.middleware("http")
+async def local_auth_middleware(request: Request, call_next):
+    path = request.url.path
+    # Allow public endpoints
+    if (
+        path == "/"
+        or path == "/api/health"
+        or path == "/api/auth/token"
+        or path.startswith("/docs")
+        or path.startswith("/redoc")
+        or path.startswith("/openapi.json")
+        or not path.startswith("/api/")
+    ):
+        return await call_next(request)
+
+    # Check Bearer token in header or ?token= param
+    auth_header = request.headers.get("Authorization", "")
+    query_token = request.query_params.get("token", "")
+    token = ""
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:].strip()
+    elif query_token:
+        token = query_token.strip()
+
+    if token != AUTH_TOKEN:
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "Unauthorized. Bearer token required for API access."},
+        )
+
+    return await call_next(request)
 
 UI_FILE = BASE_DIR / "ui" / "index.html"
 
@@ -71,7 +116,13 @@ async def root():
 
 @app.get("/api/health")
 async def health():
-    return {"status": "online", "engine": "AETHER", "version": "2.0.0"}
+    return {"status": "online", "engine": "AETHER", "version": "3.0.0"}
+
+
+@app.get("/api/auth/token")
+async def get_auth_token():
+    """Returns local auth token for local UI bootstrap."""
+    return {"token": AUTH_TOKEN}
 
 
 # ── Project Management Endpoints ──────────────────────────────────────────────
@@ -359,11 +410,31 @@ async def upload_image_endpoint(file: UploadFile = File(...)):
 
 @app.get("/api/images/{filename}")
 async def get_uploaded_image(filename: str):
-    """Serves uploaded images for UI previews."""
-    image_path = BASE_DIR / "data" / "uploads" / filename
-    if not image_path.exists():
+    """Serves uploaded images for UI previews with strict path validation."""
+    if not re.match(r"^[a-zA-Z0-9_\-]+\.(jpg|jpeg|png|webp|gif|bmp|tiff)$", filename, re.IGNORECASE):
+        raise HTTPException(status_code=400, detail="Invalid filename format")
+
+    upload_dir = (BASE_DIR / "data" / "uploads").resolve()
+    image_path = (upload_dir / filename).resolve()
+
+    if not str(image_path).startswith(str(upload_dir)) or not image_path.exists():
         raise HTTPException(status_code=404, detail="Image not found")
     return FileResponse(image_path)
+
+
+# ── System Metrics & Observability ────────────────────────────────────────────
+
+@app.get("/api/metrics")
+async def get_metrics_endpoint():
+    """Returns system health, tool success rates, uptime, and resource arbiter telemetry."""
+    from aether.core.metrics import metrics_collector
+    from aether.core.resource_arbiter import resource_arbiter
+    from aether.core.cache import circuit_breaker
+
+    summary = metrics_collector.get_summary()
+    summary["resource_arbiter"] = resource_arbiter.get_telemetry()
+    summary["circuit_breakers"] = circuit_breaker.get_status()
+    return summary
 
 
 # ── Capabilities & Tool Hub Endpoints ────────────────────────────────────────
@@ -375,6 +446,7 @@ class ExecuteToolRequest(BaseModel):
 
 class SynthesizeToolRequest(BaseModel):
     description: str
+    auto_register: Optional[bool] = False
 
 
 @app.get("/api/tools")
@@ -382,6 +454,23 @@ async def list_tools_endpoint():
     """List all registered OSINT and perception tools with capability metadata."""
     from aether.perception.tools.registry import registry
     return {"tools": registry.list_tools(), "count": len(registry.list_tools())}
+
+
+@app.get("/api/tools/staged")
+async def get_staged_tools_endpoint():
+    """Lists all synthesized tools awaiting human approval."""
+    from aether.core.tool_maker import list_staged_tools
+    return {"staged_tools": list_staged_tools()}
+
+
+@app.post("/api/tools/approve/{stage_id}")
+async def approve_tool_endpoint(stage_id: str):
+    """Approves and registers a staged tool."""
+    from aether.core.tool_maker import approve_and_register_tool
+    result = approve_and_register_tool(stage_id)
+    if result.get("status") == "error":
+        raise HTTPException(status_code=400, detail=result.get("error"))
+    return result
 
 
 @app.post("/api/tools/execute")
@@ -418,9 +507,9 @@ async def execute_tool_endpoint(req: ExecuteToolRequest):
 
 @app.post("/api/tools/synthesize")
 async def synthesize_tool_endpoint(req: SynthesizeToolRequest):
-    """Synthesizes a new custom OSINT tool using Hermes 35B and registers it live."""
+    """Synthesizes a new custom OSINT tool with AST validation and stages it for approval."""
     from aether.core.tool_maker import synthesize_custom_tool
-    result = await synthesize_custom_tool(req.description)
+    result = await synthesize_custom_tool(req.description, auto_register=bool(req.auto_register))
     return result
 
 

@@ -39,6 +39,9 @@ from aether.reasoning.critic import RedTeamCritic
 from aether.memory.graph_store import GraphStore
 from aether.memory.entity_resolver import EntityResolver
 from aether.perception.tools.registry import registry
+from aether.core.resource_arbiter import resource_arbiter
+from aether.core.cache import response_cache, circuit_breaker
+from aether.core.metrics import metrics_collector
 
 # Per-tool timeout configuration (seconds)
 TOOL_TIMEOUTS: dict[str, float] = {
@@ -55,6 +58,9 @@ TOOL_TIMEOUTS: dict[str, float] = {
     "whois_lookup": 15.0,
     "shodan_lookup": 12.0,
     "github_dorker": 20.0,
+    "company_recon": 15.0,
+    "news_intel": 15.0,
+    "threat_intel": 15.0,
 }
 DEFAULT_TOOL_TIMEOUT = 25.0
 
@@ -145,6 +151,7 @@ class OrchestrationEngine:
         iteration = 0
         max_iter = settings.MAX_SEARCH_DEPTH
 
+        metrics_collector.record_investigation_start()
         try:
             # ── Add seed as root entity ──
             seed_type = (
@@ -262,6 +269,7 @@ class OrchestrationEngine:
             self.state.status = InvestigationStatus.COMPLETED
             self.state.finished_time = _now_utc()
 
+            metrics_collector.record_investigation_complete(True, len(self.state.discovered_entities))
             await self._emit("investigation_completed", {
                 "project_id": self.state.project_id,
                 "entities_count": len(self.state.discovered_entities),
@@ -278,6 +286,7 @@ class OrchestrationEngine:
             self.state.status = InvestigationStatus.FAILED
             self.state.last_error = str(exc)
             self.state.finished_time = _now_utc()
+            metrics_collector.record_investigation_complete(False, 0)
             await self._emit("error", {"error": str(exc)})
 
     # ------------------------------------------------------------------
@@ -341,27 +350,62 @@ class OrchestrationEngine:
             self.state.completed_tasks.append(task_step)
             return
 
-        # Execute tool with per-tool timeout
-        timeout = TOOL_TIMEOUTS.get(tool_name, DEFAULT_TOOL_TIMEOUT)
-        try:
-            result = await asyncio.wait_for(tool.execute(**plan.params), timeout=timeout)
-        except asyncio.TimeoutError:
-            result = None
+        # 1. Circuit Breaker check
+        is_avail, degrade_reason = circuit_breaker.is_available(tool_name)
+        if not is_avail:
+            logger.warning(f"Circuit breaker active: {degrade_reason}")
             task_step.status = "failed"
-            task_step.output_summary = f"Tool '{tool_name}' timed out after {timeout}s"
-        except TypeError:
-            query = " ".join(str(v) for v in plan.params.values())
-            result = await tool.execute(query=query)
-        except Exception as exc:
-            result = None
-            task_step.status = "failed"
-            task_step.output_summary = f"Execution error: {exc}"
+            task_step.output_summary = degrade_reason or f"Tool '{tool_name}' degraded by circuit breaker"
+            self.state.completed_tasks.append(task_step)
+            self.state.active_task = None
+            await self._emit("task_failed", {
+                "task_id": task_step.id,
+                "tool": tool_name,
+                "error": task_step.output_summary,
+                "duration": 0.0,
+            })
+            return
+
+        # 2. Check in-memory response cache
+        cached_result = response_cache.get(tool_name, plan.params)
+        is_cache_hit = cached_result is not None
+
+        if is_cache_hit:
+            result = cached_result
+        else:
+            # Execute under ResourceArbiter semaphore throttle
+            resource_category = "heavy_llm" if "vlm" in tool_name else "network_io"
+            timeout = TOOL_TIMEOUTS.get(tool_name, DEFAULT_TOOL_TIMEOUT)
+
+            try:
+                async with resource_arbiter.throttle(resource_category):
+                    result = await asyncio.wait_for(tool.execute(**plan.params), timeout=timeout)
+            except asyncio.TimeoutError:
+                result = None
+                task_step.status = "failed"
+                task_step.output_summary = f"Tool '{tool_name}' timed out after {timeout}s"
+            except TypeError:
+                query = " ".join(str(v) for v in plan.params.values())
+                try:
+                    async with resource_arbiter.throttle(resource_category):
+                        result = await tool.execute(query=query)
+                except Exception as exc:
+                    result = None
+                    task_step.status = "failed"
+                    task_step.output_summary = f"Execution error: {exc}"
+            except Exception as exc:
+                result = None
+                task_step.status = "failed"
+                task_step.output_summary = f"Execution error: {exc}"
 
         duration = round(time.time() - start_time, 2)
         task_step.duration_seconds = duration
 
+        # Record metrics & circuit breaker status
         if result is None or not result.success:
             err = result.error if result else task_step.output_summary
+            circuit_breaker.record_failure(tool_name, err)
+            metrics_collector.record_tool_execution(tool_name, duration * 1000, False)
             task_step.status = "failed"
             task_step.output_summary = err
             self.state.completed_tasks.append(task_step)
@@ -374,36 +418,38 @@ class OrchestrationEngine:
             })
             return
 
+        # Record success
+        circuit_breaker.record_success(tool_name)
+        metrics_collector.record_tool_execution(tool_name, duration * 1000, True)
+        if not is_cache_hit:
+            response_cache.set(tool_name, plan.params, result)
+
         raw_preview = str(result.data)
         task_step.output_summary = (raw_preview[:250] + "…") if len(raw_preview) > 250 else raw_preview
 
-        # 4. VERIFICATION — Fast & Smart Adversarial Verification
+        # 3. VERIFICATION — Fast & Smart Adversarial Verification
         self.state.status = InvestigationStatus.VERIFYING
         await self._emit("status_change", {"status": "verifying"})
 
-        # Deterministic tools (DNS, IP-API, CT logs, EXIF) return verified technical ground-truth
-        DETERMINISTIC_TOOLS = {
-            "subdomain_finder", "ip_geolocate", "network_recon",
-            "image_osint", "metadata_extractor",
-        }
-
-        if tool_name in DETERMINISTIC_TOOLS:
-            verdict = {
-                "verdict": "CONFIRMED",
-                "reasoning": f"Direct technical record verified from {tool_name}",
-                "confidence": 0.95,
-            }
-        else:
-            briefing_context = (
-                f" Context: {self.state.context_briefing}" if self.state.context_briefing else ""
-            )
-            verdict = await self.critic.evaluate_finding(
-                f"Tool '{tool_name}' returned: {raw_preview[:500]}.{briefing_context}",
-                is_heavy=False,
-            )
+        briefing_context = (
+            f" Context: {self.state.context_briefing}" if self.state.context_briefing else ""
+        )
+        verdict = await self.critic.evaluate_finding(
+            f"Tool '{tool_name}' returned: {raw_preview[:500]}.{briefing_context}",
+            is_heavy=False,
+            source_tool=tool_name,
+        )
 
         task_step.verdict = verdict.get("verdict", "PLAUSIBLE")
-        task_step.confidence = float(verdict.get("confidence", 0.5))
+        critic_conf = float(verdict.get("confidence", 0.5))
+
+        # Calculate multi-signal confidence with full breakdown
+        final_confidence, conf_breakdown = self.entity_resolver.calculate_confidence(
+            source_tool=tool_name,
+            corroboration_count=1,
+            critic_confidence=critic_conf,
+        )
+        task_step.confidence = final_confidence
 
         if task_step.verdict in ("CONFIRMED", "PLAUSIBLE"):
             task_step.status = "completed"
@@ -425,6 +471,12 @@ class OrchestrationEngine:
                 human_label = "Image Forensics"
             elif tool_name == "breach_lookup":
                 human_label = "Breach Intel"
+            elif tool_name == "company_recon":
+                human_label = "Corporate Registry"
+            elif tool_name == "news_intel":
+                human_label = "News & Media"
+            elif tool_name == "threat_intel":
+                human_label = "Threat Reputation"
             elif tool_name == "web_search":
                 human_label = "Web Intel"
             else:
@@ -443,6 +495,14 @@ class OrchestrationEngine:
                     "raw_preview": raw_preview[:800],
                     "verdict": task_step.verdict,
                     "confidence": task_step.confidence,
+                    "confidence_breakdown": conf_breakdown,
+                    "provenance": {
+                        "tool": tool_name,
+                        "timestamp": _now_utc().isoformat(),
+                        "params": plan.params,
+                        "duration_s": duration,
+                        "cache_hit": is_cache_hit,
+                    },
                 },
                 confidence=task_step.confidence,
             )

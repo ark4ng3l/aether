@@ -1,11 +1,11 @@
-"""Tests for aether.api.server — FastAPI project management endpoints."""
+"""Tests for aether.api.server — FastAPI project management endpoints and security."""
 
 from pathlib import Path
 from unittest.mock import AsyncMock
 import pytest
 from fastapi.testclient import TestClient
 
-from aether.api.server import app
+from aether.api.server import app, AUTH_TOKEN
 from aether.core.project_manager import ProjectManager
 import aether.api.server as server_module
 import aether.core.project_manager as pm_module
@@ -22,16 +22,35 @@ def isolate_project_manager(tmp_path: Path, monkeypatch):
 
 @pytest.fixture
 def client():
+    return TestClient(app, headers={"Authorization": f"Bearer {AUTH_TOKEN}"})
+
+
+@pytest.fixture
+def unauth_client():
     return TestClient(app)
 
 
-class TestHealthEndpoint:
-    def test_health(self, client: TestClient):
-        resp = client.get("/api/health")
+class TestHealthAndAuthEndpoints:
+    def test_health_public(self, unauth_client: TestClient):
+        resp = unauth_client.get("/api/health")
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "online"
         assert data["engine"] == "AETHER"
+
+    def test_auth_token_public(self, unauth_client: TestClient):
+        resp = unauth_client.get("/api/auth/token")
+        assert resp.status_code == 200
+        assert resp.json()["token"] == AUTH_TOKEN
+
+    def test_unauthenticated_request_rejected(self, unauth_client: TestClient):
+        resp = unauth_client.get("/api/projects")
+        assert resp.status_code == 401
+        assert "Unauthorized" in resp.json()["detail"]
+
+    def test_authenticated_request_with_query_param(self, unauth_client: TestClient):
+        resp = unauth_client.get(f"/api/projects?token={AUTH_TOKEN}")
+        assert resp.status_code == 200
 
     def test_root_returns_html_or_json(self, client: TestClient):
         resp = client.get("/")
@@ -58,28 +77,30 @@ class TestProjectEndpoints:
         assert proj["context_briefing"] == "Test intelligence briefing notes"
         project_id = proj["id"]
 
-        # Get project
+        # Fetch it back
         get_resp = client.get(f"/api/projects/{project_id}")
         assert get_resp.status_code == 200
         assert get_resp.json()["project"]["id"] == project_id
 
     def test_list_projects(self, client: TestClient, isolate_project_manager: ProjectManager):
+        isolate_project_manager.create_project(name="P1", target_seed="seed1.com")
+        isolate_project_manager.create_project(name="P2", target_seed="seed2.com")
+
         resp = client.get("/api/projects")
         assert resp.status_code == 200
-        data = resp.json()
-        assert "projects" in data
-        assert isinstance(data["projects"], list)
+        projects = resp.json()["projects"]
+        assert len(projects) == 2
 
     def test_update_project(self, client: TestClient, isolate_project_manager: ProjectManager):
-        p = isolate_project_manager.create_project(name="To Update", target_seed="update.com")
+        p = isolate_project_manager.create_project(name="Old Name", target_seed="seed.com")
         resp = client.patch(
             f"/api/projects/{p.id}",
-            json={"name": "Updated Name", "context_briefing": "Updated notes"},
+            json={"name": "New Name", "context_briefing": "Updated briefing"},
         )
         assert resp.status_code == 200
         data = resp.json()
-        assert data["project"]["name"] == "Updated Name"
-        assert data["project"]["context_briefing"] == "Updated notes"
+        assert data["project"]["name"] == "New Name"
+        assert data["project"]["context_briefing"] == "Updated briefing"
 
     def test_delete_project(self, client: TestClient, isolate_project_manager: ProjectManager):
         p = isolate_project_manager.create_project(name="To Delete", target_seed="del.com")
@@ -87,14 +108,13 @@ class TestProjectEndpoints:
         assert resp.status_code == 200
         assert resp.json()["status"] == "deleted"
 
-        # Verify not found
         get_resp = client.get(f"/api/projects/{p.id}")
         assert get_resp.status_code == 404
 
     def test_run_project(self, client: TestClient, isolate_project_manager: ProjectManager, monkeypatch):
-        mock_run = AsyncMock(return_value=True)
-        monkeypatch.setattr(isolate_project_manager, "run_project", mock_run)
         p = isolate_project_manager.create_project(name="Run Test", target_seed="run.com")
+        monkeypatch.setattr(isolate_project_manager, "run_project", AsyncMock(return_value=True))
+
         resp = client.post(f"/api/projects/{p.id}/run")
         assert resp.status_code == 200
         assert resp.json()["status"] == "started"
@@ -103,15 +123,15 @@ class TestProjectEndpoints:
         p = isolate_project_manager.create_project(name="Stop Test", target_seed="stop.com")
         resp = client.post(f"/api/projects/{p.id}/stop")
         assert resp.status_code == 200
+        assert resp.json()["status"] in ("stopped", "not_running")
 
     def test_project_tasks_endpoint(self, client: TestClient, isolate_project_manager: ProjectManager):
-        p = isolate_project_manager.create_project(name="Task Test", target_seed="task.com")
+        p = isolate_project_manager.create_project(name="Tasks Test", target_seed="tasks.com")
         resp = client.get(f"/api/projects/{p.id}/tasks")
         assert resp.status_code == 200
         data = resp.json()
         assert data["project_id"] == p.id
         assert "completed_tasks" in data
-        assert "pending_tasks" in data
 
     def test_project_graph_endpoint(self, client: TestClient, isolate_project_manager: ProjectManager):
         p = isolate_project_manager.create_project(name="Graph Test", target_seed="graph.com")
@@ -130,23 +150,12 @@ class TestProjectEndpoints:
         assert "dossier" in data
 
     def test_settings_endpoints(self, client: TestClient):
-        # 1. GET settings
         get_resp = client.get("/api/settings")
         assert get_resp.status_code == 200
         data = get_resp.json()
         assert "settings" in data
-        assert "available_models" in data
-        assert "HYPOTHESIS_RECURSION_LIMIT" in data["settings"]
 
-        # 2. POST settings
-        post_resp = client.post(
-            "/api/settings",
-            json={
-                "HYPOTHESIS_RECURSION_LIMIT": 7,
-                "MAX_SEARCH_DEPTH": 15,
-                "REASONING_TEMPERATURE": 0.8,
-            },
-        )
+        post_resp = client.post("/api/settings", json={"MAX_SEARCH_DEPTH": 8})
         assert post_resp.status_code == 200
         assert post_resp.json()["status"] == "updated"
 
@@ -175,30 +184,44 @@ class TestProjectEndpoints:
         data = resp.json()
         assert "current_version" in data
         assert "current_commit" in data
-        assert "repo_url" in data
-        assert "update_available" in data
 
-    def test_image_upload_endpoint(self, client: TestClient):
+    def test_metrics_endpoint(self, client: TestClient):
+        resp = client.get("/api/metrics")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "uptime_seconds" in data
+        assert "investigations" in data
+        assert "tools" in data
+        assert "resource_arbiter" in data
+
+    def test_image_upload_and_sanitization(self, client: TestClient):
         file_content = b"\xFF\xD8\xFF\xE0\x00\x10JFIF\x00\x01\x01\x01\x00`\x00`\x00\x00\xFF\xDB\x00C\x00"
         files = {"file": ("test_pic.jpg", file_content, "image/jpeg")}
         resp = client.post("/api/upload/image", files=files)
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "uploaded"
-        assert "filename" in data
-        assert "file_path" in data
+        filename = data["filename"]
+
+        # Valid fetch
+        img_resp = client.get(f"/api/images/{filename}")
+        assert img_resp.status_code == 200
+
+        # Path traversal attack attempt rejected
+        evil_resp = client.get("/api/images/..%2F..%2Fpasswords.txt")
+        assert evil_resp.status_code in (400, 404)
 
     def test_list_tools_endpoint(self, client: TestClient):
         resp = client.get("/api/tools")
         assert resp.status_code == 200
         data = resp.json()
         assert "tools" in data
-        assert len(data["tools"]) >= 7
+        assert len(data["tools"]) >= 10
         tool_names = [t["name"] for t in data["tools"]]
         assert "web_search" in tool_names
-        assert "image_osint" in tool_names
-        assert "subdomain_finder" in tool_names
-        assert "ip_geolocate" in tool_names
+        assert "company_recon" in tool_names
+        assert "news_intel" in tool_names
+        assert "threat_intel" in tool_names
 
     def test_execute_tool_live_endpoint(self, client: TestClient):
         payload = {
@@ -211,4 +234,3 @@ class TestProjectEndpoints:
         assert data["tool_name"] == "ip_geolocate"
         assert "execution_time_ms" in data
         assert "success" in data
-

@@ -71,6 +71,8 @@ class GraphStore:
                 );
                 CREATE INDEX IF NOT EXISTS idx_edges_src ON edges(source_id);
                 CREATE INDEX IF NOT EXISTS idx_edges_tgt ON edges(target_id);
+                CREATE INDEX IF NOT EXISTS idx_edges_pair ON edges(source_id, target_id);
+                CREATE INDEX IF NOT EXISTS idx_nodes_type ON nodes(type);
             """)
 
     def _connect(self) -> sqlite3.Connection:

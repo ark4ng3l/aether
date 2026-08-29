@@ -92,6 +92,7 @@ class Planner:
             "web_search", "social_recon", "network_recon",
             "stealth_crawler", "vlm_processor", "metadata_extractor",
             "whois_lookup", "shodan_lookup", "github_dorker",
+            "company_recon", "news_intel", "threat_intel",
         ]
 
         context_section = ""
@@ -217,6 +218,12 @@ class Planner:
             return "shodan_lookup", {"ip": val}
         if "github" in lower or "secret" in lower or "dork" in lower or "leaked" in lower:
             return "github_dorker", {"query": val}
+        if "company" in lower or "corp" in lower or "incorporation" in lower or "registry" in lower:
+            return "company_recon", {"company_name": val}
+        if "news" in lower or "article" in lower or "headline" in lower or "rss" in lower:
+            return "news_intel", {"query": val}
+        if "threat" in lower or "malware" in lower or "reputation" in lower or "abuse" in lower:
+            return "threat_intel", {"target": val}
         if "dns" in lower or "domain" in lower or "network" in lower:
             return "network_recon", {"domain": val}
         if "crawl" in lower or "http" in lower:

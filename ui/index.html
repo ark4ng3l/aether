@@ -2124,8 +2124,43 @@
             }
         });
 
+        // ── Authentication Bootstrap ────────────────────────────
+        let authToken = '';
+        async function ensureAuthToken() {
+            if (authToken) return authToken;
+            try {
+                const resp = await originalFetch('/api/auth/token');
+                if (resp.ok) {
+                    const data = await resp.json();
+                    authToken = data.token || '';
+                }
+            } catch(e) {}
+            return authToken;
+        }
+
+        const originalFetch = window.fetch;
+        window.fetch = async function(url, options = {}) {
+            if (typeof url === 'string' && url.startsWith('/api/') && url !== '/api/auth/token' && url !== '/api/health') {
+                const token = await ensureAuthToken();
+                options.headers = options.headers || {};
+                if (options.headers instanceof Headers) {
+                    if (token && !options.headers.has('Authorization')) {
+                        options.headers.set('Authorization', `Bearer ${token}`);
+                    }
+                } else if (Array.isArray(options.headers)) {
+                    if (token) options.headers.push(['Authorization', `Bearer ${token}`]);
+                } else {
+                    if (token && !options.headers['Authorization']) {
+                        options.headers['Authorization'] = `Bearer ${token}`;
+                    }
+                }
+            }
+            return originalFetch(url, options);
+        };
+
         // ── Init ─────────────────────────────────────────────────
-        window.addEventListener('DOMContentLoaded', () => {
+        window.addEventListener('DOMContentLoaded', async () => {
+            await ensureAuthToken();
             loadProjects();
             connectGlobalWebSocket();
         });
@@ -2572,7 +2607,8 @@
             if (projectWs) { try { projectWs.close(); } catch(e) {} }
 
             const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            projectWs = new WebSocket(`${proto}//${location.host}/ws/${projectId}`);
+            const tokenParam = authToken ? `?token=${encodeURIComponent(authToken)}` : '';
+            projectWs = new WebSocket(`${proto}//${location.host}/ws/${projectId}${tokenParam}`);
 
             projectWs.onmessage = (e) => {
                 const msg = JSON.parse(e.data);
@@ -2582,7 +2618,8 @@
 
         function connectGlobalWebSocket() {
             const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            globalWs = new WebSocket(`${proto}//${location.host}/ws/global`);
+            const tokenParam = authToken ? `?token=${encodeURIComponent(authToken)}` : '';
+            globalWs = new WebSocket(`${proto}//${location.host}/ws/global${tokenParam}`);
             globalWs.onmessage = (e) => {
                 const msg = JSON.parse(e.data);
                 if (msg.type === 'project_updated' || msg.type === 'project_finished') {

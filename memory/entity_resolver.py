@@ -1,44 +1,106 @@
 """
-EntityResolver — probabilistic identity resolution.
+EntityResolver — Probabilistic Identity Resolution & Multi-Signal Confidence Modeling.
 
-Key fix: replaced dangerous ``eval()`` with ``json.loads()`` for property parsing.
+Combines:
+  • Deterministic ID & Normalized Name matching (handles @usernames, punctuation, emails)
+  • Property overlap & cross-tool corroboration scoring
+  • Source reliability weighting
+  • Multi-signal confidence explanation for high-trust analyst UI
 """
 
+from __future__ import annotations
+
 import json
-from typing import Optional
+import re
+from typing import Optional, Dict, Any, Tuple
 
 from aether.core.state import Entity, EntityType
 from aether.memory.graph_store import GraphStore
 from aether.core.logger import logger
 
+# Source reliability weights (0.0 - 1.0)
+SOURCE_RELIABILITY: Dict[str, float] = {
+    "whois_lookup": 0.95,
+    "ip_geolocate": 0.92,
+    "subdomain_finder": 0.90,
+    "network_recon": 0.88,
+    "shodan_lookup": 0.90,
+    "image_osint": 0.85,
+    "breach_lookup": 0.82,
+    "social_recon": 0.78,
+    "github_dorker": 0.80,
+    "web_search": 0.70,
+    "stealth_crawler": 0.75,
+}
+DEFAULT_SOURCE_RELIABILITY = 0.75
+
 
 class EntityResolver:
     """
-    Performs probabilistic identity resolution to correlate disparate
-    entities discovered across different data sources.
+    Performs identity resolution and multi-signal confidence modeling
+    to correlate disparate entities discovered across OSINT data sources.
     """
 
-    MERGE_THRESHOLD = 0.70  # Minimum similarity to consider a match
+    MERGE_THRESHOLD = 0.70
 
-    def __init__(self, graph_store: GraphStore):
+    def __init__(self, graph_store: GraphStore, vector_store: Optional[Any] = None):
         self.graph_store = graph_store
+        self.vector_store = vector_store
 
-    # ------------------------------------------------------------------
-    # Similarity
-    # ------------------------------------------------------------------
+    @staticmethod
+    def normalize_identifier(identifier: str) -> str:
+        """Normalizes handles, emails, domains for comparison."""
+        clean = identifier.strip().lower()
+        if clean.startswith("@"):
+            clean = clean[1:]
+        return re.sub(r"[._\-]", "", clean)
+
+    def calculate_confidence(
+        self,
+        source_tool: str,
+        corroboration_count: int = 1,
+        critic_confidence: float = 0.5,
+    ) -> Tuple[float, Dict[str, Any]]:
+        """
+        Calculates multi-signal confidence score with explanatory provenance factors.
+        """
+        base_weight = SOURCE_RELIABILITY.get(source_tool, DEFAULT_SOURCE_RELIABILITY)
+
+        # Corroboration boost (up to +0.15 for 3+ independent tools)
+        corroboration_boost = min(0.15, max(0, (corroboration_count - 1) * 0.05))
+
+        # Critic factor weight: 30% critic, 70% source reliability + corroboration
+        combined = (0.7 * (base_weight + corroboration_boost)) + (0.3 * critic_confidence)
+        final_score = round(min(1.0, max(0.1, combined)), 2)
+
+        breakdown = {
+            "source_tool": source_tool,
+            "source_reliability": base_weight,
+            "corroboration_count": corroboration_count,
+            "corroboration_boost": round(corroboration_boost, 2),
+            "critic_confidence": round(critic_confidence, 2),
+            "final_score": final_score,
+            "tier": "CONFIRMED" if final_score >= 0.85 else "PLAUSIBLE" if final_score >= 0.60 else "UNVERIFIED",
+        }
+        return final_score, breakdown
 
     def calculate_similarity(self, entity_a: Entity, entity_b: Entity) -> float:
         """
         Weighted similarity score between two entities.
-        Combines identity matching, property overlap, and name similarity.
         """
-        # 1. Exact ID match — trivial case
+        # 1. Exact ID match
         if entity_a.id == entity_b.id:
             return 1.0
 
+        # Normalized handle/name match
+        norm_a = self.normalize_identifier(entity_a.id)
+        norm_b = self.normalize_identifier(entity_b.id)
+        if norm_a and norm_a == norm_b and entity_a.type == entity_b.type:
+            return 0.95
+
         score = 0.0
 
-        # 2. Property overlap (email, phone, etc.) — weight 0.6
+        # 2. Property overlap — weight 0.6
         common_keys = set(entity_a.properties.keys()) & set(entity_b.properties.keys())
         if common_keys:
             matches = sum(
@@ -55,7 +117,6 @@ class EntityResolver:
             if name_a == name_b:
                 score += 0.4
             else:
-                # Jaccard on character bigrams for fuzzy matching
                 bigrams_a = {name_a[i : i + 2] for i in range(len(name_a) - 1)}
                 bigrams_b = {name_b[i : i + 2] for i in range(len(name_b) - 1)}
                 if bigrams_a or bigrams_b:
@@ -64,14 +125,9 @@ class EntityResolver:
 
         return min(score, 1.0)
 
-    # ------------------------------------------------------------------
-    # Resolution
-    # ------------------------------------------------------------------
-
     def resolve(self, new_entity: Entity) -> Optional[Entity]:
         """
-        Find the most-likely existing entity that matches *new_entity*.
-        Returns ``None`` if nothing exceeds ``MERGE_THRESHOLD``.
+        Find the most-likely existing entity in graph_store matching new_entity.
         """
         existing_nodes = self.graph_store.query_all_nodes()
 
@@ -80,7 +136,6 @@ class EntityResolver:
 
         for node in existing_nodes:
             props = node.get("properties", {})
-            # SECURITY FIX: replaced eval() with json.loads()
             if isinstance(props, str):
                 try:
                     props = json.loads(props)
@@ -99,10 +154,9 @@ class EntityResolver:
                 highest_score = score
                 best_match = candidate
 
-        if highest_score >= self.MERGE_THRESHOLD:
+        if highest_score >= self.MERGE_THRESHOLD and best_match:
             logger.info(
-                f"Entity resolved: {new_entity.id} → {best_match.id} "  # type: ignore[union-attr]
-                f"(score={highest_score:.2f})"
+                f"Entity resolved: {new_entity.id} → {best_match.id} (score={highest_score:.2f})"
             )
             return best_match
         return None

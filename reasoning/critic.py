@@ -1,10 +1,15 @@
 """
-RedTeamCritic — Adversarial fact verification ("Verification by Refutation").
-Uses uncensored Gemma4-26B to detect false positives, coincidences, and hallucinations.
+RedTeamCritic — Adversarial Fact Verification with Deterministic Pre-Filtering.
+
+Uses fast deterministic pattern checks first to save latency and VRAM,
+escalating only ambiguous claims to adversarial LLM refutation.
 """
 
+from __future__ import annotations
+
 import json
-from typing import Any, Dict
+import re
+from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, Field
 
@@ -24,14 +29,27 @@ class CriticVerdict(BaseModel):
 
 class RedTeamCritic:
     """
-    The Red-Team adversarial critic using uncensored Gemma models.
+    Two-stage adversarial critic:
+      Stage 1: Fast deterministic syntax & structure checks.
+      Stage 2: Adversarial LLM verification by refutation.
     """
 
-    async def evaluate_finding(self, finding_description: str, is_heavy: bool = False) -> Dict[str, Any]:
+    async def evaluate_finding(
+        self,
+        finding_description: str,
+        is_heavy: bool = False,
+        source_tool: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """
         Returns ``{"verdict": "CONFIRMED"|"PLAUSIBLE"|"REJECTED",
                     "reasoning": "…", "confidence": 0.0-1.0}``.
         """
+        # ── Stage 1: Deterministic Pre-Filtering ──
+        quick_verdict = self._deterministic_check(finding_description, source_tool)
+        if quick_verdict is not None:
+            return quick_verdict
+
+        # ── Stage 2: Adversarial LLM Refutation ──
         prompt = (
             "You are an expert OSINT skeptic performing adversarial verification.\n"
             f'FINDING: "{finding_description}"\n\n'
@@ -60,7 +78,7 @@ class RedTeamCritic:
         except Exception:
             pass
 
-        # Fallback: try raw text → JSON extraction
+        # Fallback: raw text JSON extraction
         try:
             raw = await model_manager.call_model(
                 prompt,
@@ -73,6 +91,45 @@ class RedTeamCritic:
         except Exception as exc:
             logger.error(f"Critic failed: {exc}")
             return {"verdict": "PLAUSIBLE", "reasoning": "Critic unavailable", "confidence": 0.5}
+
+    def _deterministic_check(
+        self, text: str, source_tool: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Fast rule-based sanity checks before LLM invocation.
+        Returns a CriticVerdict dict if deterministic, else None.
+        """
+        # Reject empty or minimal noise
+        if not text or len(text.strip()) < 5:
+            return {
+                "verdict": "REJECTED",
+                "reasoning": "Empty or meaningless payload",
+                "confidence": 0.0,
+            }
+
+        # Deterministic tools providing direct technical telemetry
+        technical_tools = {
+            "subdomain_finder", "ip_geolocate", "network_recon",
+            "image_osint", "metadata_extractor", "whois_lookup", "shodan_lookup",
+        }
+        if source_tool in technical_tools and ("error" not in text.lower() or "not found" not in text.lower()):
+            # Direct technical records are confirmed by nature of protocol response
+            return {
+                "verdict": "CONFIRMED",
+                "reasoning": f"Direct technical record verified via {source_tool}",
+                "confidence": 0.95,
+            }
+
+        # Garbage or error page patterns
+        lower = text.lower()
+        if any(bad in lower for bad in ["404 not found", "access denied", "blocked by cloudflare", "captcha"]):
+            return {
+                "verdict": "REJECTED",
+                "reasoning": "Output indicates error page or CAPTCHA block",
+                "confidence": 0.1,
+            }
+
+        return None
 
     @staticmethod
     def _extract_verdict(text: str) -> Dict[str, Any]:

@@ -69,3 +69,23 @@ try:
     registry.register(github_dorker)
 except ImportError:
     pass
+
+# ── Phase 2 Expansion Tools ────────────────────────────────────────
+try:
+    from aether.perception.tools.company_tools import company_recon
+    registry.register(company_recon)
+except ImportError:
+    pass
+
+try:
+    from aether.perception.tools.news_tools import news_intel
+    registry.register(news_intel)
+except ImportError:
+    pass
+
+try:
+    from aether.perception.tools.threat_intel_tools import threat_intel
+    registry.register(threat_intel)
+except ImportError:
+    pass
+
