@@ -349,12 +349,40 @@ class OrchestrationEngine:
 
         if task_step.verdict in ("CONFIRMED", "PLAUSIBLE"):
             task_step.status = "completed"
+
+            # Generate smart human-friendly label
+            tool_title = tool_name.replace("_", " ").title()
+            if tool_name == "subdomain_finder":
+                sub_count = len(result.data.get("subdomains", [])) if isinstance(result.data, dict) else ""
+                human_label = f"Subdomains ({sub_count})" if sub_count else "Subdomains"
+            elif tool_name == "ip_geolocate":
+                country = result.data.get("country", "") if isinstance(result.data, dict) else ""
+                human_label = f"GeoIP: {country}" if country else "IP Geolocation"
+            elif tool_name == "network_recon":
+                human_label = "DNS & Network"
+            elif tool_name == "social_recon":
+                handle = result.data.get("username", "") if isinstance(result.data, dict) else ""
+                human_label = f"Social: @{handle}" if handle else "Social Profiles"
+            elif tool_name == "image_osint":
+                human_label = "Image Forensics"
+            elif tool_name == "breach_lookup":
+                human_label = "Breach Intel"
+            elif tool_name == "web_search":
+                human_label = "Web Intel"
+            else:
+                human_label = tool_title
+
+            structured_data = result.data if isinstance(result.data, (dict, list)) else {"summary": raw_preview[:800]}
+
             main_entity = Entity(
-                id=uuid.uuid4().hex[:8],
+                id=f"{tool_name}_{uuid.uuid4().hex[:6]}",
                 type=EntityType.ARTIFACT,
                 properties={
+                    "name": human_label,
+                    "label": human_label,
                     "source_tool": tool_name,
-                    "data": raw_preview[:800],
+                    "data": structured_data,
+                    "raw_preview": raw_preview[:800],
                     "verdict": task_step.verdict,
                     "confidence": task_step.confidence,
                 },

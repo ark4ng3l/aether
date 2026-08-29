@@ -826,22 +826,152 @@
             position: absolute;
             top: 16px;
             right: 16px;
-            width: 380px;
+            width: 420px;
             max-height: calc(100% - 32px);
-            background: rgba(11, 18, 42, 0.95);
+            background: rgba(10, 16, 36, 0.96);
             backdrop-filter: blur(28px);
-            border: 1px solid var(--cyan-primary);
+            border: 1px solid var(--border-highlight);
             border-radius: var(--radius-xl);
-            padding: 22px;
+            padding: 20px;
             display: none;
             flex-direction: column;
             gap: 14px;
             overflow-y: auto;
             z-index: 20;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 30px var(--cyan-glow);
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85), 0 0 35px rgba(56, 189, 248, 0.15);
         }
-        #node-inspector.show { display: flex; animation: slideInRight 0.25s ease; }
-        @keyframes slideInRight { from { transform: translateX(30px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        #node-inspector.show { display: flex; animation: slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes slideInRight { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        .inspector-header-box {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .inspector-title-row {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+        }
+        .inspector-badge-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .inspector-type-pill {
+            font-size: 9.5px;
+            font-family: var(--font-mono);
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 2px 8px;
+            border-radius: var(--radius-xs);
+            letter-spacing: 0.5px;
+        }
+        .inspector-verdict-pill {
+            font-size: 9.5px;
+            font-family: var(--font-mono);
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: var(--radius-xs);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .inspector-section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .inspector-section-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--cyan-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .inspector-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 8px;
+        }
+        .inspector-cell {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: var(--radius-sm);
+            padding: 6px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+        }
+        .inspector-cell-label {
+            font-size: 9.5px;
+            color: var(--text-low);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .inspector-cell-val {
+            font-size: 11.5px;
+            font-family: var(--font-mono);
+            color: var(--text-high);
+            word-break: break-all;
+        }
+
+        .chip-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            max-height: 240px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        .data-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 9px;
+            background: rgba(56, 189, 248, 0.08);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            border-radius: var(--radius-sm);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--cyan-primary);
+            cursor: pointer;
+            transition: var(--transition-fast);
+            user-select: none;
+        }
+        .data-chip:hover {
+            background: rgba(56, 189, 248, 0.2);
+            border-color: var(--cyan-primary);
+            transform: translateY(-1px);
+        }
+        .data-chip .chip-copy {
+            font-size: 11px;
+            opacity: 0.6;
+        }
+        .data-chip:hover .chip-copy {
+            opacity: 1;
+        }
+
+        .inspector-actions-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 4px;
+        }
 
         /* ── Tab 2: Execution Pipeline & Stepper ─────────────── */
         #pipeline-scroll-area {
@@ -2547,25 +2677,293 @@
             }
         }
 
-        // ── Inspector & Helpers ──────────────────────────────────
+        // ── Human-Readable Node Inspector & Helpers ─────────────
+        function parsePayload(val) {
+            if (!val) return null;
+            if (typeof val === 'object') return val;
+            if (typeof val === 'string') {
+                const trimmed = val.trim();
+                if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+                    try {
+                        return JSON.parse(trimmed);
+                    } catch (e) {
+                        try {
+                            const fixed = trimmed
+                                .replace(/'/g, '"')
+                                .replace(/\bTrue\b/g, 'true')
+                                .replace(/\bFalse\b/g, 'false')
+                                .replace(/\bNone\b/g, 'null');
+                            return JSON.parse(fixed);
+                        } catch (e2) {
+                            return trimmed;
+                        }
+                    }
+                }
+                return trimmed;
+            }
+            return val;
+        }
+
+        function copyToClipboard(text, elem) {
+            navigator.clipboard.writeText(text).then(() => {
+                if (elem) {
+                    const orig = elem.innerHTML;
+                    elem.innerHTML = '✔ Copied!';
+                    setTimeout(() => { elem.innerHTML = orig; }, 1500);
+                }
+                logEvent('INFO', `Copied: ${text.slice(0, 40)}`);
+            }).catch(() => {
+                prompt("Copy value:", text);
+            });
+        }
+
+        function copyNodeFullJson(jsonStr, elem) {
+            try {
+                navigator.clipboard.writeText(jsonStr).then(() => {
+                    if (elem) {
+                        const orig = elem.innerHTML;
+                        elem.innerHTML = '✔ JSON Copied!';
+                        setTimeout(() => { elem.innerHTML = orig; }, 1500);
+                    }
+                });
+            } catch(e) {
+                prompt("Copy JSON:", jsonStr);
+            }
+        }
+
         function showNodeInspector(data) {
             const el = document.getElementById('node-inspector');
-            document.getElementById('inspectorTitle').textContent = `[${(data.type || 'ENTITY').toUpperCase()}] ${data.label || data.id}`;
-            const body = document.getElementById('inspectorBody');
+            if (!el) return;
+
+            const type = (data.type || 'entity').toLowerCase();
+            const typeColor = TYPE_COLORS[type] || '#38bdf8';
+            const label = data.label || data.id || 'Target Node';
+            const confidence = typeof data.confidence === 'number' ? Math.round(data.confidence * 100) : 95;
             
-            let html = `<div><strong style="color:var(--md-sys-color-outline)">ID:</strong> <span style="font-family:var(--font-mono)">${data.id}</span></div>`;
-            if (data.properties) {
-                Object.entries(data.properties).forEach(([k, v]) => {
-                    const val = typeof v === 'object' ? JSON.stringify(v, null, 2) : String(v);
-                    html += `<div><strong style="color:var(--md-sys-color-outline)">${k}:</strong> <span style="font-family:var(--font-mono);color:var(--md-sys-color-on-surface);">${escapeHtml(val.slice(0, 250))}</span></div>`;
-                });
+            let props = data.properties || {};
+            if (typeof props === 'string') {
+                props = parsePayload(props) || {};
             }
-            body.innerHTML = html;
+
+            const verdict = props.verdict || (props.data && props.data.verdict) || 'CONFIRMED';
+            const sourceTool = props.source_tool || (props.data && props.data.source_tool) || (type === 'artifact' ? 'OSINT Recon' : 'Entity Resolver');
+            
+            // Extract inner structured data
+            let innerData = props.data;
+            if (innerData) {
+                innerData = parsePayload(innerData);
+            }
+
+            // Header Icon
+            let typeIcon = 'token';
+            if (type === 'domain') typeIcon = 'language';
+            else if (type === 'ip_address' || type === 'ip') typeIcon = 'router';
+            else if (type === 'person') typeIcon = 'person';
+            else if (type === 'company') typeIcon = 'domain';
+            else if (type === 'email') typeIcon = 'mail';
+            else if (type === 'social_handle') typeIcon = 'alternate_email';
+            else if (type === 'image') typeIcon = 'image';
+            else if (type === 'artifact') typeIcon = 'inventory_2';
+
+            const isConfirmed = verdict === 'CONFIRMED';
+            const verdictBg = isConfirmed ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)';
+            const verdictColor = isConfirmed ? 'var(--emerald-primary)' : 'var(--amber-primary)';
+            const verdictBorder = isConfirmed ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(245, 158, 11, 0.3)';
+
+            let html = `
+                <div class="inspector-header-box">
+                    <div class="inspector-title-row">
+                        <div class="inspector-badge-row">
+                            <span class="inspector-type-pill" style="background:${typeColor}22;color:${typeColor};border:1px solid ${typeColor}44;">
+                                <span class="icon" style="font-size:11px;vertical-align:middle;">${typeIcon}</span> ${type}
+                            </span>
+                            <span class="inspector-verdict-pill" style="background:${verdictBg};color:${verdictColor};border:${verdictBorder};">
+                                ${isConfirmed ? '🛡️' : '💡'} ${verdict}
+                            </span>
+                            <span class="inspector-verdict-pill" style="background:rgba(56,189,248,0.1);color:var(--cyan-primary);border:1px solid rgba(56,189,248,0.25);">
+                                ⚡ ${confidence}% Confidence
+                            </span>
+                        </div>
+                        <div style="font-size:14px;font-weight:700;color:var(--text-high);margin-top:4px;word-break:break-word;">
+                            ${escapeHtml(label)}
+                        </div>
+                        <div style="font-size:10.5px;color:var(--text-low);font-family:var(--font-mono);">
+                            ID: ${escapeHtml(data.id)} • Tool: ${escapeHtml(sourceTool)}
+                        </div>
+                    </div>
+                    <button class="icon-btn" style="width:28px;height:28px;flex-shrink:0;" onclick="closeInspector()">
+                        <span class="icon" style="font-size:16px;">close</span>
+                    </button>
+                </div>
+            `;
+
+            // Render Structured Payload Container
+            html += `<div style="display:flex;flex-direction:column;gap:12px;">`;
+
+            // 1. Subdomains array
+            if (innerData && (innerData.subdomains || Array.isArray(innerData))) {
+                const subList = innerData.subdomains || (Array.isArray(innerData) ? innerData : []);
+                if (subList.length > 0) {
+                    html += `
+                        <div class="inspector-section">
+                            <div class="inspector-section-title">
+                                <span>🌐 Discovered Subdomains</span>
+                                <span class="m3-type-tag">${subList.length} total</span>
+                            </div>
+                            <div class="chip-grid">
+                                ${subList.map(s => {
+                                    const str = typeof s === 'object' ? (s.subdomain || s.domain || JSON.stringify(s)) : String(s);
+                                    return `<span class="data-chip" onclick="copyToClipboard('${escapeHtml(str)}', this)" title="Click to copy">${escapeHtml(str)} <span class="icon chip-copy">content_copy</span></span>`;
+                                }).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            // 2. GeoIP data (lat, lon, country, city, isp, org)
+            if (innerData && (innerData.country || innerData.city || innerData.lat || innerData.query || innerData.isp)) {
+                const lat = innerData.lat || innerData.latitude;
+                const lon = innerData.lon || innerData.longitude;
+                html += `
+                    <div class="inspector-section">
+                        <div class="inspector-section-title">📍 Geolocation & Network Intelligence</div>
+                        <div class="inspector-grid">
+                            ${innerData.query ? `<div class="inspector-cell"><span class="inspector-cell-label">IP Address</span><span class="inspector-cell-val" style="color:var(--cyan-primary)">${escapeHtml(String(innerData.query))}</span></div>` : ''}
+                            ${innerData.country ? `<div class="inspector-cell"><span class="inspector-cell-label">Country</span><span class="inspector-cell-val">${escapeHtml(String(innerData.country))}</span></div>` : ''}
+                            ${innerData.city || innerData.regionName ? `<div class="inspector-cell"><span class="inspector-cell-label">City / Region</span><span class="inspector-cell-val">${escapeHtml(String(innerData.city || ''))} ${escapeHtml(String(innerData.regionName ? '('+innerData.regionName+')' : ''))}</span></div>` : ''}
+                            ${innerData.isp || innerData.org ? `<div class="inspector-cell"><span class="inspector-cell-label">ISP / Organization</span><span class="inspector-cell-val">${escapeHtml(String(innerData.isp || innerData.org))}</span></div>` : ''}
+                            ${innerData.as ? `<div class="inspector-cell"><span class="inspector-cell-label">ASN Route</span><span class="inspector-cell-val">${escapeHtml(String(innerData.as))}</span></div>` : ''}
+                            ${innerData.timezone ? `<div class="inspector-cell"><span class="inspector-cell-label">Timezone</span><span class="inspector-cell-val">${escapeHtml(String(innerData.timezone))}</span></div>` : ''}
+                        </div>
+                        ${lat && lon ? `
+                            <button class="m3-btn m3-btn-tonal" style="width:100%;margin-top:6px;height:30px;font-size:11px;" onclick="switchTab('geomap');">
+                                <span class="icon" style="font-size:14px;">explore</span> View Coordinates on Geo-Map (${lat}, ${lon})
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+            }
+
+            // 3. DNS Records
+            if (innerData && (innerData.records || innerData.dns || innerData.A || innerData.MX)) {
+                const recs = innerData.records || innerData;
+                html += `
+                    <div class="inspector-section">
+                        <div class="inspector-section-title">⚡ DNS Zone Records</div>
+                        <div style="display:flex;flex-direction:column;gap:6px;">
+                            ${Object.entries(recs).map(([rtype, rvals]) => {
+                                if (!Array.isArray(rvals) && typeof rvals !== 'string') return '';
+                                const vals = Array.isArray(rvals) ? rvals : [rvals];
+                                if (vals.length === 0) return '';
+                                return `
+                                    <div style="display:flex;flex-direction:column;gap:3px;background:rgba(255,255,255,0.02);padding:6px 8px;border-radius:var(--radius-xs);">
+                                        <div style="font-size:10px;font-weight:700;color:var(--cyan-primary);">${rtype} Records (${vals.length})</div>
+                                        <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                                            ${vals.map(v => `<span class="data-chip" onclick="copyToClipboard('${escapeHtml(String(v))}', this)">${escapeHtml(String(v))}</span>`).join('')}
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // 4. Social Recon accounts
+            if (innerData && (innerData.found || innerData.profiles || innerData.platforms)) {
+                const profiles = innerData.found || innerData.profiles || innerData.platforms;
+                if (Array.isArray(profiles) && profiles.length > 0) {
+                    html += `
+                        <div class="inspector-section">
+                            <div class="inspector-section-title">📱 Discovered Social Profiles (${profiles.length})</div>
+                            <div style="display:flex;flex-direction:column;gap:6px;">
+                                ${profiles.map(p => {
+                                    const name = p.platform || p.site || 'Profile';
+                                    const url = p.url || p.link || '#';
+                                    return `
+                                        <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.02);padding:6px 10px;border-radius:var(--radius-xs);border:1px solid rgba(255,255,255,0.05);">
+                                            <span style="font-weight:700;color:var(--text-high);font-size:11px;">${escapeHtml(name)}</span>
+                                            <a href="${escapeHtml(url)}" target="_blank" style="color:var(--cyan-primary);font-size:11px;text-decoration:none;font-family:var(--font-mono);">Open ↗</a>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            // 5. Image Forensics / EXIF
+            if (innerData && (innerData.exif || innerData.ocr || innerData.analysis)) {
+                html += `
+                    <div class="inspector-section">
+                        <div class="inspector-section-title">📸 Image Forensics & EXIF Metadata</div>
+                        ${innerData.exif ? `
+                            <div class="inspector-grid">
+                                ${Object.entries(innerData.exif).map(([ek, ev]) => `
+                                    <div class="inspector-cell">
+                                        <span class="inspector-cell-label">${escapeHtml(ek)}</span>
+                                        <span class="inspector-cell-val">${escapeHtml(String(ev))}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                        ${innerData.ocr ? `
+                            <div style="margin-top:6px;background:rgba(0,0,0,0.3);padding:8px 10px;border-radius:var(--radius-xs);font-size:11px;line-height:1.5;color:var(--text-medium);border-left:3px solid var(--cyan-primary);">
+                                <strong style="color:var(--cyan-primary)">OCR Extracted Text:</strong><br/>
+                                ${escapeHtml(innerData.ocr)}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+
+            // Generic / Fallback Properties Table
+            const allProps = typeof innerData === 'object' && innerData !== null ? innerData : props;
+            const entries = Object.entries(allProps).filter(([k]) => !['source_tool', 'verdict', 'confidence', 'data', 'raw_preview', 'subdomains', 'records', 'found', 'exif', 'name', 'label'].includes(k));
+
+            if (entries.length > 0) {
+                html += `
+                    <div class="inspector-section">
+                        <div class="inspector-section-title">📋 Entity Attributes & Properties</div>
+                        <div class="inspector-grid">
+                            ${entries.map(([k, v]) => {
+                                const valStr = typeof v === 'object' ? JSON.stringify(v, null, 2) : String(v);
+                                return `
+                                    <div class="inspector-cell">
+                                        <span class="inspector-cell-label">${escapeHtml(k.replace(/_/g, ' '))}</span>
+                                        <span class="inspector-cell-val" onclick="copyToClipboard('${escapeHtml(valStr)}', this)" title="Click to copy">${escapeHtml(valStr.slice(0, 200))}</span>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Action toolbar
+            const cleanJson = JSON.stringify(data, null, 2);
+            html += `
+                <div class="inspector-actions-bar">
+                    <button class="m3-btn m3-btn-tonal" style="flex:1;height:32px;font-size:11px;" onclick="copyToClipboard('${escapeHtml(label)}', this)">
+                        <span class="icon" style="font-size:14px;">content_copy</span> Copy Title
+                    </button>
+                    <button class="m3-btn m3-btn-filled" style="flex:1;height:32px;font-size:11px;" onclick="copyNodeFullJson(\`${escapeHtml(cleanJson)}\`, this)">
+                        <span class="icon" style="font-size:14px;">data_object</span> Copy JSON
+                    </button>
+                </div>
+            `;
+
+            html += `</div>`; // Close container
+
+            el.innerHTML = html;
             el.classList.add('show');
         }
 
         function closeInspector() {
-            document.getElementById('node-inspector').classList.remove('show');
+            const el = document.getElementById('node-inspector');
+            if (el) el.classList.remove('show');
         }
 
         function logEvent(tag, message) {

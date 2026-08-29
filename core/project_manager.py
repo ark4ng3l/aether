@@ -412,20 +412,36 @@ class ProjectManager:
                 ]
                 edges = []
 
-        cy_nodes = [
-            {
+        cy_nodes = []
+        for n in nodes:
+            props = n.get("properties", {})
+            if isinstance(props, str):
+                try:
+                    props = json.loads(props)
+                except Exception:
+                    props = {}
+            if not isinstance(props, dict):
+                props = {}
+
+            label = props.get("name") or props.get("label")
+            if not label:
+                ntype = n.get("type", "unknown")
+                nid = str(n["id"])
+                if "_" in nid:
+                    prefix = nid.split("_")[0]
+                    label = prefix.replace("_", " ").title()
+                else:
+                    label = nid
+
+            cy_nodes.append({
                 "data": {
                     "id": n["id"],
                     "type": n.get("type", "unknown"),
-                    "label": n.get("properties", {}).get("name", n["id"])
-                    if isinstance(n.get("properties"), dict)
-                    else n["id"],
-                    "properties": n.get("properties", {}),
+                    "label": label,
+                    "properties": props,
                     "confidence": n.get("confidence", 1.0),
                 }
-            }
-            for n in nodes
-        ]
+            })
         cy_edges = [
             {
                 "data": {
