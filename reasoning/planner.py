@@ -169,22 +169,23 @@ class Planner:
     def _infer_tool(task: str) -> tuple[str, dict]:
         """Map a free-text task to a (tool_name, params) tuple."""
         lower = task.lower()
+        val = task.split(":", 1)[-1].strip() if ":" in task else task.strip()
         if "image" in lower or "photo" in lower or "exif" in lower or lower.endswith((".jpg", ".png", ".webp", ".jpeg")):
-            return "image_osint", {"image_path": task.split(":")[-1].strip()}
+            return "image_osint", {"image_path": val}
         if "subdomain" in lower or "crt" in lower:
-            return "subdomain_finder", {"domain": task.split(":")[-1].strip()}
-        if "geo" in lower or "ip" in lower:
-            return "ip_geolocate", {"ip": task.split(":")[-1].strip()}
+            return "subdomain_finder", {"domain": val}
+        if "geo" in lower or "geoip" in lower or lower.startswith("ip:"):
+            return "ip_geolocate", {"ip": val}
         if "breach" in lower or "leak" in lower:
-            return "breach_lookup", {"query": task.split(":")[-1].strip()}
+            return "breach_lookup", {"query": val}
         if "social" in lower or "username" in lower or "handle" in lower:
-            return "social_recon", {"username": task.split(":")[-1].strip()}
-        if "dns" in lower or "domain" in lower or "whois" in lower:
-            return "network_recon", {"domain": task.split(":")[-1].strip()}
+            return "social_recon", {"username": val}
+        if "dns" in lower or "domain" in lower or "whois" in lower or "network" in lower:
+            return "network_recon", {"domain": val}
         if "crawl" in lower or "http" in lower:
-            return "stealth_crawler", {"url": task.split(":")[-1].strip()}
+            return "stealth_crawler", {"url": val}
         # Default
-        return "web_search", {"query": task}
+        return "web_search", {"query": val}
 
     @staticmethod
     def _parse_raw_plan(text: str) -> PlanAction:

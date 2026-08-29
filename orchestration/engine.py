@@ -149,6 +149,29 @@ class OrchestrationEngine:
                 "properties": root_entity.properties,
             })
 
+            # ── Fast-Track Initial Tactical Recon Enqueue ──
+            if not self.state.current_task_stack:
+                if seed_type == EntityType.DOMAIN:
+                    self.state.current_task_stack.extend([
+                        f"subdomains: {seed}",
+                        f"network: {seed}",
+                        f"search: {seed}",
+                    ])
+                elif seed_type == EntityType.IP_ADDRESS:
+                    self.state.current_task_stack.extend([
+                        f"geoip: {seed}",
+                        f"network: {seed}",
+                    ])
+                elif seed_type == EntityType.SOCIAL_HANDLE:
+                    clean_handle = seed.lstrip("@")
+                    self.state.current_task_stack.extend([
+                        f"social: {clean_handle}",
+                        f"breach: {clean_handle}",
+                        f"search: {seed}",
+                    ])
+                elif seed_type == EntityType.IMAGE:
+                    self.state.current_task_stack.append(f"image: {seed}")
+
             # ── Main investigation loop ──
             while iteration < max_iter:
                 iteration += 1
@@ -296,16 +319,31 @@ class OrchestrationEngine:
         raw_preview = str(result.data)
         task_step.output_summary = (raw_preview[:250] + "…") if len(raw_preview) > 250 else raw_preview
 
-        # 4. VERIFICATION — Adversarial Critic
+        # 4. VERIFICATION — Fast & Smart Adversarial Verification
         self.state.status = InvestigationStatus.VERIFYING
         await self._emit("status_change", {"status": "verifying"})
 
-        briefing_context = (
-            f" Context: {self.state.context_briefing}" if self.state.context_briefing else ""
-        )
-        verdict = await self.critic.evaluate_finding(
-            f"Tool '{tool_name}' returned: {raw_preview[:500]}.{briefing_context}"
-        )
+        # Deterministic tools (DNS, IP-API, CT logs, EXIF) return verified technical ground-truth
+        DETERMINISTIC_TOOLS = {
+            "subdomain_finder", "ip_geolocate", "network_recon",
+            "image_osint", "metadata_extractor",
+        }
+
+        if tool_name in DETERMINISTIC_TOOLS:
+            verdict = {
+                "verdict": "CONFIRMED",
+                "reasoning": f"Direct technical record verified from {tool_name}",
+                "confidence": 0.95,
+            }
+        else:
+            briefing_context = (
+                f" Context: {self.state.context_briefing}" if self.state.context_briefing else ""
+            )
+            verdict = await self.critic.evaluate_finding(
+                f"Tool '{tool_name}' returned: {raw_preview[:500]}.{briefing_context}",
+                is_heavy=False,
+            )
+
         task_step.verdict = verdict.get("verdict", "PLAUSIBLE")
         task_step.confidence = float(verdict.get("confidence", 0.5))
 

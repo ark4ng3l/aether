@@ -24,10 +24,10 @@ class CriticVerdict(BaseModel):
 
 class RedTeamCritic:
     """
-    The Red-Team adversarial critic using uncensored Gemma4-26B model.
+    The Red-Team adversarial critic using uncensored Gemma models.
     """
 
-    async def evaluate_finding(self, finding_description: str) -> Dict[str, Any]:
+    async def evaluate_finding(self, finding_description: str, is_heavy: bool = False) -> Dict[str, Any]:
         """
         Returns ``{"verdict": "CONFIRMED"|"PLAUSIBLE"|"REJECTED",
                     "reasoning": "…", "confidence": 0.0-1.0}``.
@@ -44,11 +44,13 @@ class RedTeamCritic:
             '"reasoning":"...","confidence":0.0-1.0}\n'
         )
 
+        target_model = settings.MODEL_CRITIC if is_heavy else settings.MODEL_FAST
+
         try:
             result = await model_manager.call_model(
                 prompt,
-                model=settings.MODEL_CRITIC,
-                is_heavy=True,
+                model=target_model,
+                is_heavy=is_heavy,
                 response_format=CriticVerdict,
                 temperature=settings.CRITIC_TEMPERATURE,
                 task_label="Adversarial Refutation",

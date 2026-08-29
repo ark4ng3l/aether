@@ -39,8 +39,8 @@ class Settings(BaseSettings):
     MODEL_DEEP_FALLBACK: str = "hf.co/HauhauCS/Gemma4-31B-QAT-Uncensored-HauhauCS-Balanced-MTP:Q4_K_M"
 
     # ── Cognitive Reasoning & Thinking Budgets ─────────────────────────
-    HYPOTHESIS_RECURSION_LIMIT: int = 5
-    MAX_SEARCH_DEPTH: int = 10
+    HYPOTHESIS_RECURSION_LIMIT: int = 3
+    MAX_SEARCH_DEPTH: int = 5
     ENTITY_CONFIDENCE_THRESHOLD: float = 0.75
 
     # ── Model Temperatures ─────────────────────────────────────────────
