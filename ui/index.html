@@ -1381,10 +1381,19 @@
                 <div class="m3-pane" id="pane-geomap">
                     <div style="flex:1;position:relative;width:100%;height:100%;">
                         <div id="leafletMap" style="width:100%;height:100%;position:absolute;inset:0;background:#050811;"></div>
+                        
                         <div class="graph-hud-top-left">
                             <div class="graph-hud-pill">
                                 <span>🗺️ Geocoded Points: <strong id="geoPinCount">0</strong></span>
                             </div>
+                        </div>
+
+                        <!-- Floating Map Layer Controls Toolbar -->
+                        <div class="graph-floating-toolbar" style="top:16px;right:16px;">
+                            <button class="m3-btn m3-btn-filled" id="btnLayerDark" style="height:28px;padding:0 10px;" onclick="setMapTileLayer('dark')">🌌 Dark Canvas</button>
+                            <button class="m3-btn m3-btn-tonal" id="btnLayerSatellite" style="height:28px;padding:0 10px;" onclick="setMapTileLayer('satellite')">🛰️ Satellite</button>
+                            <button class="m3-btn m3-btn-tonal" id="btnLayerOSM" style="height:28px;padding:0 10px;" onclick="setMapTileLayer('osm')">🗺️ OpenStreetMap</button>
+                            <button class="m3-btn m3-btn-tonal" style="height:28px;padding:0 10px;" onclick="fitMapPins()">🔍 Fit Pins</button>
                         </div>
                     </div>
                 </div>
@@ -2523,6 +2532,9 @@
 
         let mapInstance = null;
         let mapMarkers = [];
+        let currentMapLayers = [];
+        let currentMapCoords = [];
+        let activeMapLayerType = 'dark';
 
         function initLeafletMap() {
             if (!mapInstance && document.getElementById('leafletMap') && window.L) {
@@ -2532,11 +2544,70 @@
                     minZoom: 1,
                     zoomControl: true,
                 });
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                    attribution: '&copy; CartoDB &copy; OpenStreetMap',
-                    subdomains: 'abcd',
+                setMapTileLayer('dark');
+            }
+        }
+
+        function setMapTileLayer(type) {
+            activeMapLayerType = type;
+            if (!mapInstance) return;
+
+            // Remove existing tile layers
+            currentMapLayers.forEach(l => mapInstance.removeLayer(l));
+            currentMapLayers = [];
+
+            // Update UI buttons
+            ['btnLayerDark', 'btnLayerSatellite', 'btnLayerOSM'].forEach(id => {
+                const b = document.getElementById(id);
+                if (b) {
+                    b.className = 'm3-btn m3-btn-tonal';
+                }
+            });
+
+            if (type === 'dark') {
+                const btn = document.getElementById('btnLayerDark');
+                if (btn) btn.className = 'm3-btn m3-btn-filled';
+
+                // Esri World Dark Gray Canvas (100% Free, No Watermark, No API Key)
+                const base = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
+                    maxZoom: 16,
+                }).addTo(mapInstance);
+                const ref = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+                    maxZoom: 16,
+                }).addTo(mapInstance);
+                currentMapLayers.push(base, ref);
+            } else if (type === 'satellite') {
+                const btn = document.getElementById('btnLayerSatellite');
+                if (btn) btn.className = 'm3-btn m3-btn-filled';
+
+                // Esri World Imagery (Satellite, 100% Free, No Watermark, No API Key)
+                const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: 'Source: Esri, Maxar, Earthstar Geographics',
+                    maxZoom: 18,
+                }).addTo(mapInstance);
+                const ref = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+                    maxZoom: 18,
+                }).addTo(mapInstance);
+                currentMapLayers.push(sat, ref);
+            } else if (type === 'osm') {
+                const btn = document.getElementById('btnLayerOSM');
+                if (btn) btn.className = 'm3-btn m3-btn-filled';
+
+                // Standard OpenStreetMap (100% Free, Open Data, No API Key)
+                const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
                     maxZoom: 19,
                 }).addTo(mapInstance);
+                currentMapLayers.push(osm);
+            }
+        }
+
+        function fitMapPins() {
+            if (mapInstance && currentMapCoords.length > 0) {
+                mapInstance.fitBounds(currentMapCoords, { padding: [50, 50], maxZoom: 8 });
+            } else if (mapInstance) {
+                mapInstance.setView([25.0, 10.0], 2);
             }
         }
 
@@ -2545,12 +2616,12 @@
             if (!mapInstance) return;
             mapMarkers.forEach(m => mapInstance.removeLayer(m));
             mapMarkers = [];
+            currentMapCoords = [];
 
             try {
                 const resp = await fetch(`/api/projects/${projectId}/graph`);
                 if (!resp.ok) return;
                 const graph = await resp.json();
-                const coords = [];
 
                 (graph.nodes || []).forEach(n => {
                     const ndata = n.data || {};
@@ -2561,28 +2632,29 @@
                     if (lat !== 0 || lon !== 0) {
                         const marker = L.circleMarker([lat, lon], {
                             radius: 8,
-                            fillColor: '#38bdf8',
-                            color: '#7dd3fc',
+                            fillColor: '#00f0ff',
+                            color: '#ffffff',
                             weight: 2,
                             opacity: 1,
-                            fillOpacity: 0.85,
+                            fillOpacity: 0.9,
                         }).addTo(mapInstance);
 
                         marker.bindPopup(`
-                            <div style="font-family:sans-serif;font-size:12px;color:#0a0f1d;">
-                                <strong>${escapeHtml(ndata.label || ndata.id)}</strong><br/>
-                                <span>📍 ${escapeHtml(props.city || '')}, ${escapeHtml(props.country || '')}</span><br/>
-                                <span>🏢 ${escapeHtml(props.isp || props.asn || '')}</span>
+                            <div style="font-family:sans-serif;font-size:12px;color:#0a0f1d;padding:4px;">
+                                <strong style="color:#0284c7;font-size:13px;">${escapeHtml(ndata.label || ndata.id)}</strong><br/>
+                                <div style="margin-top:4px;">📍 <strong>Location:</strong> ${escapeHtml(props.city || '')}, ${escapeHtml(props.country || '')}</div>
+                                <div style="margin-top:2px;">🏢 <strong>ISP/ASN:</strong> ${escapeHtml(props.isp || props.asn || 'N/A')}</div>
+                                <div style="margin-top:2px;">🌐 <strong>Coords:</strong> ${lat.toFixed(4)}, ${lon.toFixed(4)}</div>
                             </div>
                         `);
                         mapMarkers.push(marker);
-                        coords.push([lat, lon]);
+                        currentMapCoords.push([lat, lon]);
                     }
                 });
 
                 document.getElementById('geoPinCount').textContent = mapMarkers.length;
-                if (coords.length > 0) {
-                    mapInstance.fitBounds(coords, { padding: [50, 50], maxZoom: 8 });
+                if (currentMapCoords.length > 0) {
+                    mapInstance.fitBounds(currentMapCoords, { padding: [50, 50], maxZoom: 8 });
                 }
             } catch(e) {}
         }
