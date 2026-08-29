@@ -25,8 +25,9 @@ class Settings(BaseSettings):
     # 2. Vision & OCR Model (8B)
     MODEL_VLM: str = "hf.co/HauhauCS/Qwen3VL-8B-Uncensored-HauhauCS-Balanced:Q4_K_M"
 
-    # 3. Fast Heuristic Planner & Entity Extractor (12B)
-    MODEL_FAST: str = "hf.co/HauhauCS/Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced:Q4_K_M"
+    # 3. Fast Tactical Planner & Entity Extractor (E4B Aggressive)
+    MODEL_FAST: str = "hf.co/HauhauCS/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive:Q4_K_M"
+    MODEL_FAST_12B: str = "hf.co/HauhauCS/Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced:Q4_K_M"
 
     # 4. Adversarial Red-Team Critic (26B)
     MODEL_CRITIC: str = "hf.co/HauhauCS/Gemma4-26B-A4B-QAT-Uncensored-HauhauCS-Balanced-MTP:Q4_K_M"

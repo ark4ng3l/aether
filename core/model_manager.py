@@ -169,6 +169,7 @@ class ModelManager:
             "model": target_model,
             "prompt": prompt,
             "stream": True,
+            "keep_alive": "15m",
             "options": {"temperature": temperature},
         }
 
