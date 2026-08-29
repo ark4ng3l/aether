@@ -37,7 +37,26 @@ from aether.reasoning.planner import Planner, PlanAction
 from aether.reasoning.hypothesis import HypothesisEngine
 from aether.reasoning.critic import RedTeamCritic
 from aether.memory.graph_store import GraphStore
+from aether.memory.entity_resolver import EntityResolver
 from aether.perception.tools.registry import registry
+
+# Per-tool timeout configuration (seconds)
+TOOL_TIMEOUTS: dict[str, float] = {
+    "web_search": 15.0,
+    "subdomain_finder": 20.0,
+    "ip_geolocate": 10.0,
+    "network_recon": 15.0,
+    "social_recon": 20.0,
+    "breach_lookup": 25.0,
+    "stealth_crawler": 60.0,
+    "image_osint": 90.0,
+    "vlm_processor": 120.0,
+    "metadata_extractor": 10.0,
+    "whois_lookup": 15.0,
+    "shodan_lookup": 12.0,
+    "github_dorker": 20.0,
+}
+DEFAULT_TOOL_TIMEOUT = 25.0
 
 
 def _now_utc() -> datetime:
@@ -68,6 +87,7 @@ class OrchestrationEngine:
             context_briefing=context_briefing,
         )
         self.graph_store = GraphStore(project_id=self.state.project_id)
+        self.entity_resolver = EntityResolver(self.graph_store)
         self.planner = Planner(self.state)
         self.hypothesis_engine = HypothesisEngine()
         self.critic = RedTeamCritic()
@@ -149,28 +169,36 @@ class OrchestrationEngine:
                 "properties": root_entity.properties,
             })
 
-            # ── Fast-Track Initial Tactical Recon Enqueue ──
+            # ── Fast-Track Parallel Initial Recon ──
+            initial_tasks = []
             if not self.state.current_task_stack:
                 if seed_type == EntityType.DOMAIN:
-                    self.state.current_task_stack.extend([
+                    initial_tasks = [
                         f"subdomains: {seed}",
                         f"network: {seed}",
                         f"search: {seed}",
-                    ])
+                    ]
                 elif seed_type == EntityType.IP_ADDRESS:
-                    self.state.current_task_stack.extend([
+                    initial_tasks = [
                         f"geoip: {seed}",
                         f"network: {seed}",
-                    ])
+                    ]
                 elif seed_type == EntityType.SOCIAL_HANDLE:
                     clean_handle = seed.lstrip("@")
-                    self.state.current_task_stack.extend([
+                    initial_tasks = [
                         f"social: {clean_handle}",
                         f"breach: {clean_handle}",
                         f"search: {seed}",
-                    ])
+                    ]
                 elif seed_type == EntityType.IMAGE:
-                    self.state.current_task_stack.append(f"image: {seed}")
+                    initial_tasks = [f"image: {seed}"]
+
+            # Execute initial tasks in PARALLEL for 2-4x speedup
+            if initial_tasks:
+                self.state.status = InvestigationStatus.COLLECTING
+                await self._emit("status_change", {"status": "collecting", "phase": "parallel_recon"})
+                logger.info(f"Parallel fan-out: {len(initial_tasks)} initial tasks")
+                await self._execute_parallel_tasks(initial_tasks)
 
             # ── Main investigation loop ──
             while iteration < max_iter:
@@ -253,6 +281,35 @@ class OrchestrationEngine:
             await self._emit("error", {"error": str(exc)})
 
     # ------------------------------------------------------------------
+    # Parallel Task Execution (Fan-Out)
+    # ------------------------------------------------------------------
+
+    async def _execute_parallel_tasks(self, tasks: list[str]):
+        """Execute multiple independent tasks concurrently for initial recon speedup."""
+        plan_actions = []
+        for task_str in tasks:
+            tool_name, params = self.planner._infer_tool(task_str)
+            plan_actions.append(PlanAction(
+                action="tool_call",
+                tool_name=tool_name,
+                params=params,
+                reasoning=f"Parallel initial recon: {task_str}",
+            ))
+
+        if not plan_actions:
+            return
+
+        # Execute all tasks concurrently
+        async def _safe_execute(plan: PlanAction):
+            try:
+                await self._execute_task_step(plan)
+            except Exception as exc:
+                logger.warning(f"Parallel task {plan.tool_name} failed: {exc}")
+
+        await asyncio.gather(*[_safe_execute(p) for p in plan_actions])
+        logger.info(f"Parallel fan-out complete: {len(plan_actions)} tasks finished")
+
+    # ------------------------------------------------------------------
     # Task Step Execution & Tracking
     # ------------------------------------------------------------------
 
@@ -284,13 +341,14 @@ class OrchestrationEngine:
             self.state.completed_tasks.append(task_step)
             return
 
-        # Execute tool with timeout protection
+        # Execute tool with per-tool timeout
+        timeout = TOOL_TIMEOUTS.get(tool_name, DEFAULT_TOOL_TIMEOUT)
         try:
-            result = await asyncio.wait_for(tool.execute(**plan.params), timeout=25.0)
+            result = await asyncio.wait_for(tool.execute(**plan.params), timeout=timeout)
         except asyncio.TimeoutError:
             result = None
             task_step.status = "failed"
-            task_step.output_summary = f"Tool '{tool_name}' timed out after 25s"
+            task_step.output_summary = f"Tool '{tool_name}' timed out after {timeout}s"
         except TypeError:
             query = " ".join(str(v) for v in plan.params.values())
             result = await tool.execute(query=query)
@@ -409,7 +467,11 @@ class OrchestrationEngine:
                 try:
                     await self.vector_store.add_text(
                         raw_preview[:500],
-                        metadata={"entity_id": main_entity.id, "tool": tool_name},
+                        metadata={
+                            "entity_id": main_entity.id,
+                            "tool": tool_name,
+                            "project_id": self.state.project_id,
+                        },
                     )
                 except Exception:
                     pass
@@ -437,51 +499,62 @@ class OrchestrationEngine:
     # ------------------------------------------------------------------
 
     def _harvest_sub_entities(self, text: str, parent_id: str):
-        """Extract IPs, emails, usernames, and domains from tool output."""
+        """Extract IPs, emails, usernames, domains, and crypto addresses from tool output."""
         # 1. Emails
         emails = set(re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', text))
         for email in list(emails)[:4]:
-            if not self.state.get_entity(email):
-                ent = Entity(id=email, type=EntityType.EMAIL, properties={"discovered_from": parent_id, "name": email})
-                self.state.add_entity(ent)
-                self.graph_store.add_entity(ent)
-                self.graph_store.add_relationship(RelationshipType.ASSOCIATED_WITH, parent_id, email)
+            self._add_sub_entity(email, EntityType.EMAIL, parent_id, RelationshipType.ASSOCIATED_WITH)
 
-        # 2. IPv4 Addresses (Geocoded)
+        # 2. IPv4 Addresses
         ips = set(re.findall(r'\b(?:\d{1,3}\.){3}\d{1,3}\b', text))
         for ip in list(ips)[:4]:
-            if not ip.startswith(("127.", "0.", "255.", "192.168.", "10.")) and not self.state.get_entity(ip):
-                ent = Entity(
-                    id=ip,
-                    type=EntityType.IP_ADDRESS,
-                    properties={
-                        "discovered_from": parent_id,
-                        "name": ip,
-                        "ip": ip,
-                    },
-                )
-                self.state.add_entity(ent)
-                self.graph_store.add_entity(ent)
-                self.graph_store.add_relationship(RelationshipType.RESOLVES_TO, parent_id, ip)
+            if not ip.startswith(("127.", "0.", "255.", "192.168.", "10.", "172.")):
+                self._add_sub_entity(ip, EntityType.IP_ADDRESS, parent_id, RelationshipType.RESOLVES_TO)
 
-        # 3. Subdomains & Domains
-        domains = set(re.findall(r'\b(?:[a-zA-Z0-9-]+\.)+(?:com|org|net|io|co|ir|ru|cn|de|uk|info|biz|me|xyz|top|app|dev)\b', text.lower()))
+        # 3. Subdomains & Domains (extended TLD list)
+        domains = set(re.findall(
+            r'\b(?:[a-zA-Z0-9-]+\.)+(?:com|org|net|io|co|ir|ru|cn|de|uk|info|biz|me|xyz|top|app|dev|gov|mil|edu|onion|tech|cloud|security)\b',
+            text.lower()
+        ))
         for dom in list(domains)[:5]:
-            if dom != self.state.target_seed and not self.state.get_entity(dom):
-                ent = Entity(id=dom, type=EntityType.DOMAIN, properties={"discovered_from": parent_id, "name": dom})
-                self.state.add_entity(ent)
-                self.graph_store.add_entity(ent)
-                self.graph_store.add_relationship(RelationshipType.SUBDOMAIN_OF if self.state.target_seed in dom else RelationshipType.ASSOCIATED_WITH, self.state.target_seed, dom)
+            if dom != self.state.target_seed:
+                rel = RelationshipType.SUBDOMAIN_OF if self.state.target_seed in dom else RelationshipType.ASSOCIATED_WITH
+                self._add_sub_entity(dom, EntityType.DOMAIN, self.state.target_seed, rel)
 
         # 4. Social Handles (@username)
-        handles = set(re.findall(r'(?<=[\s,(\'"])@([a-zA-Z0-9_]{3,25})\b', text))
+        handles = set(re.findall(r'(?<=[\s,(\'")])@([a-zA-Z0-9_]{3,25})\b', text))
         for h in list(handles)[:3]:
             handle_str = f"@{h}"
-            if handle_str != self.state.target_seed and not self.state.get_entity(handle_str):
-                ent = Entity(id=handle_str, type=EntityType.SOCIAL_HANDLE, properties={"discovered_from": parent_id, "name": handle_str})
-                self.state.add_entity(ent)
-                self.graph_store.add_entity(ent)
-                self.graph_store.add_relationship(RelationshipType.ASSOCIATED_WITH, parent_id, handle_str)
+            if handle_str != self.state.target_seed:
+                self._add_sub_entity(handle_str, EntityType.SOCIAL_HANDLE, parent_id, RelationshipType.ASSOCIATED_WITH)
+
+    def _add_sub_entity(
+        self, entity_id: str, entity_type: EntityType,
+        parent_id: str, rel_type: RelationshipType,
+    ):
+        """Add a sub-entity with deduplication via EntityResolver."""
+        if self.state.get_entity(entity_id):
+            return  # Already known
+
+        new_entity = Entity(
+            id=entity_id,
+            type=entity_type,
+            properties={"discovered_from": parent_id, "name": entity_id},
+        )
+
+        # Try to resolve against existing entities to avoid duplicates
+        try:
+            existing = self.entity_resolver.resolve(new_entity)
+            if existing:
+                # Merge: add relationship to existing entity instead of creating duplicate
+                self.graph_store.add_relationship(rel_type, parent_id, existing.id)
+                return
+        except Exception:
+            pass  # Resolver failure is non-fatal
+
+        self.state.add_entity(new_entity)
+        self.graph_store.add_entity(new_entity)
+        self.graph_store.add_relationship(rel_type, parent_id, entity_id)
 
     # ------------------------------------------------------------------
     # Dossier Synthesis

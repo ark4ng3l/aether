@@ -30,6 +30,8 @@ class RelationshipType(str, Enum):
     AUTHORED = "authored"
     MEMBER_OF = "member_of"
     LOCATED_IN = "located_in"
+    SUBDOMAIN_OF = "subdomain_of"
+    HOSTED_ON = "hosted_on"
 
 
 class Entity(BaseModel):
@@ -99,6 +101,10 @@ class AgentState(BaseModel):
     def add_entity(self, entity: Entity):
         if not any(e.id == entity.id for e in self.discovered_entities):
             self.discovered_entities.append(entity)
+
+    def get_entity(self, entity_id: str) -> Optional[Entity]:
+        """Lookup a discovered entity by ID. Returns None if not found."""
+        return next((e for e in self.discovered_entities if e.id == entity_id), None)
 
 
 class Project(BaseModel):

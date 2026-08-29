@@ -164,13 +164,13 @@ async def inject_task(project_id: str, req: InjectTaskRequest):
         raise HTTPException(status_code=404, detail="Project not found")
 
     # If engine instance exists
-    engine = project_manager._active_runs.get(project_id)
+    engine = project_manager._active_engines.get(project_id)
     if engine:
         engine.inject_task(req.tool_name, req.params, req.reasoning or "Manual injection")
     else:
         if proj.state:
             proj.state.current_task_stack.append(f"{req.tool_name}: {req.params}")
-            project_manager.save_projects()
+            project_manager._save_to_disk()
 
     return {"status": "injected", "tool": req.tool_name, "params": req.params}
 

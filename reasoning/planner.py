@@ -91,11 +91,37 @@ class Planner:
             "image_osint", "subdomain_finder", "ip_geolocate", "breach_lookup",
             "web_search", "social_recon", "network_recon",
             "stealth_crawler", "vlm_processor", "metadata_extractor",
+            "whois_lookup", "shodan_lookup", "github_dorker",
         ]
 
         context_section = ""
         if self.state.context_briefing:
             context_section = f"\nTARGET BRIEFING / CONTEXT:\n{self.state.context_briefing}\n"
+
+        # Build completed-task summary so the LLM knows what was already done
+        completed_summary = ""
+        if self.state.completed_tasks:
+            recent = self.state.completed_tasks[-8:]  # Last 8 tasks
+            lines = []
+            for t in recent:
+                verdict_str = f"[{t.verdict}]" if t.verdict else "[N/A]"
+                lines.append(
+                    f"  • {t.tool_name} {verdict_str} (conf={t.confidence:.0%}): "
+                    f"{t.output_summary[:120]}"
+                )
+            completed_summary = (
+                f"\nCOMPLETED TASKS (last {len(recent)}):\n"
+                + "\n".join(lines) + "\n"
+            )
+
+        # Active hypotheses
+        hypo_section = ""
+        if self.state.active_hypotheses:
+            hypo_section = (
+                f"\nACTIVE HYPOTHESES:\n"
+                + "\n".join(f"  • {h}" for h in self.state.active_hypotheses[:5])
+                + "\n"
+            )
 
         prompt = (
             "You are AETHER's autonomous task planner for an OSINT investigation.\n\n"
@@ -104,10 +130,15 @@ class Planner:
             f"{context_section}"
             f"STATUS: {self.state.status.value}\n"
             f"COMPLETED STEPS: {len(self.state.completed_tasks)}\n"
+            f"{completed_summary}"
+            f"{hypo_section}"
             f"DISCOVERED ENTITIES ({current_count}): "
             f"{[e.id for e in self.state.discovered_entities[:15]]}\n\n"
             f"AVAILABLE TOOLS: {available_tools}\n\n"
-            "Formulate the next strategic OSINT step to uncover hidden connections, owners, infrastructure, images, or accounts.\n"
+            "RULES:\n"
+            "- Do NOT re-run a tool that already completed with the same parameters.\n"
+            "- Prioritize tools that follow up on discovered entities (e.g., GeoIP on new IPs, social on new handles).\n"
+            "- If sufficient intelligence has been gathered, respond with 'finish'.\n\n"
             "Respond ONLY with a JSON object:\n"
             '{"action":"tool_call","tool_name":"<tool>","params":{"query":"<value>"},"reasoning":"..."}\n'
             'OR {"action":"finish","reasoning":"..."}\n'
@@ -180,7 +211,13 @@ class Planner:
             return "breach_lookup", {"query": val}
         if "social" in lower or "username" in lower or "handle" in lower:
             return "social_recon", {"username": val}
-        if "dns" in lower or "domain" in lower or "whois" in lower or "network" in lower:
+        if "whois" in lower or "registrar" in lower or "registration" in lower:
+            return "whois_lookup", {"domain": val}
+        if "shodan" in lower or "port" in lower or "cve" in lower or "vuln" in lower:
+            return "shodan_lookup", {"ip": val}
+        if "github" in lower or "secret" in lower or "dork" in lower or "leaked" in lower:
+            return "github_dorker", {"query": val}
+        if "dns" in lower or "domain" in lower or "network" in lower:
             return "network_recon", {"domain": val}
         if "crawl" in lower or "http" in lower:
             return "stealth_crawler", {"url": val}

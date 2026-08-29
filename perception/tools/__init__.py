@@ -50,3 +50,22 @@ try:
     registry.register(vlm_processor)
 except ImportError:
     pass
+
+# ── Phase 1 Expansion Tools ────────────────────────────────────────
+try:
+    from aether.perception.tools.whois_tools import whois_tools
+    registry.register(whois_tools)
+except ImportError:
+    pass
+
+try:
+    from aether.perception.tools.shodan_tools import shodan_tools
+    registry.register(shodan_tools)
+except ImportError:
+    pass
+
+try:
+    from aether.perception.tools.github_tools import github_dorker
+    registry.register(github_dorker)
+except ImportError:
+    pass

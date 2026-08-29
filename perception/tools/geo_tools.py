@@ -40,7 +40,9 @@ class IPGeoThreatTool(BaseTool):
         # If domain passed instead, try to resolve to IP first
         if not re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", target_ip):
             try:
-                target_ip = socket.gethostbyname(target_ip)
+                import asyncio
+                loop = asyncio.get_running_loop()
+                target_ip = await loop.run_in_executor(None, socket.gethostbyname, target_ip)
             except Exception:
                 pass
 
