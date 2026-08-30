@@ -400,6 +400,41 @@ async def check_stealth_leak():
         }
 
 
+# ── Advanced Forensic Intelligence Endpoints ─────────────────────────────────
+
+@app.post("/api/intelligence/resolve-entities")
+async def resolve_entities_endpoint(payload: Dict[str, Any]):
+    """Resolves whether two cross-platform profiles belong to the same person with multi-dimensional scoring."""
+    from aether.reasoning.entity_resolver import entity_resolver
+    prof_a = payload.get("profile_a", {})
+    prof_b = payload.get("profile_b", {})
+    if not prof_a or not prof_b:
+        raise HTTPException(status_code=400, detail="Requires profile_a and profile_b objects")
+    result = entity_resolver.resolve_profiles(prof_a, prof_b)
+    return result.to_dict()
+
+
+@app.post("/api/intelligence/stylometry")
+async def stylometry_endpoint(payload: Dict[str, Any]):
+    """Compares linguistic habits and authorship probability between two text samples."""
+    from aether.reasoning.entity_resolver import stylometry_analyzer
+    sample_a = payload.get("sample_a", "")
+    sample_b = payload.get("sample_b", "")
+    if not sample_a or not sample_b:
+        raise HTTPException(status_code=400, detail="Requires sample_a and sample_b text strings")
+    return stylometry_analyzer.compare_authorship(sample_a, sample_b)
+
+
+@app.post("/api/intelligence/temporal-rhythm")
+async def temporal_rhythm_endpoint(payload: Dict[str, Any]):
+    """Analyzes timestamped activity to deduce circadian sleep cycles and geographical UTC timezone."""
+    from aether.reasoning.entity_resolver import temporal_estimator
+    timestamps = payload.get("timestamps", [])
+    if not timestamps:
+        raise HTTPException(status_code=400, detail="Requires timestamps array")
+    return temporal_estimator.estimate_timezone(timestamps)
+
+
 @app.post("/api/auth/token/regenerate")
 async def regenerate_auth_token():
     """Generates and persists a new Bearer auth token, invalidating the previous one."""

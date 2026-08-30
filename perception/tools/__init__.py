@@ -258,3 +258,16 @@ try:
 except ImportError:
     pass
 
+# ── Forensic Reasoning & Behavioral Intelligence Suite ──────────────
+try:
+    from aether.perception.tools.intelligence_tools import (
+        EntityResolutionTool,
+        StylometryTool,
+        TemporalRhythmTool,
+    )
+    registry.register(EntityResolutionTool())
+    registry.register(StylometryTool())
+    registry.register(TemporalRhythmTool())
+except ImportError:
+    pass
+
