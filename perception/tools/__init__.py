@@ -138,4 +138,48 @@ try:
 except ImportError:
     pass
 
+# ── Extended Reconnaissance & Security Audit Suite (Phase 4) ────────
+try:
+    from aether.perception.tools.passive_dns_tools import passive_dns_tool
+    registry.register(passive_dns_tool)
+except ImportError:
+    pass
+
+try:
+    from aether.perception.tools.email_security_tools import email_security_tool
+    registry.register(email_security_tool)
+except ImportError:
+    pass
+
+try:
+    from aether.perception.tools.certstream_tools import cert_transparency_tool
+    registry.register(cert_transparency_tool)
+except ImportError:
+    pass
+
+try:
+    from aether.perception.tools.threat_reputation_tools import threat_reputation_tool
+    registry.register(threat_reputation_tool)
+except ImportError:
+    pass
+
+try:
+    from aether.perception.tools.port_prober_tools import port_prober_tool
+    registry.register(port_prober_tool)
+except ImportError:
+    pass
+
+try:
+    from aether.perception.tools.security_headers_tools import security_headers_tool
+    registry.register(security_headers_tool)
+except ImportError:
+    pass
+
+try:
+    from aether.perception.tools.api_schema_tools import api_schema_tool
+    registry.register(api_schema_tool)
+except ImportError:
+    pass
+
+
 
