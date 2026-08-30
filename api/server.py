@@ -205,14 +205,18 @@ async def get_favicon():
 async def root(request: Request):
     if UI_FILE.exists():
         html = UI_FILE.read_text(encoding="utf-8")
-        bootstrap_script = f'<script>window.__AETHER_BOOT_TOKEN__ = "{AUTH_TOKEN}"; window.__AETHER_BOOTSTRAP__ = {{ token: "{AUTH_TOKEN}" }};</script>'
-        if "</head>" in html:
-            html = html.replace("</head>", f"{bootstrap_script}</head>")
-        else:
-            html = f"{bootstrap_script}{html}"
+        auth_header = request.headers.get("authorization", "")
+        cookie_token = request.cookies.get("aether_token", "")
+        has_auth = (auth_header == f"Bearer {AUTH_TOKEN}") or (cookie_token == AUTH_TOKEN)
+
+        if has_auth:
+            bootstrap_script = f'<script>window.__AETHER_BOOT_TOKEN__ = "{AUTH_TOKEN}"; window.__AETHER_BOOTSTRAP__ = {{ token: "{AUTH_TOKEN}" }};</script>'
+            if "</head>" in html:
+                html = html.replace("</head>", f"{bootstrap_script}</head>")
+            else:
+                html = f"{bootstrap_script}{html}"
 
         resp = Response(content=html, media_type="text/html")
-        resp.set_cookie(key="aether_token", value=AUTH_TOKEN, httponly=False, samesite="lax", max_age=86400 * 30)
         return resp
     return {"status": "online", "engine": "AETHER"}
 
