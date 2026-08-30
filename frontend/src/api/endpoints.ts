@@ -190,9 +190,12 @@ export const api = {
   },
 
   // ── Settings & Telemetry ────────────────────────────────────────────────
-  async getSettings(): Promise<SettingsData> {
-    const res = await apiFetch<{ settings: SettingsData }>('/api/settings')
-    return res.settings
+  async getSettings(): Promise<{ settings: SettingsData; available_models: string[] }> {
+    const res = await apiFetch<{ settings: SettingsData; available_models?: string[] }>('/api/settings')
+    return {
+      settings: res.settings,
+      available_models: res.available_models || [],
+    }
   },
 
   async updateSettings(data: Partial<SettingsData>): Promise<{ status: string }> {

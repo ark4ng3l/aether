@@ -4,6 +4,15 @@ import {
   X,
   Save,
   CheckCircle2,
+  RefreshCw,
+  Cpu,
+  Eye,
+  ShieldAlert,
+  Brain,
+  Zap,
+  Server,
+  Sliders,
+  Lock,
 } from 'lucide-react'
 import { useProjectStore } from '../../stores/useProjectStore'
 import { useAuthStore } from '../../stores/useAuthStore'
@@ -17,24 +26,44 @@ export const SettingsModal: React.FC = () => {
   const { t } = useLocaleStore()
 
   const [settings, setSettings] = useState<Partial<SettingsData>>({})
+  const [availableModels, setAvailableModels] = useState<string[]>([])
   const [metrics, setMetrics] = useState<MetricsData | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isFetchingModels, setIsFetchingModels] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
 
+  const loadSettingsAndModels = async () => {
+    setIsLoading(true)
+    try {
+      const [res, metricsData] = await Promise.all([
+        api.getSettings().catch(() => ({ settings: {} as SettingsData, available_models: [] })),
+        api.getMetrics().catch(() => null),
+      ])
+      setSettings(res.settings || {})
+      setAvailableModels(res.available_models || [])
+      setMetrics(metricsData)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (!isSettingsOpen) return
-    setIsLoading(true)
-    Promise.all([
-      api.getSettings().catch(() => ({})),
-      api.getMetrics().catch(() => null),
-    ])
-      .then(([settingsData, metricsData]) => {
-        setSettings(settingsData as any)
-        setMetrics(metricsData)
-      })
-      .finally(() => setIsLoading(false))
+    loadSettingsAndModels()
   }, [isSettingsOpen])
+
+  const handleRefreshModels = async () => {
+    setIsFetchingModels(true)
+    try {
+      const res = await api.getSettings()
+      setAvailableModels(res.available_models || [])
+    } catch (err) {
+      console.error('Failed to refresh models:', err)
+    } finally {
+      setIsFetchingModels(false)
+    }
+  }
 
   if (!isSettingsOpen) return null
 
@@ -67,143 +96,292 @@ export const SettingsModal: React.FC = () => {
     }
   }
 
+  const renderModelField = (
+    key: keyof SettingsData,
+    label: string,
+    description: string,
+    icon: React.ElementType,
+    badgeColor: string = 'text-accent'
+  ) => {
+    const IconComp = icon
+    const currentValue = (settings[key] as string) || ''
+
+    return (
+      <div className="bg-bg-canvas p-3 rounded-xl border border-border-subtle hover:border-border-strong transition-all">
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="flex items-center gap-1.5 text-text-primary font-medium text-2xs">
+            <IconComp className={`w-3.5 h-3.5 ${badgeColor}`} />
+            {label}
+          </label>
+          {availableModels.length > 0 && (
+            <span className="text-[10px] text-text-tertiary font-mono">
+              {availableModels.includes(currentValue) ? (
+                <span className="text-status-confirmed flex items-center gap-1 font-sans">
+                  <span className="w-1.5 h-1.5 rounded-full bg-status-confirmed inline-block" /> Installed
+                </span>
+              ) : (
+                <span className="text-amber-400/80 font-sans">Custom/Remote</span>
+              )}
+            </span>
+          )}
+        </div>
+
+        <p className="text-[11px] text-text-tertiary mb-2">{description}</p>
+
+        <div className="space-y-1.5">
+          {/* Quick Selector Dropdown if Ollama models exist */}
+          {availableModels.length > 0 && (
+            <select
+              value={availableModels.includes(currentValue) ? currentValue : ''}
+              onChange={(e) => {
+                if (e.target.value) {
+                  setSettings({ ...settings, [key]: e.target.value })
+                }
+              }}
+              className="w-full h-8 px-2 bg-bg-surface border border-border-subtle hover:border-accent/40 rounded-lg text-text-primary text-2xs outline-none focus:border-accent cursor-pointer transition-colors"
+            >
+              <option value="" disabled>
+                -- Select from {availableModels.length} detected Ollama models --
+              </option>
+              {availableModels.map((m) => (
+                <option key={m} value={m}>
+                  📦 {m}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {/* Text Input for Custom or Exact Identifier */}
+          <div className="relative">
+            <input
+              type="text"
+              list="ollama-models-datalist"
+              value={currentValue}
+              onChange={(e) => setSettings({ ...settings, [key]: e.target.value })}
+              placeholder="e.g. gemma2:9b or hf.co/..."
+              className="w-full h-8 px-2.5 bg-bg-surface border border-border-subtle focus:border-accent rounded-lg text-text-primary font-mono text-[11px] outline-none transition-colors"
+            />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-bg-overlay glass animate-fade-in select-none">
-      <div className="bg-bg-surface border border-border-subtle rounded-xl shadow-overlay max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-bg-surface border border-border-subtle rounded-2xl shadow-overlay max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+        {/* Datalist for global autocompletion */}
+        <datalist id="ollama-models-datalist">
+          {availableModels.map((m) => (
+            <option key={m} value={m} />
+          ))}
+        </datalist>
+
         {/* Header */}
-        <div className="p-4 border-b border-border-subtle flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center text-accent">
-              <Settings className="w-4 h-4" strokeWidth={1.5} />
+        <div className="p-4 sm:p-5 border-b border-border-subtle flex items-center justify-between bg-bg-surface">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-accent-subtle border border-accent/20 flex items-center justify-center text-accent shadow-inner">
+              <Settings className="w-5 h-5" strokeWidth={1.75} />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-text-primary">
-                {t('settings.title', 'System Settings & Neural Config')}
+              <h3 className="text-sm font-bold text-text-primary tracking-tight">
+                {t('settings.title', 'System Settings & Neural Model Matrix')}
               </h3>
               <p className="text-2xs text-text-tertiary">
-                {t('settings.subtitle', 'Configure local Ollama models, VRAM arbitration, and security parameters')}
+                {t('settings.subtitle', 'Configure local Ollama models, VRAM arbitration, and reasoning parameters')}
               </p>
             </div>
           </div>
           <button
             onClick={() => setIsSettingsOpen(false)}
-            className="p-1 rounded text-text-tertiary hover:text-text-primary transition-colors"
+            className="p-1.5 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-bg-canvas transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Form Body */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-5 text-2xs select-text">
-          {/* LLM & Neural Model Mapping */}
-          <div className="space-y-3">
-            <span className="font-semibold text-accent uppercase tracking-wider block">
-              {t('settings.neuralSection', 'Local Ollama & Neural Models')}
-            </span>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="text-text-secondary block mb-1">{t('settings.ollamaUrl', 'Ollama Base URL')}</label>
-                <input
-                  type="text"
-                  value={settings.OLLAMA_BASE_URL || ''}
-                  onChange={(e) => setSettings({ ...settings, OLLAMA_BASE_URL: e.target.value })}
-                  className="w-full h-8 px-2.5 bg-bg-canvas border border-border-subtle rounded text-text-primary font-mono-data"
-                />
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 text-2xs select-text scrollbar-thin">
+          {/* Ollama Connection & Model Matrix */}
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-border-subtle">
+              <div className="flex items-center gap-2">
+                <Server className="w-4 h-4 text-purple-400" />
+                <span className="font-semibold text-text-primary text-xs">
+                  {t('settings.neuralSection', 'Local Ollama & Neural Models')}
+                </span>
               </div>
-              <div>
-                <label className="text-text-secondary block mb-1">{t('settings.fastModel', 'Fast Model (Planner / Extractor)')}</label>
-                <input
-                  type="text"
-                  value={settings.MODEL_FAST || ''}
-                  onChange={(e) => setSettings({ ...settings, MODEL_FAST: e.target.value })}
-                  className="w-full h-8 px-2.5 bg-bg-canvas border border-border-subtle rounded text-text-primary font-mono-data"
-                />
+              <div className="flex items-center gap-2">
+                <span
+                  className={`text-[11px] px-2.5 py-0.5 rounded-full font-mono flex items-center gap-1.5 border ${
+                    availableModels.length > 0
+                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                      : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      availableModels.length > 0 ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
+                    }`}
+                  />
+                  {availableModels.length > 0
+                    ? `${availableModels.length} Local Models Detected`
+                    : 'Ollama Offline / No Models'}
+                </span>
+                <button
+                  onClick={handleRefreshModels}
+                  disabled={isFetchingModels}
+                  title="Refresh models from Ollama"
+                  className="flex items-center gap-1 px-2.5 py-1 text-[11px] bg-bg-canvas hover:bg-bg-surface-raised border border-border-strong rounded-lg text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50 shadow-xs"
+                >
+                  <RefreshCw className={`w-3 h-3 ${isFetchingModels ? 'animate-spin text-accent' : ''}`} />
+                  <span>Fetch Models</span>
+                </button>
               </div>
-              <div>
-                <label className="text-text-secondary block mb-1">{t('settings.criticModel', 'Critic Model (Adversarial Refuter)')}</label>
-                <input
-                  type="text"
-                  value={settings.MODEL_CRITIC || ''}
-                  onChange={(e) => setSettings({ ...settings, MODEL_CRITIC: e.target.value })}
-                  className="w-full h-8 px-2.5 bg-bg-canvas border border-border-subtle rounded text-text-primary font-mono-data"
-                />
-              </div>
-              <div>
-                <label className="text-text-secondary block mb-1">{t('settings.vlmModel', 'Vision VLM Model (OCR / Image OSINT)')}</label>
-                <input
-                  type="text"
-                  value={settings.MODEL_VLM || ''}
-                  onChange={(e) => setSettings({ ...settings, MODEL_VLM: e.target.value })}
-                  className="w-full h-8 px-2.5 bg-bg-canvas border border-border-subtle rounded text-text-primary font-mono-data"
-                />
-              </div>
+            </div>
+
+            {/* Ollama Base URL */}
+            <div className="bg-bg-canvas p-3 rounded-xl border border-border-subtle">
+              <label className="text-text-secondary block mb-1 font-medium">{t('settings.ollamaUrl', 'Ollama Base URL')}</label>
+              <input
+                type="text"
+                value={settings.OLLAMA_BASE_URL || ''}
+                onChange={(e) => setSettings({ ...settings, OLLAMA_BASE_URL: e.target.value })}
+                placeholder="http://localhost:11434"
+                className="w-full h-8 px-2.5 bg-bg-surface border border-border-subtle rounded-lg text-text-primary font-mono text-[11px] outline-none focus:border-accent"
+              />
+            </div>
+
+            {/* Neural Role Selectors Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              {renderModelField(
+                'MODEL_FAST',
+                'Fast Tactical Planner & Router',
+                'High-speed model for decomposing goals and selecting tools',
+                Zap,
+                'text-amber-400'
+              )}
+
+              {renderModelField(
+                'MODEL_AGGRESSIVE_FAST',
+                'Aggressive Parallel Tool Caller',
+                'Executes parallel tool calls and JSON parameter formatting',
+                Cpu,
+                'text-purple-400'
+              )}
+
+              {renderModelField(
+                'MODEL_CRITIC',
+                'Red-Team Adversarial Critic',
+                'Verifies findings, evaluates evidence confidence, and refutes false positives',
+                ShieldAlert,
+                'text-rose-400'
+              )}
+
+              {renderModelField(
+                'MODEL_VLM',
+                'Multimodal Vision & OCR (VLM)',
+                'Visual forensics, OCR, scene analysis, and satellite geolocation',
+                Eye,
+                'text-cyan-400'
+              )}
+
+              {renderModelField(
+                'MODEL_DEEP',
+                'Deep Abductive Reasoning & Dossier',
+                'Synthesizes high-level hypotheses and composes executive intelligence dossiers',
+                Brain,
+                'text-emerald-400'
+              )}
+
+              {renderModelField(
+                'MODEL_DEEP_FALLBACK',
+                'Heavy Reasoning Fallback',
+                'Secondary deep model for complex multi-hop graph correlations',
+                Server,
+                'text-blue-400'
+              )}
             </div>
           </div>
 
           {/* Reasoning & Investigation Thresholds */}
-          <div className="space-y-3 pt-3 border-t border-border-subtle">
-            <span className="font-semibold text-accent uppercase tracking-wider block">
-              {t('settings.reasoningSection', 'Cognitive Parameters & Thresholds')}
-            </span>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div>
-                <label className="text-text-secondary block mb-1">{t('settings.confidenceThreshold', 'Confidence Threshold (0-1)')}</label>
+          <div className="space-y-3 pt-4 border-t border-border-subtle">
+            <div className="flex items-center gap-2 mb-2">
+              <Sliders className="w-4 h-4 text-accent" />
+              <span className="font-semibold text-text-primary text-xs">
+                {t('settings.reasoningSection', 'Cognitive Parameters & Thresholds')}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="bg-bg-canvas p-3 rounded-xl border border-border-subtle">
+                <label className="text-text-secondary block mb-1 font-medium">
+                  {t('settings.confidenceThreshold', 'Confidence Threshold')}
+                </label>
                 <input
                   type="number"
                   step="0.05"
                   min="0"
                   max="1"
-                  value={settings.ENTITY_CONFIDENCE_THRESHOLD ?? 0.65}
+                  value={settings.ENTITY_CONFIDENCE_THRESHOLD ?? 0.75}
                   onChange={(e) =>
                     setSettings({ ...settings, ENTITY_CONFIDENCE_THRESHOLD: parseFloat(e.target.value) })
                   }
-                  className="w-full h-8 px-2.5 bg-bg-canvas border border-border-subtle rounded text-text-primary font-mono-data"
+                  className="w-full h-8 px-2.5 bg-bg-surface border border-border-subtle rounded-lg text-text-primary font-mono text-[11px] outline-none focus:border-accent"
                 />
               </div>
-              <div>
-                <label className="text-text-secondary block mb-1">{t('settings.searchDepth', 'Max Search Depth')}</label>
+
+              <div className="bg-bg-canvas p-3 rounded-xl border border-border-subtle">
+                <label className="text-text-secondary block mb-1 font-medium">
+                  {t('settings.searchDepth', 'Max Search Depth')}
+                </label>
                 <input
                   type="number"
                   min="1"
-                  max="10"
-                  value={settings.MAX_SEARCH_DEPTH ?? 3}
+                  max="50"
+                  value={settings.MAX_SEARCH_DEPTH ?? 30}
                   onChange={(e) =>
                     setSettings({ ...settings, MAX_SEARCH_DEPTH: parseInt(e.target.value, 10) })
                   }
-                  className="w-full h-8 px-2.5 bg-bg-canvas border border-border-subtle rounded text-text-primary font-mono-data"
+                  className="w-full h-8 px-2.5 bg-bg-surface border border-border-subtle rounded-lg text-text-primary font-mono text-[11px] outline-none focus:border-accent"
                 />
               </div>
-              <div>
-                <label className="text-text-secondary block mb-1">{t('settings.hypothesisLimit', 'Hypothesis Limit')}</label>
+
+              <div className="bg-bg-canvas p-3 rounded-xl border border-border-subtle">
+                <label className="text-text-secondary block mb-1 font-medium">
+                  {t('settings.hypothesisLimit', 'Hypothesis Limit')}
+                </label>
                 <input
                   type="number"
                   min="1"
                   max="10"
-                  value={settings.HYPOTHESIS_RECURSION_LIMIT ?? 3}
+                  value={settings.HYPOTHESIS_RECURSION_LIMIT ?? 5}
                   onChange={(e) =>
                     setSettings({ ...settings, HYPOTHESIS_RECURSION_LIMIT: parseInt(e.target.value, 10) })
                   }
-                  className="w-full h-8 px-2.5 bg-bg-canvas border border-border-subtle rounded text-text-primary font-mono-data"
+                  className="w-full h-8 px-2.5 bg-bg-surface border border-border-subtle rounded-lg text-text-primary font-mono text-[11px] outline-none focus:border-accent"
                 />
               </div>
             </div>
           </div>
 
           {/* Security & Authentication */}
-          <div className="space-y-3 pt-3 border-t border-border-subtle">
-            <span className="font-semibold text-accent uppercase tracking-wider block">
-              {t('settings.securitySection', 'Security & Access Control')}
-            </span>
-            <div className="p-3 rounded-lg border border-border-subtle bg-bg-canvas flex items-center justify-between">
+          <div className="space-y-3 pt-4 border-t border-border-subtle">
+            <div className="flex items-center gap-2 mb-2">
+              <Lock className="w-4 h-4 text-amber-400" />
+              <span className="font-semibold text-text-primary text-xs">
+                {t('settings.securitySection', 'Security & Access Control')}
+              </span>
+            </div>
+            <div className="p-3.5 rounded-xl border border-border-subtle bg-bg-canvas flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <p className="font-medium text-text-primary">{t('settings.bearerToken', 'Bearer Authentication Token')}</p>
-                <p className="text-text-tertiary text-[11px] font-mono-data truncate max-w-sm">
-                  {token ? `${token.slice(0, 16)}...` : 'No token active'}
+                <p className="text-text-tertiary text-[11px] font-mono truncate max-w-sm">
+                  {token ? `${token.slice(0, 18)}••••••••••••••••••••••••` : 'No token active'}
                 </p>
               </div>
               <button
                 onClick={handleRegenerateToken}
-                className="px-2.5 py-1 text-2xs font-medium text-status-rejected border border-status-rejected/30 hover:bg-status-rejected/10 rounded transition-colors"
+                className="px-3 py-1.5 text-2xs font-medium text-status-rejected border border-status-rejected/30 hover:bg-status-rejected/10 rounded-lg transition-colors shrink-0"
               >
                 {t('settings.regenerateToken', 'Regenerate Token')}
               </button>
@@ -215,20 +393,20 @@ export const SettingsModal: React.FC = () => {
         <div className="p-4 border-t border-border-subtle bg-bg-canvas flex items-center justify-between">
           <button
             onClick={() => setIsSettingsOpen(false)}
-            className="px-3 py-1.5 text-2xs font-medium text-text-secondary hover:text-text-primary transition-colors"
+            className="px-3.5 py-1.5 text-2xs font-medium text-text-secondary hover:text-text-primary bg-bg-surface border border-border-subtle rounded-lg transition-colors"
           >
             {t('action.close', 'Close')}
           </button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             {saveSuccess && (
-              <span className="flex items-center gap-1 text-2xs text-status-confirmed">
-                <CheckCircle2 className="w-3.5 h-3.5" /> {t('action.saved', 'Saved')}
+              <span className="flex items-center gap-1 text-2xs text-status-confirmed animate-fade-in font-medium">
+                <CheckCircle2 className="w-3.5 h-3.5" /> {t('action.saved', 'Settings Saved Successfully!')}
               </span>
             )}
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="flex items-center gap-1.5 px-4 py-1.5 text-2xs font-medium text-white bg-accent hover:bg-accent-hover rounded transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 px-4 py-1.5 text-2xs font-semibold text-white bg-gradient-to-r from-accent to-blue-600 hover:brightness-110 rounded-lg transition-all disabled:opacity-50 shadow-md shadow-accent/20"
             >
               <Save className="w-3.5 h-3.5" />
               {isSaving ? t('action.saving', 'Saving...') : t('settings.saveBtn', 'Save Settings')}
@@ -239,4 +417,3 @@ export const SettingsModal: React.FC = () => {
     </div>
   )
 }
-
