@@ -58,6 +58,19 @@ class EventBus:
             for q in dead:
                 self._subscribers[investigation_id].discard(q)
 
+    def publish(self, investigation_id: str, event: dict):
+        """Synchronous helper to broadcast an event across subscriber queues."""
+        event.setdefault("timestamp", datetime.now(timezone.utc).isoformat())
+        if investigation_id in self._subscribers:
+            dead: list[asyncio.Queue] = []
+            for queue in self._subscribers[investigation_id]:
+                try:
+                    queue.put_nowait(event)
+                except asyncio.QueueFull:
+                    dead.append(queue)
+            for q in dead:
+                self._subscribers[investigation_id].discard(q)
+
     async def emit_global(self, event: dict):
         """Broadcast to every active investigation."""
         for inv_id in list(self._subscribers.keys()):

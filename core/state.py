@@ -23,6 +23,8 @@ class EntityType(str, Enum):
     PHONE = "phone"
     HASH = "hash"
     CVE = "cve"
+    ATTACK_PATTERN = "attack_pattern"
+    THREAT_ACTOR = "threat_actor"
     UNKNOWN = "unknown"
 
 

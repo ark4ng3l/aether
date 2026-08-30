@@ -56,7 +56,18 @@ class Settings(BaseSettings):
     MAX_CONCURRENT_HEAVY_MODELS: int = 1
     VRAM_ARBITRATION_ENABLED: bool = True
 
-    # ── Storage Paths ──────────────────────────────────────────────────
+    # ── Continuous Surveillance & Watchdog Daemon ─────────────────────
+    WATCHDOG_ENABLED: bool = False
+    WATCHDOG_INTERVAL_HOURS: int = 24
+    TELEGRAM_BOT_TOKEN: str = ""
+    TELEGRAM_CHAT_ID: str = ""
+    DISCORD_WEBHOOK_URL: str = ""
+
+    # ── Dark Web & Tor Network Proxy ──────────────────────────────────
+    TOR_SOCKS5_PROXY: str = "socks5://127.0.0.1:9050"
+
+    # ── Storage & Logging ──────────────────────────────────────────────
+    SQLITE_DB_PATH: str = "data/aether.db"
     VECTOR_DB_PATH: str = "aether/data/qdrant"
     GRAPH_DB_PATH: str = "aether/data/graph.db"
     LOG_LEVEL: str = "INFO"
@@ -113,6 +124,12 @@ class Settings(BaseSettings):
             "CRITIC_TEMPERATURE": self.CRITIC_TEMPERATURE,
             "MAX_CONCURRENT_HEAVY_MODELS": self.MAX_CONCURRENT_HEAVY_MODELS,
             "VRAM_ARBITRATION_ENABLED": self.VRAM_ARBITRATION_ENABLED,
+            "WATCHDOG_ENABLED": self.WATCHDOG_ENABLED,
+            "WATCHDOG_INTERVAL_HOURS": self.WATCHDOG_INTERVAL_HOURS,
+            "TELEGRAM_BOT_TOKEN": self.TELEGRAM_BOT_TOKEN,
+            "TELEGRAM_CHAT_ID": self.TELEGRAM_CHAT_ID,
+            "DISCORD_WEBHOOK_URL": self.DISCORD_WEBHOOK_URL,
+            "TOR_SOCKS5_PROXY": self.TOR_SOCKS5_PROXY,
         }
         with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)

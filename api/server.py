@@ -16,6 +16,7 @@ if str(BASE_DIR) not in sys.path:
 
 import secrets
 import re
+import uuid
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query, File, UploadFile, Request, Response
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -520,6 +521,126 @@ async def get_project_timeline(project_id: str):
         })
 
     return {"project_id": project_id, "events": events}
+
+
+# ── Next-Gen Threat Modeling & Direct Tool Execution ───────────────────────────
+
+@app.post("/api/projects/{project_id}/threat-model")
+async def generate_threat_model(project_id: str, inject_nodes: bool = Query(False)):
+    """Runs automated MITRE ATT&CK correlation on all discovered entities."""
+    from aether.reasoning.attack_mapper import attack_mapper
+    from aether.core.state import RelationshipType
+
+    proj = project_manager.get_project(project_id)
+    if not proj:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    entities = proj.state.entities if proj.state else []
+    techniques = attack_mapper.analyze_entities(entities)
+
+    injected_count = 0
+    if inject_nodes and proj.state and techniques:
+        attack_nodes = attack_mapper.generate_attack_path_nodes(techniques, proj.target_seed)
+        for node in attack_nodes:
+            proj.state.add_entity(node)
+            # Link to target
+            proj.state.add_relationship(
+                source_id=node.id,
+                target_id=proj.target_seed,
+                rel_type=RelationshipType.ASSOCIATED_WITH,
+                confidence=node.confidence,
+                source_tool="mitre_threat_mapper"
+            )
+            injected_count += 1
+        project_manager._save_to_disk()
+
+    return {
+        "project_id": project_id,
+        "target_seed": proj.target_seed,
+        "total_techniques_matched": len(techniques),
+        "injected_nodes_count": injected_count,
+        "mitre_techniques": techniques,
+    }
+
+
+@app.post("/api/projects/{project_id}/execute-tool-direct")
+async def execute_tool_direct(project_id: str, req: InjectTaskRequest):
+    """Executes any registered perception tool immediately and merges results into project graph."""
+    from aether.perception.tools.registry import registry
+    from aether.core.state import TaskStep
+    from aether.core.events import event_bus
+
+    proj = project_manager.get_project(project_id)
+    if not proj:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    tool = registry.get_tool(req.tool_name)
+    if not tool:
+        raise HTTPException(status_code=400, detail=f"Tool '{req.tool_name}' not found in registry")
+
+    step = TaskStep(
+        id=f"direct_{req.tool_name}_{uuid.uuid4().hex[:6]}",
+        tool_name=req.tool_name,
+        params=req.params,
+        reasoning=req.reasoning or "Direct operator pivot",
+        status="running",
+    )
+    if proj.state:
+        proj.state.current_task_stack.append(step.tool_name)
+
+    result = await tool.execute(**req.params)
+
+    step.status = "completed" if result.success else "failed"
+    step.output_summary = f"Direct execution of {req.tool_name}: {'Success' if result.success else 'Failed'}"
+
+    if proj.state:
+        proj.state.completed_tasks.append(step)
+        project_manager._save_to_disk()
+
+    event_bus.publish(project_id, {
+        "type": "tool_executed",
+        "data": {
+            "tool": req.tool_name,
+            "params": req.params,
+            "success": result.success,
+            "result": result.data if result.success else result.error,
+        }
+    })
+
+    return {
+        "status": "completed",
+        "tool": req.tool_name,
+        "success": result.success,
+        "data": result.data,
+        "error": result.error,
+    }
+
+
+@app.post("/api/watchdog/check")
+async def trigger_watchdog_check():
+    """Triggers an immediate watchdog delta inspection across all projects."""
+    from aether.core.watchdog import watchdog_daemon
+    deltas = await watchdog_daemon.run_all_checks()
+    return {
+        "status": "completed",
+        "projects_checked": len(project_manager._projects),
+        "deltas_found": len(deltas),
+        "deltas": [d.to_dict() for d in deltas],
+    }
+
+
+@app.get("/api/watchdog/status")
+async def get_watchdog_status():
+    """Returns the real-time operational status of the Watchdog Daemon."""
+    from aether.core.watchdog import watchdog_daemon
+    from aether.config.settings import settings
+    return {
+        "enabled": settings.WATCHDOG_ENABLED,
+        "running": watchdog_daemon._running,
+        "interval_hours": settings.WATCHDOG_INTERVAL_HOURS,
+        "telegram_configured": bool(settings.TELEGRAM_BOT_TOKEN and settings.TELEGRAM_CHAT_ID),
+        "discord_configured": bool(settings.DISCORD_WEBHOOK_URL),
+    }
 
 
 # ── Image Upload & Image OSINT Endpoints ─────────────────────────────────────

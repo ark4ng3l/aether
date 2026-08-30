@@ -206,6 +206,17 @@ try:
 except ImportError:
     pass
 
+# ── Next-Gen Stealth & Dark Web Suite ──────────────────────────────
+try:
+    from aether.perception.tools.stealth_browser import StealthBrowserTool
+    stealth_browser_tool = StealthBrowserTool()
+    registry.register(stealth_browser_tool)
+except ImportError:
+    pass
 
-
-
+try:
+    from aether.perception.tools.darkweb_tools import DarkWebReconTool
+    darkweb_recon_tool = DarkWebReconTool()
+    registry.register(darkweb_recon_tool)
+except ImportError:
+    pass

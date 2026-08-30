@@ -16,6 +16,8 @@ import {
   Cloud,
   HardDrive,
   Key,
+  Activity,
+  Shield,
 } from 'lucide-react'
 import { useProjectStore } from '../../stores/useProjectStore'
 import { useAuthStore } from '../../stores/useAuthStore'
@@ -482,6 +484,106 @@ export const SettingsModal: React.FC = () => {
                   className="w-full h-8 px-2.5 bg-bg-surface border border-border-subtle rounded-lg text-text-primary font-mono text-[11px] outline-none focus:border-accent"
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Continuous Surveillance & Watchdog */}
+          <div className="space-y-3 pt-4 border-t border-border-subtle">
+            <div className="flex items-center gap-2 mb-2">
+              <Activity className="w-4 h-4 text-emerald-400" />
+              <span className="font-semibold text-text-primary text-xs">
+                {t('settings.watchdogSection', 'Continuous Surveillance & Watchdog Daemon')}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-bg-canvas p-3 rounded-xl border border-border-subtle flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-text-primary text-xs">Enable Watchdog Daemon</p>
+                  <p className="text-text-tertiary text-[10px]">Periodic background re-scanning</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={settings.WATCHDOG_ENABLED ?? false}
+                  onChange={(e) => setSettings({ ...settings, WATCHDOG_ENABLED: e.target.checked })}
+                  className="w-4 h-4 accent-accent rounded cursor-pointer"
+                />
+              </div>
+
+              <div className="bg-bg-canvas p-3 rounded-xl border border-border-subtle">
+                <label className="text-text-secondary block mb-1 font-medium text-[11px]">
+                  Interval (Hours)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="168"
+                  value={settings.WATCHDOG_INTERVAL_HOURS ?? 24}
+                  onChange={(e) =>
+                    setSettings({ ...settings, WATCHDOG_INTERVAL_HOURS: parseInt(e.target.value, 10) || 24 })
+                  }
+                  className="w-full h-8 px-2.5 bg-bg-surface border border-border-subtle rounded-lg text-text-primary font-mono text-[11px] outline-none focus:border-accent"
+                />
+              </div>
+
+              <div className="bg-bg-canvas p-3 rounded-xl border border-border-subtle sm:col-span-2">
+                <label className="text-text-secondary block mb-1 font-medium text-[11px]">
+                  Telegram Bot Dispatch (Token : Chat ID)
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <input
+                    type="password"
+                    placeholder="123456789:ABCdefGhIJKlmNoPQRstuv"
+                    value={settings.TELEGRAM_BOT_TOKEN ?? ''}
+                    onChange={(e) => setSettings({ ...settings, TELEGRAM_BOT_TOKEN: e.target.value })}
+                    className="w-full h-8 px-2.5 bg-bg-surface border border-border-subtle rounded-lg text-text-primary font-mono text-[11px] outline-none focus:border-accent"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Chat ID (e.g. -100123456789)"
+                    value={settings.TELEGRAM_CHAT_ID ?? ''}
+                    onChange={(e) => setSettings({ ...settings, TELEGRAM_CHAT_ID: e.target.value })}
+                    className="w-full h-8 px-2.5 bg-bg-surface border border-border-subtle rounded-lg text-text-primary font-mono text-[11px] outline-none focus:border-accent"
+                  />
+                </div>
+              </div>
+
+              <div className="bg-bg-canvas p-3 rounded-xl border border-border-subtle sm:col-span-2">
+                <label className="text-text-secondary block mb-1 font-medium text-[11px]">
+                  Discord Webhook URL
+                </label>
+                <input
+                  type="password"
+                  placeholder="https://discord.com/api/webhooks/..."
+                  value={settings.DISCORD_WEBHOOK_URL ?? ''}
+                  onChange={(e) => setSettings({ ...settings, DISCORD_WEBHOOK_URL: e.target.value })}
+                  className="w-full h-8 px-2.5 bg-bg-surface border border-border-subtle rounded-lg text-text-primary font-mono text-[11px] outline-none focus:border-accent"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Dark Web & Tor Network */}
+          <div className="space-y-3 pt-4 border-t border-border-subtle">
+            <div className="flex items-center gap-2 mb-2">
+              <Shield className="w-4 h-4 text-purple-400" />
+              <span className="font-semibold text-text-primary text-xs">
+                {t('settings.darkwebSection', 'Dark Web & Tor Network Integration')}
+              </span>
+            </div>
+            <div className="bg-bg-canvas p-3 rounded-xl border border-border-subtle">
+              <label className="text-text-secondary block mb-1 font-medium text-[11px]">
+                Tor SOCKS5 Proxy URI
+              </label>
+              <input
+                type="text"
+                placeholder="socks5://127.0.0.1:9050"
+                value={settings.TOR_SOCKS5_PROXY ?? 'socks5://127.0.0.1:9050'}
+                onChange={(e) => setSettings({ ...settings, TOR_SOCKS5_PROXY: e.target.value })}
+                className="w-full h-8 px-2.5 bg-bg-surface border border-border-subtle rounded-lg text-text-primary font-mono text-[11px] outline-none focus:border-accent"
+              />
+              <p className="text-text-tertiary text-[10px] mt-1">
+                Auto-falls back to public onion web gateways if Tor daemon is unreachable.
+              </p>
             </div>
           </div>
 

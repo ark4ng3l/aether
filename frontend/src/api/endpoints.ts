@@ -215,7 +215,52 @@ export const api = {
     })
   },
 
+  // ── Next-Gen Threat Modeling & Direct Pivoting ─────────────────────────
+  async executeToolDirect(
+    projectId: string,
+    toolName: string,
+    params: Record<string, any>,
+    reasoning?: string
+  ): Promise<{ status: string; tool: string; success: boolean; data: any; error?: string }> {
+    return apiFetch(`/api/projects/${projectId}/execute-tool-direct`, {
+      method: 'POST',
+      body: JSON.stringify({
+        tool_name: toolName,
+        params,
+        reasoning: reasoning || 'Interactive Graph Pivot',
+      }),
+    })
+  },
+
+  async threatModel(projectId: string, injectNodes = false): Promise<{
+    project_id: string
+    total_techniques_matched: number
+    injected_nodes_count: number
+    mitre_techniques: any[]
+  }> {
+    return apiFetch(`/api/projects/${projectId}/threat-model?inject_nodes=${injectNodes}`, {
+      method: 'POST',
+    })
+  },
+
+  async triggerWatchdog(): Promise<any> {
+    return apiFetch('/api/watchdog/check', {
+      method: 'POST',
+    })
+  },
+
+  async getWatchdogStatus(): Promise<{
+    enabled: boolean
+    running: boolean
+    interval_hours: number
+    telegram_configured: boolean
+    discord_configured: boolean
+  }> {
+    return apiFetch('/api/watchdog/status')
+  },
+
   async checkSystemUpdate(): Promise<any> {
     return apiFetch('/api/system/update/check')
   },
 }
+

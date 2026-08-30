@@ -1,7 +1,22 @@
 import React, { useEffect, useRef, useState } from 'react'
 import cytoscape from 'cytoscape'
 import fcose from 'cytoscape-fcose'
-import { PlusCircle, Copy, Eye, Play, Sparkles } from 'lucide-react'
+import {
+  PlusCircle,
+  Copy,
+  Eye,
+  Play,
+  Sparkles,
+  Shield,
+  Search,
+  Radio,
+  Globe,
+  Skull,
+  Lock,
+  Mail,
+  User,
+  Terminal,
+} from 'lucide-react'
 import { useProjectStore } from '../../stores/useProjectStore'
 import { useGraphStore } from '../../stores/useGraphStore'
 import { api } from '../../api/endpoints'
@@ -10,7 +25,6 @@ import { GraphToolbar } from './GraphToolbar'
 import { GraphMiniMap } from './GraphMiniMap'
 import { GraphSidePanel } from './GraphSidePanel'
 import { EmptyState } from '../../components/ui/EmptyState'
-import { Shield } from 'lucide-react'
 
 // Register layout extension
 try {
@@ -296,9 +310,172 @@ export const GraphTab: React.FC = () => {
         {/* Context Menu */}
         {contextMenu.visible && (
           <div
-            className="absolute z-50 py-1 bg-bg-surface border border-border-subtle rounded-lg shadow-xl text-2xs min-w-[140px]"
-            style={{ left: contextMenu.x, top: contextMenu.y }}
+            className="absolute z-50 py-1.5 bg-bg-surface/95 backdrop-blur-md border border-border-subtle rounded-xl shadow-2xl text-2xs min-w-[210px] overflow-hidden animate-in fade-in zoom-in-95 duration-100"
+            style={{ left: Math.min(contextMenu.x, window.innerWidth - 230), top: Math.min(contextMenu.y, window.innerHeight - 300) }}
           >
+            <div className="px-3 py-1 text-[10px] font-mono font-semibold text-accent uppercase tracking-wider border-b border-border-subtle flex items-center justify-between">
+              <span>{contextMenu.nodeData?.type || 'Entity'} Pivot</span>
+              <span className="text-text-tertiary">1-Click</span>
+            </div>
+
+            {/* IP Specific Pivots */}
+            {contextMenu.nodeData?.type === 'ip_address' && (
+              <>
+                <button
+                  onClick={async () => {
+                    setContextMenu((prev) => ({ ...prev, visible: false }))
+                    if (!activeProjectId) return
+                    await api.executeToolDirect(activeProjectId, 'shodan_lookup', { ip: contextMenu.nodeId })
+                    const g = await api.getProjectGraph(activeProjectId)
+                    setGraphData(g)
+                  }}
+                  className="w-full px-3 py-1.5 flex items-center gap-2 hover:bg-bg-canvas text-left text-text-primary group"
+                >
+                  <Search className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
+                  <span>Pivot: Shodan Intel</span>
+                </button>
+                <button
+                  onClick={async () => {
+                    setContextMenu((prev) => ({ ...prev, visible: false }))
+                    if (!activeProjectId) return
+                    await api.executeToolDirect(activeProjectId, 'port_prober', { host: contextMenu.nodeId })
+                    const g = await api.getProjectGraph(activeProjectId)
+                    setGraphData(g)
+                  }}
+                  className="w-full px-3 py-1.5 flex items-center gap-2 hover:bg-bg-canvas text-left text-text-primary group"
+                >
+                  <Radio className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
+                  <span>Pivot: Probe Ports</span>
+                </button>
+              </>
+            )}
+
+            {/* Domain Specific Pivots */}
+            {contextMenu.nodeData?.type === 'domain' && (
+              <>
+                <button
+                  onClick={async () => {
+                    setContextMenu((prev) => ({ ...prev, visible: false }))
+                    if (!activeProjectId) return
+                    await api.executeToolDirect(activeProjectId, 'stealth_crawler', { url: contextMenu.nodeId })
+                    const g = await api.getProjectGraph(activeProjectId)
+                    setGraphData(g)
+                  }}
+                  className="w-full px-3 py-1.5 flex items-center gap-2 hover:bg-bg-canvas text-left text-text-primary group"
+                >
+                  <Globe className="w-3.5 h-3.5 text-sky-400 group-hover:scale-110 transition-transform" />
+                  <span>Pivot: Stealth Crawler</span>
+                </button>
+                <button
+                  onClick={async () => {
+                    setContextMenu((prev) => ({ ...prev, visible: false }))
+                    if (!activeProjectId) return
+                    await api.executeToolDirect(activeProjectId, 'darkweb_recon', { query: contextMenu.nodeId })
+                    const g = await api.getProjectGraph(activeProjectId)
+                    setGraphData(g)
+                  }}
+                  className="w-full px-3 py-1.5 flex items-center gap-2 hover:bg-bg-canvas text-left text-text-primary group"
+                >
+                  <Skull className="w-3.5 h-3.5 text-purple-400 group-hover:scale-110 transition-transform" />
+                  <span>Pivot: Dark Web & Tor</span>
+                </button>
+                <button
+                  onClick={async () => {
+                    setContextMenu((prev) => ({ ...prev, visible: false }))
+                    if (!activeProjectId) return
+                    await api.executeToolDirect(activeProjectId, 'cert_transparency', { domain: contextMenu.nodeId })
+                    const g = await api.getProjectGraph(activeProjectId)
+                    setGraphData(g)
+                  }}
+                  className="w-full px-3 py-1.5 flex items-center gap-2 hover:bg-bg-canvas text-left text-text-primary group"
+                >
+                  <Lock className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
+                  <span>Pivot: Cert Transparency</span>
+                </button>
+              </>
+            )}
+
+            {/* Email Specific Pivots */}
+            {contextMenu.nodeData?.type === 'email' && (
+              <>
+                <button
+                  onClick={async () => {
+                    setContextMenu((prev) => ({ ...prev, visible: false }))
+                    if (!activeProjectId) return
+                    await api.executeToolDirect(activeProjectId, 'email_security_auditor', { email: contextMenu.nodeId })
+                    const g = await api.getProjectGraph(activeProjectId)
+                    setGraphData(g)
+                  }}
+                  className="w-full px-3 py-1.5 flex items-center gap-2 hover:bg-bg-canvas text-left text-text-primary group"
+                >
+                  <Mail className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
+                  <span>Pivot: Email Security</span>
+                </button>
+                <button
+                  onClick={async () => {
+                    setContextMenu((prev) => ({ ...prev, visible: false }))
+                    if (!activeProjectId) return
+                    await api.executeToolDirect(activeProjectId, 'darkweb_recon', { query: contextMenu.nodeId })
+                    const g = await api.getProjectGraph(activeProjectId)
+                    setGraphData(g)
+                  }}
+                  className="w-full px-3 py-1.5 flex items-center gap-2 hover:bg-bg-canvas text-left text-text-primary group"
+                >
+                  <Skull className="w-3.5 h-3.5 text-purple-400 group-hover:scale-110 transition-transform" />
+                  <span>Pivot: Dark Web Leaks</span>
+                </button>
+              </>
+            )}
+
+            {/* Social / Person Pivots */}
+            {(contextMenu.nodeData?.type === 'social_handle' || contextMenu.nodeData?.type === 'person') && (
+              <>
+                <button
+                  onClick={async () => {
+                    setContextMenu((prev) => ({ ...prev, visible: false }))
+                    if (!activeProjectId) return
+                    await api.executeToolDirect(activeProjectId, 'deep_social_matrix', { handle: contextMenu.nodeId })
+                    const g = await api.getProjectGraph(activeProjectId)
+                    setGraphData(g)
+                  }}
+                  className="w-full px-3 py-1.5 flex items-center gap-2 hover:bg-bg-canvas text-left text-text-primary group"
+                >
+                  <User className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
+                  <span>Pivot: Deep Social Matrix</span>
+                </button>
+                <button
+                  onClick={async () => {
+                    setContextMenu((prev) => ({ ...prev, visible: false }))
+                    if (!activeProjectId) return
+                    await api.executeToolDirect(activeProjectId, 'github_dorker', { query: contextMenu.nodeId })
+                    const g = await api.getProjectGraph(activeProjectId)
+                    setGraphData(g)
+                  }}
+                  className="w-full px-3 py-1.5 flex items-center gap-2 hover:bg-bg-canvas text-left text-text-primary group"
+                >
+                  <Terminal className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
+                  <span>Pivot: GitHub Code Dorks</span>
+                </button>
+              </>
+            )}
+
+            {/* Universal Actions */}
+            <div className="my-1 border-t border-border-subtle" />
+
+            <button
+              onClick={async () => {
+                setContextMenu((prev) => ({ ...prev, visible: false }))
+                if (!activeProjectId) return
+                await api.threatModel(activeProjectId, true)
+                const g = await api.getProjectGraph(activeProjectId)
+                setGraphData(g)
+              }}
+              className="w-full px-3 py-1.5 flex items-center gap-2 hover:bg-bg-canvas text-left text-text-primary group"
+            >
+              <Shield className="w-3.5 h-3.5 text-rose-400 group-hover:scale-110 transition-transform" />
+              <span>Map MITRE ATT&CK</span>
+            </button>
+
             <button
               onClick={() => {
                 navigator.clipboard.writeText(contextMenu.nodeId)
@@ -306,8 +483,10 @@ export const GraphTab: React.FC = () => {
               }}
               className="w-full px-3 py-1.5 flex items-center gap-2 hover:bg-bg-canvas text-left text-text-primary"
             >
-              <Copy className="w-3.5 h-3.5" /> Copy ID
+              <Copy className="w-3.5 h-3.5 text-text-tertiary" />
+              <span>Copy Entity ID</span>
             </button>
+
             <button
               onClick={() => {
                 toggleHideNode(contextMenu.nodeId)
@@ -315,7 +494,8 @@ export const GraphTab: React.FC = () => {
               }}
               className="w-full px-3 py-1.5 flex items-center gap-2 hover:bg-bg-canvas text-left text-status-rejected"
             >
-              <Eye className="w-3.5 h-3.5" /> Hide Node
+              <Eye className="w-3.5 h-3.5" />
+              <span>Hide Node</span>
             </button>
           </div>
         )}

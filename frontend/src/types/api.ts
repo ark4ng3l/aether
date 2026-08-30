@@ -175,6 +175,12 @@ export interface SettingsData {
   CRITIC_TEMPERATURE: number
   MAX_CONCURRENT_HEAVY_MODELS: number
   VRAM_ARBITRATION_ENABLED: boolean
+  WATCHDOG_ENABLED?: boolean
+  WATCHDOG_INTERVAL_HOURS?: number
+  TELEGRAM_BOT_TOKEN?: string
+  TELEGRAM_CHAT_ID?: string
+  DISCORD_WEBHOOK_URL?: string
+  TOR_SOCKS5_PROXY?: string
   available_ollama_models?: string[]
 }
 
