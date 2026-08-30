@@ -53,8 +53,8 @@ export const LeftRail: React.FC<LeftRailProps> = ({ onOpenShortcuts }) => {
     return (
       <aside className="flex flex-col items-center w-12 bg-bg-surface border-r border-border-subtle py-3 gap-2 shrink-0">
         <Tooltip content="AETHER" side="right">
-          <button className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center text-accent mb-2">
-            <Shield className="w-4 h-4" strokeWidth={1.5} />
+          <button className="w-8 h-8 rounded-lg overflow-hidden border border-accent/20 shadow-sm flex items-center justify-center mb-2 hover:border-accent/50 transition-all">
+            <img src="/aether_logo.png" alt="AETHER" className="w-full h-full object-cover" />
           </button>
         </Tooltip>
 
@@ -130,13 +130,13 @@ export const LeftRail: React.FC<LeftRailProps> = ({ onOpenShortcuts }) => {
     <aside className="flex flex-col w-60 bg-bg-surface border-r border-border-subtle shrink-0 select-none">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-3 border-b border-border-subtle">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-accent/10 flex items-center justify-center text-accent">
-            <Shield className="w-3.5 h-3.5" strokeWidth={1.5} />
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg overflow-hidden border border-accent/25 shadow-sm shrink-0">
+            <img src="/aether_logo.png" alt="AETHER" className="w-full h-full object-cover" />
           </div>
           <div>
-            <h1 className="text-xs font-semibold text-text-primary tracking-tight">AETHER</h1>
-            <p className="text-2xs text-text-tertiary">Intelligence Platform</p>
+            <h1 className="text-xs font-bold text-text-primary tracking-wider font-mono">AETHER</h1>
+            <p className="text-[10px] text-accent tracking-tight font-medium">Neural OSINT Engine</p>
           </div>
         </div>
         <button

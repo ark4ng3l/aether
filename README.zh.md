@@ -1,7 +1,9 @@
 <div align="center">
 
-# 🌐 AETHER v4.0: 认知级自主网络威胁情报作战系统
-**分层多智能体系统 • 多模态感知 • 自主认知修复 • GraphRAG 知识融合**
+<img src="assets/aether_logo.png" alt="AETHER Logo" width="220" style="border-radius: 24px; margin-bottom: 12px; box-shadow: 0 0 50px rgba(56, 189, 248, 0.4);" />
+
+# 🌐 AETHER v4.0: 自主网络威胁情报与认知OSINT平台
+**分层多智能体架构 • 多模态感知 • 认知自愈引擎 • GraphRAG 知识融合**
 
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11+-38bdf8?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-v4.0-10b981?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)

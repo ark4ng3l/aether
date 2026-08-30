@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/aether_logo.png" alt="AETHER Logo" width="220" style="border-radius: 24px; margin-bottom: 12px; box-shadow: 0 0 50px rgba(56, 189, 248, 0.4);" />
+
 # 🌐 AETHER v4.0: Автономный оператор киберразведки
 **Иерархическая мультиагентная система • Мультимодальное восприятие • Когнитивное самовосстановление • GraphRAG**
 

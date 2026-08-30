@@ -1,5 +1,7 @@
 <div align="center" dir="rtl">
 
+<img src="assets/aether_logo.png" alt="AETHER Logo" width="220" style="border-radius: 24px; margin-bottom: 12px; box-shadow: 0 0 50px rgba(56, 189, 248, 0.4);" />
+
 # 🌐 پلتفرم هوشمند AETHER نسخه ۴.۰
 ### اپراتور شناختی و خودمختار سایبری، تحلیل چندحالتی و OSINT پیشرفته
 
