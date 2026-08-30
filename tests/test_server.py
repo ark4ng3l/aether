@@ -38,10 +38,15 @@ class TestHealthAndAuthEndpoints:
         assert data["status"] == "online"
         assert data["engine"] == "AETHER"
 
-    def test_auth_token_public(self, unauth_client: TestClient):
-        resp = unauth_client.get("/api/auth/token")
-        assert resp.status_code == 200
-        assert resp.json()["token"] == AUTH_TOKEN
+    def test_auth_token_protected(self, client: TestClient, unauth_client: TestClient):
+        # Unauthenticated request without token header is rejected with 401
+        resp_unauth = unauth_client.get("/api/auth/token")
+        assert resp_unauth.status_code == 401
+
+        # Authenticated request returns token
+        resp_auth = client.get("/api/auth/token")
+        assert resp_auth.status_code == 200
+        assert resp_auth.json()["token"] == AUTH_TOKEN
 
     def test_unauthenticated_request_rejected(self, unauth_client: TestClient):
         resp = unauth_client.get("/api/projects")
@@ -52,9 +57,16 @@ class TestHealthAndAuthEndpoints:
         resp = unauth_client.get(f"/api/projects?token={AUTH_TOKEN}")
         assert resp.status_code == 200
 
-    def test_root_returns_html_or_json(self, client: TestClient):
-        resp = client.get("/")
-        assert resp.status_code == 200
+    def test_root_injects_bootstrap_token_only_when_authenticated(self, client: TestClient, unauth_client: TestClient):
+        resp_unauth = unauth_client.get("/")
+        assert resp_unauth.status_code == 200
+        if "text/html" in resp_unauth.headers.get("content-type", ""):
+            assert AUTH_TOKEN not in resp_unauth.text
+
+        resp_auth = client.get("/")
+        assert resp_auth.status_code == 200
+        if "text/html" in resp_auth.headers.get("content-type", ""):
+            assert "__AETHER_BOOTSTRAP__" in resp_auth.text
 
 
 class TestProjectEndpoints:
@@ -234,3 +246,45 @@ class TestProjectEndpoints:
         assert data["tool_name"] == "ip_geolocate"
         assert "execution_time_ms" in data
         assert "success" in data
+
+    def test_token_regeneration(self, client: TestClient):
+        old_token = server_module.AUTH_TOKEN
+        try:
+            resp = client.post("/api/auth/token/regenerate")
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["status"] == "regenerated"
+            assert "token" in data
+            assert len(data["token"]) == 48
+        finally:
+            server_module.AUTH_TOKEN = old_token
+            server_module.AUTH_TOKEN_FILE.write_text(old_token, encoding="utf-8")
+
+    def test_entity_provenance_endpoint(self, client: TestClient, isolate_project_manager: ProjectManager):
+        proj = isolate_project_manager.create_project(name="Provenance Test", target_seed="example.com")
+        resp = client.get(f"/api/projects/{proj.id}/entities/subdomain_finder_123/provenance")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["project_id"] == proj.id
+        assert data["entity_id"] == "subdomain_finder_123"
+        assert "provenance_tasks" in data
+
+    def test_dossier_export_consolidated(self, client: TestClient, isolate_project_manager: ProjectManager):
+        proj = isolate_project_manager.create_project(name="Export Test", target_seed="target.org")
+        proj.dossier = "# Intelligence Dossier\n\nTarget confirmed."
+        isolate_project_manager._save_to_disk()
+
+        # JSON format
+        resp_json = client.get(f"/api/projects/{proj.id}/dossier/export?format=json")
+        assert resp_json.status_code == 200
+        assert resp_json.json()["target_seed"] == "target.org"
+
+        # Markdown format
+        resp_md = client.get(f"/api/projects/{proj.id}/dossier/export?format=md")
+        assert resp_md.status_code == 200
+        assert b"Intelligence Dossier" in resp_md.content
+
+        # PDF/HTML format
+        resp_pdf = client.get(f"/api/projects/{proj.id}/dossier/export?format=pdf")
+        assert resp_pdf.status_code == 200
+        assert b"<html>" in resp_pdf.content

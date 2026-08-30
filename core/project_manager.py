@@ -39,6 +39,10 @@ class ProjectManager:
         self.data_dir = Path(data_dir or "aether/data")
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.storage_file = self.data_dir / "projects.json"
+        self.migrated_storage_file = self.data_dir / "projects.json.migrated"
+
+        from aether.core.db import Database
+        self.db = Database(db_path=str(self.data_dir / "projects.db"))
 
         self._projects: Dict[str, Project] = {}
         self._active_engines: Dict[str, Any] = {}
@@ -54,42 +58,70 @@ class ProjectManager:
     # ------------------------------------------------------------------
 
     def _load_from_disk(self):
-        """Loads saved projects from disk at startup."""
-        if not self.storage_file.exists():
-            return
+        """Loads saved projects from SQLite database as primary source of truth, with one-time JSON migration."""
+        # 1. One-time legacy JSON migration: if projects.json exists and SQLite is empty
         try:
-            with open(self.storage_file, "r", encoding="utf-8") as f:
-                raw_data = json.load(f)
-                for item in raw_data:
-                    try:
-                        proj = Project.model_validate(item)
-                        # Reset in-progress statuses on restart
-                        if proj.status in (
-                            InvestigationStatus.PLANNING,
-                            InvestigationStatus.COLLECTING,
-                            InvestigationStatus.REASONING,
-                            InvestigationStatus.VERIFYING,
-                            InvestigationStatus.SYNTHESIZING,
-                            InvestigationStatus.QUEUED,
-                        ):
-                            proj.status = InvestigationStatus.IDLE
-                        self._projects[proj.id] = proj
-                    except Exception as e:
-                        logger.warning(f"Skipping corrupted project record: {e}")
-            logger.info(f"Loaded {len(self._projects)} projects from {self.storage_file}")
-        except Exception as exc:
-            logger.error(f"Failed to load projects from {self.storage_file}: {exc}")
+            existing_db_projects = self.db.list_projects()
+            if self.storage_file.exists() and len(existing_db_projects) == 0:
+                logger.info(f"Legacy {self.storage_file} found with empty SQLite DB. Running one-time migration...")
+                migrated_count = 0
+                with open(self.storage_file, "r", encoding="utf-8") as f:
+                    raw_data = json.load(f)
+                    for item in raw_data:
+                        try:
+                            proj = Project.model_validate(item)
+                            self.db.save_project(proj)
+                            if proj.state:
+                                for ent in proj.state.discovered_entities:
+                                    self.db.save_entity(proj.id, ent)
+                                for tsk in proj.state.completed_tasks:
+                                    self.db.save_task_step(proj.id, tsk)
+                            migrated_count += 1
+                        except Exception as parse_err:
+                            logger.warning(f"Skipping corrupted legacy project: {parse_err}")
+
+                # Rename projects.json -> projects.json.migrated as backup
+                try:
+                    self.storage_file.rename(self.migrated_storage_file)
+                    logger.info(f"Renamed {self.storage_file} -> {self.migrated_storage_file}")
+                except Exception as ren_err:
+                    logger.warning(f"Could not rename {self.storage_file}: {ren_err}")
+
+                logger.success(f"Migrated {migrated_count} projects to SQLite database.")
+        except Exception as mig_exc:
+            logger.error(f"Error during legacy JSON migration to SQLite: {mig_exc}")
+
+        # 2. Read directly from SQLite as primary source of truth
+        try:
+            db_projects = self.db.list_projects()
+            for proj in db_projects:
+                # Reset in-progress statuses on restart
+                if proj.status in (
+                    InvestigationStatus.PLANNING,
+                    InvestigationStatus.COLLECTING,
+                    InvestigationStatus.REASONING,
+                    InvestigationStatus.VERIFYING,
+                    InvestigationStatus.SYNTHESIZING,
+                    InvestigationStatus.QUEUED,
+                ):
+                    proj.status = InvestigationStatus.IDLE
+                self._projects[proj.id] = proj
+            logger.info(f"Loaded {len(self._projects)} projects from SQLite primary database")
+        except Exception as e:
+            logger.error(f"Failed to load projects from SQLite primary database: {e}")
 
     def _save_to_disk(self):
-        """Saves all projects to disk synchronously."""
+        """Saves all projects to SQLite primary database synchronously (source of truth)."""
         try:
-            data = [p.model_dump(mode="json") for p in self._projects.values()]
-            tmp_file = self.storage_file.with_suffix(".tmp")
-            with open(tmp_file, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
-            tmp_file.replace(self.storage_file)
+            for p in self._projects.values():
+                self.db.save_project(p)
+                if p.state:
+                    for entity in p.state.discovered_entities:
+                        self.db.save_entity(p.id, entity)
+                    for task in p.state.completed_tasks:
+                        self.db.save_task_step(p.id, task)
         except Exception as exc:
-            logger.error(f"Failed to save projects to disk: {exc}")
+            logger.error(f"Failed to save projects to SQLite: {exc}")
 
     # ------------------------------------------------------------------
     # CRUD Operations
@@ -224,7 +256,13 @@ class ProjectManager:
         except Exception:
             pass
 
-        # 3. Clean up in-memory engines and records
+        # 3. Clean up SQLite database record
+        try:
+            self.db.delete_project(project_id)
+        except Exception as exc:
+            logger.warning(f"Could not delete SQLite record for {project_id}: {exc}")
+
+        # 4. Clean up in-memory engines and records
         if project_id in self._projects:
             del self._projects[project_id]
             self._active_engines.pop(project_id, None)

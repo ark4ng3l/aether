@@ -25,3 +25,8 @@ data/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Frontend Dependencies
+frontend/node_modules/
+node_modules/
+

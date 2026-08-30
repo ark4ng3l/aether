@@ -20,6 +20,9 @@ class EntityType(str, Enum):
     IMAGE = "image"
     DOCUMENT = "document"
     ARTIFACT = "artifact"
+    PHONE = "phone"
+    HASH = "hash"
+    CVE = "cve"
     UNKNOWN = "unknown"
 
 
@@ -34,14 +37,23 @@ class RelationshipType(str, Enum):
     HOSTED_ON = "hosted_on"
 
 
+class ConfidenceSignal(BaseModel):
+    source_tool: str
+    weight: float
+    note: str = ""
+
+
 class Entity(BaseModel):
-    model_config = ConfigDict(frozen=True)  # Immutable for hashability in sets/graphs
+    model_config = ConfigDict(frozen=False)
 
     id: str = Field(..., description="Unique identifier (e.g., UUID or normalized string)")
     type: EntityType
     properties: Dict[str, Any] = Field(default_factory=dict)
     confidence: float = Field(1.0, ge=0.0, le=1.0)
+    confidence_signals: List[ConfidenceSignal] = Field(default_factory=list)
+    corroboration_count: int = 1
     first_seen: datetime = Field(default_factory=_now_utc)
+    last_updated: datetime = Field(default_factory=_now_utc)
 
 
 class Relationship(BaseModel):
@@ -71,17 +83,20 @@ class TaskStep(BaseModel):
     tool_name: str
     params: Dict[str, Any] = Field(default_factory=dict)
     reasoning: str = ""
+    critic_reasoning: str = ""
     status: str = "completed"  # running, completed, failed, rejected
     verdict: Optional[str] = None  # CONFIRMED, PLAUSIBLE, REJECTED
     confidence: float = 0.5
+    confidence_breakdown: Dict[str, Any] = Field(default_factory=dict)
     output_summary: str = ""
     duration_seconds: float = 0.0
     timestamp: datetime = Field(default_factory=_now_utc)
+    produced_entity_ids: List[str] = Field(default_factory=list)
 
 
 class AgentState(BaseModel):
     """The live execution state of an active investigation."""
-    investigation_id: str
+    investigation_id: str = Field(default_factory=lambda: uuid.uuid4().hex[:12])
     project_id: str = ""
     project_name: str = ""
     target_seed: str
@@ -99,8 +114,36 @@ class AgentState(BaseModel):
     finished_time: Optional[datetime] = None
 
     def add_entity(self, entity: Entity):
-        if not any(e.id == entity.id for e in self.discovered_entities):
+        existing = next((e for e in self.discovered_entities if e.id == entity.id), None)
+        if not existing:
             self.discovered_entities.append(entity)
+        else:
+            existing.last_updated = _now_utc()
+            existing.corroboration_count += 1
+            if entity.confidence_signals:
+                existing.confidence_signals.extend(entity.confidence_signals)
+            existing.confidence = max(existing.confidence, entity.confidence)
+            existing.properties.update(entity.properties)
+
+    def add_task_result(
+        self,
+        task_name: str,
+        tool_name: str,
+        result_data: Dict[str, Any],
+        confidence: float = 0.8,
+        verdict: str = "CONFIRMED",
+    ) -> TaskStep:
+        """Records a completed task step in the historical log."""
+        step = TaskStep(
+            tool_name=tool_name,
+            reasoning=task_name,
+            status="completed",
+            verdict=verdict,
+            confidence=confidence,
+            output_summary=str(result_data)[:200],
+        )
+        self.completed_tasks.append(step)
+        return step
 
     def get_entity(self, entity_id: str) -> Optional[Entity]:
         """Lookup a discovered entity by ID. Returns None if not found."""

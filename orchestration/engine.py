@@ -441,15 +441,28 @@ class OrchestrationEngine:
         )
 
         task_step.verdict = verdict.get("verdict", "PLAUSIBLE")
+        task_step.critic_reasoning = verdict.get("reasoning", "")
         critic_conf = float(verdict.get("confidence", 0.5))
 
         # Calculate multi-signal confidence with full breakdown
-        final_confidence, conf_breakdown = self.entity_resolver.calculate_confidence(
+        final_confidence, signals, conf_breakdown = self.entity_resolver.calculate_confidence(
             source_tool=tool_name,
             corroboration_count=1,
             critic_confidence=critic_conf,
         )
         task_step.confidence = final_confidence
+        task_step.confidence_breakdown = conf_breakdown
+
+        # Structured terminal logging for analyst review
+        verdict_color = "green" if task_step.verdict == "CONFIRMED" else "yellow" if task_step.verdict == "PLAUSIBLE" else "red"
+        logger.info(
+            f"\n[bold cyan]┌── [CRITIC ADVERSARIAL EVALUATION] ──────────────────────────[/bold cyan]\n"
+            f"[cyan]│[/cyan] [bold]Tool:[/bold] {tool_name}\n"
+            f"[cyan]│[/cyan] [bold]Verdict:[/bold] [{verdict_color}]{task_step.verdict}[/{verdict_color}] (Critic Conf: {critic_conf:.2f} → Final: [bold]{final_confidence:.2f}[/bold])\n"
+            f"[cyan]│[/cyan] [bold]Analysis:[/bold] {task_step.critic_reasoning}\n"
+            f"[cyan]│[/cyan] [bold]Breakdown:[/bold] Critic(40%)={critic_conf:.2f} | Format(20%)={conf_breakdown.get('deterministic_format_score',1.0):.2f} | Corroboration(30%)={conf_breakdown.get('corroboration_bonus',0):.2f} | Reliability(10%)={conf_breakdown.get('source_reliability',0.75):.2f}\n"
+            f"[bold cyan]└─────────────────────────────────────────────────────────────[/bold cyan]"
+        )
 
         if task_step.verdict in ("CONFIRMED", "PLAUSIBLE"):
             task_step.status = "completed"
@@ -487,6 +500,8 @@ class OrchestrationEngine:
             main_entity = Entity(
                 id=f"{tool_name}_{uuid.uuid4().hex[:6]}",
                 type=EntityType.ARTIFACT,
+                confidence=task_step.confidence,
+                confidence_signals=signals,
                 properties={
                     "name": human_label,
                     "label": human_label,
@@ -504,7 +519,6 @@ class OrchestrationEngine:
                         "cache_hit": is_cache_hit,
                     },
                 },
-                confidence=task_step.confidence,
             )
             self.state.add_entity(main_entity)
             self.graph_store.add_entity(main_entity)
@@ -513,15 +527,18 @@ class OrchestrationEngine:
                 source_id=self.state.target_seed,
                 target_id=main_entity.id,
             )
+            task_step.produced_entity_ids.append(main_entity.id)
 
             await self._emit("entity_discovered", {
                 "id": main_entity.id,
                 "type": main_entity.type.value,
                 "properties": main_entity.properties,
+                "confidence": main_entity.confidence,
+                "confidence_signals": [s.model_dump() for s in main_entity.confidence_signals],
             })
 
             # Automated regex extraction of secondary entities (Emails, IPs, Handles)
-            self._harvest_sub_entities(raw_preview, main_entity.id)
+            self._harvest_sub_entities(raw_preview, main_entity.id, task_step)
 
             if self.vector_store:
                 try:
@@ -548,8 +565,11 @@ class OrchestrationEngine:
             "status": task_step.status,
             "verdict": task_step.verdict,
             "confidence": task_step.confidence,
+            "critic_reasoning": task_step.critic_reasoning,
+            "confidence_breakdown": task_step.confidence_breakdown,
             "duration": duration,
             "summary": task_step.output_summary,
+            "produced_entity_ids": task_step.produced_entity_ids,
             "total_completed": len(self.state.completed_tasks),
             "pending_count": len(self.state.current_task_stack),
         })
@@ -558,18 +578,18 @@ class OrchestrationEngine:
     # Automated Sub-Entity Harvester
     # ------------------------------------------------------------------
 
-    def _harvest_sub_entities(self, text: str, parent_id: str):
-        """Extract IPs, emails, usernames, domains, and crypto addresses from tool output."""
+    def _harvest_sub_entities(self, text: str, parent_id: str, task_step: Optional[TaskStep] = None):
+        """Extract IPs, emails, usernames, domains, CVEs, and hashes from tool output."""
         # 1. Emails
         emails = set(re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', text))
         for email in list(emails)[:4]:
-            self._add_sub_entity(email, EntityType.EMAIL, parent_id, RelationshipType.ASSOCIATED_WITH)
+            self._add_sub_entity(email, EntityType.EMAIL, parent_id, RelationshipType.ASSOCIATED_WITH, task_step)
 
         # 2. IPv4 Addresses
         ips = set(re.findall(r'\b(?:\d{1,3}\.){3}\d{1,3}\b', text))
         for ip in list(ips)[:4]:
             if not ip.startswith(("127.", "0.", "255.", "192.168.", "10.", "172.")):
-                self._add_sub_entity(ip, EntityType.IP_ADDRESS, parent_id, RelationshipType.RESOLVES_TO)
+                self._add_sub_entity(ip, EntityType.IP_ADDRESS, parent_id, RelationshipType.RESOLVES_TO, task_step)
 
         # 3. Subdomains & Domains (extended TLD list)
         domains = set(re.findall(
@@ -579,20 +599,26 @@ class OrchestrationEngine:
         for dom in list(domains)[:5]:
             if dom != self.state.target_seed:
                 rel = RelationshipType.SUBDOMAIN_OF if self.state.target_seed in dom else RelationshipType.ASSOCIATED_WITH
-                self._add_sub_entity(dom, EntityType.DOMAIN, self.state.target_seed, rel)
+                self._add_sub_entity(dom, EntityType.DOMAIN, self.state.target_seed, rel, task_step)
 
         # 4. Social Handles (@username)
         handles = set(re.findall(r'(?<=[\s,(\'")])@([a-zA-Z0-9_]{3,25})\b', text))
         for h in list(handles)[:3]:
             handle_str = f"@{h}"
             if handle_str != self.state.target_seed:
-                self._add_sub_entity(handle_str, EntityType.SOCIAL_HANDLE, parent_id, RelationshipType.ASSOCIATED_WITH)
+                self._add_sub_entity(handle_str, EntityType.SOCIAL_HANDLE, parent_id, RelationshipType.ASSOCIATED_WITH, task_step)
+
+        # 5. CVE Identifiers (CVE-YYYY-NNNNN)
+        cves = set(re.findall(r'\bCVE-\d{4}-\d{4,7}\b', text, re.IGNORECASE))
+        for cve in list(cves)[:4]:
+            self._add_sub_entity(cve.upper(), EntityType.CVE, parent_id, RelationshipType.ASSOCIATED_WITH, task_step)
 
     def _add_sub_entity(
         self, entity_id: str, entity_type: EntityType,
         parent_id: str, rel_type: RelationshipType,
+        task_step: Optional[TaskStep] = None,
     ):
-        """Add a sub-entity with deduplication via EntityResolver."""
+        """Add a sub-entity with deduplication via EntityResolver and link to task provenance."""
         if self.state.get_entity(entity_id):
             return  # Already known
 
@@ -615,6 +641,9 @@ class OrchestrationEngine:
         self.state.add_entity(new_entity)
         self.graph_store.add_entity(new_entity)
         self.graph_store.add_relationship(rel_type, parent_id, entity_id)
+
+        if task_step:
+            task_step.produced_entity_ids.append(entity_id)
 
     # ------------------------------------------------------------------
     # Dossier Synthesis

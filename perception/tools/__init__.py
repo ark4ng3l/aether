@@ -89,3 +89,53 @@ try:
 except ImportError:
     pass
 
+# ── Advanced Passive OSINT Suite (Phase 3) ─────────────────────────
+try:
+    from aether.perception.tools.wayback_tools import wayback_tool
+    registry.register(wayback_tool)
+except ImportError:
+    pass
+
+try:
+    from aether.perception.tools.favicon_tools import favicon_tool
+    registry.register(favicon_tool)
+except ImportError:
+    pass
+
+try:
+    from aether.perception.tools.tech_stack_tools import tech_stack_tool
+    registry.register(tech_stack_tool)
+except ImportError:
+    pass
+
+try:
+    from aether.perception.tools.typosquat_tools import typosquat_tool
+    registry.register(typosquat_tool)
+except ImportError:
+    pass
+
+try:
+    from aether.perception.tools.asn_tools import asn_tool
+    registry.register(asn_tool)
+except ImportError:
+    pass
+
+try:
+    from aether.perception.tools.ssl_tools import ssl_tool
+    registry.register(ssl_tool)
+except ImportError:
+    pass
+
+try:
+    from aether.perception.tools.bucket_tools import bucket_tool
+    registry.register(bucket_tool)
+except ImportError:
+    pass
+
+try:
+    from aether.perception.tools.sitemap_tools import robots_sitemap_tool
+    registry.register(robots_sitemap_tool)
+except ImportError:
+    pass
+
+

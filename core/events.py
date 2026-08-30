@@ -1,7 +1,23 @@
 """
 Event Bus for broadcasting real-time investigation events to WebSocket clients.
 Implements a publish/subscribe pattern using asyncio.Queue per subscriber.
+
+── WebSocket Event Catalog (§C.7) ──────────────────────────────────────────────
+• investigation_started   {seed, project_id, project_name, context_briefing}
+• status_change            {status, phase}
+• entity_discovered        {id, type, properties, confidence, confidence_signals}
+• entity_updated            {id, confidence, confidence_signals, corroboration_count}
+• relationship_added        {source_id, target_id, rel_type, confidence}
+• task_started               {task_id, tool_name, params, reasoning}
+• task_completed             {task_id, status, verdict, confidence, output_summary, duration_seconds, produced_entity_ids}
+• tool_skipped_degraded     {tool_name, reason}
+• token_stream               {task_id, token}
+• dossier_ready              {project_id}
+• investigation_completed   {project_id, entities_count, duration_seconds}
+────────────────────────────────────────────────────────────────────────────────
 """
+
+from __future__ import annotations
 
 import asyncio
 from typing import Dict, Set

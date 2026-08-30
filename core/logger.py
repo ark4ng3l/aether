@@ -50,6 +50,12 @@ class AetherLogger:
         except Exception:
             self.logger.warning(str(message).encode("ascii", "replace").decode("ascii"))
 
+    def debug(self, message: str):
+        try:
+            self.logger.debug(f"[dim]{message}[/dim]")
+        except Exception:
+            self.logger.debug(str(message).encode("ascii", "replace").decode("ascii"))
+
     def error(self, message: str):
         try:
             self.logger.error(f"[bold red]{message}[/bold red]")

@@ -12,9 +12,9 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any, Tuple, List
 
-from aether.core.state import Entity, EntityType
+from aether.core.state import Entity, EntityType, ConfidenceSignal
 from aether.memory.graph_store import GraphStore
 from aether.core.logger import logger
 
@@ -60,29 +60,41 @@ class EntityResolver:
         source_tool: str,
         corroboration_count: int = 1,
         critic_confidence: float = 0.5,
-    ) -> Tuple[float, Dict[str, Any]]:
+        deterministic_format_score: float = 1.0,
+    ) -> Tuple[float, List[ConfidenceSignal], Dict[str, Any]]:
         """
-        Calculates multi-signal confidence score with explanatory provenance factors.
+        Calculates multi-signal confidence score with exact §A.2 weighting:
+          (critic * 0.4) + (format * 0.2) + (corroboration * 0.3) + (reliability * 0.1)
         """
-        base_weight = SOURCE_RELIABILITY.get(source_tool, DEFAULT_SOURCE_RELIABILITY)
+        source_weight = SOURCE_RELIABILITY.get(source_tool, DEFAULT_SOURCE_RELIABILITY)
+        corroboration_bonus = min(0.3, max(0.0, (corroboration_count - 1) * 0.15))
 
-        # Corroboration boost (up to +0.15 for 3+ independent tools)
-        corroboration_boost = min(0.15, max(0, (corroboration_count - 1) * 0.05))
+        raw_confidence = (
+            (critic_confidence * 0.4)
+            + (deterministic_format_score * 0.2)
+            + (corroboration_bonus * 0.3)
+            + (source_weight * 0.1)
+        )
+        final_score = round(min(1.0, max(0.0, raw_confidence)), 2)
 
-        # Critic factor weight: 30% critic, 70% source reliability + corroboration
-        combined = (0.7 * (base_weight + corroboration_boost)) + (0.3 * critic_confidence)
-        final_score = round(min(1.0, max(0.1, combined)), 2)
+        signals = [
+            ConfidenceSignal(source_tool=source_tool, weight=source_weight, note=f"Source reliability: {source_tool}"),
+            ConfidenceSignal(source_tool="deterministic_format", weight=deterministic_format_score, note="Regex & syntax validation"),
+            ConfidenceSignal(source_tool="corroboration", weight=corroboration_bonus, note=f"Corroboration count: {corroboration_count}"),
+            ConfidenceSignal(source_tool="llm_critic", weight=critic_confidence, note="Adversarial refutation verdict"),
+        ]
 
         breakdown = {
             "source_tool": source_tool,
-            "source_reliability": base_weight,
+            "source_reliability": source_weight,
+            "deterministic_format_score": deterministic_format_score,
             "corroboration_count": corroboration_count,
-            "corroboration_boost": round(corroboration_boost, 2),
+            "corroboration_bonus": round(corroboration_bonus, 2),
             "critic_confidence": round(critic_confidence, 2),
             "final_score": final_score,
-            "tier": "CONFIRMED" if final_score >= 0.85 else "PLAUSIBLE" if final_score >= 0.60 else "UNVERIFIED",
+            "tier": "CONFIRMED" if final_score >= 0.70 else "PLAUSIBLE" if final_score >= 0.40 else "REJECTED",
         }
-        return final_score, breakdown
+        return final_score, signals, breakdown
 
     def calculate_similarity(self, entity_a: Entity, entity_b: Entity) -> float:
         """

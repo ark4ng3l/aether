@@ -1,0 +1,151 @@
+import React, { useState } from 'react'
+import { Plus, X, Shield, Sparkles, ArrowRight } from 'lucide-react'
+import { useProjectStore } from '../../stores/useProjectStore'
+import { api } from '../../api/endpoints'
+import { EntityType } from '../../types/api'
+
+export const NewInvestigationModal: React.FC = () => {
+  const { isNewModalOpen, setIsNewModalOpen, setProjects, setActiveProjectId } = useProjectStore()
+
+  const [name, setName] = useState('')
+  const [targetSeed, setTargetSeed] = useState('')
+  const [targetType, setTargetType] = useState<EntityType>('domain')
+  const [briefing, setBriefing] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  if (!isNewModalOpen) return null
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!targetSeed.trim() || isSubmitting) return
+    setIsSubmitting(true)
+
+    try {
+      const project = await api.createProject({
+        name: name.trim() || targetSeed.trim(),
+        target_seed: targetSeed.trim(),
+        target_type: targetType,
+        context_briefing: briefing.trim(),
+      })
+
+      // Refresh list & select newly created project
+      const list = await api.listProjects()
+      setProjects(list)
+      setActiveProjectId(project.id)
+      setIsNewModalOpen(false)
+
+      // Reset form
+      setName('')
+      setTargetSeed('')
+      setBriefing('')
+    } catch (err) {
+      console.error('Failed to create investigation:', err)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-bg-overlay glass animate-fade-in select-none">
+      <div className="bg-bg-surface border border-border-subtle rounded-xl shadow-overlay max-w-lg w-full overflow-hidden">
+        {/* Header */}
+        <div className="p-4 border-b border-border-subtle flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center text-accent">
+              <Shield className="w-4 h-4" strokeWidth={1.5} />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-text-primary">Initialize Target Investigation</h3>
+              <p className="text-2xs text-text-tertiary">Seed autonomous cognitive OSINT & threat intelligence</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsNewModalOpen(false)}
+            className="p-1 rounded text-text-tertiary hover:text-text-primary transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-4 space-y-4 text-2xs select-text">
+          <div>
+            <label className="text-text-secondary block mb-1 font-medium">
+              Target Seed (Domain, IP, Org, Email, Hash) *
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. example.com, 185.199.108.153, Acme Corp"
+              value={targetSeed}
+              onChange={(e) => setTargetSeed(e.target.value)}
+              className="w-full h-8 px-2.5 bg-bg-canvas border border-border-subtle rounded text-text-primary font-mono-data focus:border-accent focus:ring-0"
+              autoFocus
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-text-secondary block mb-1 font-medium">Investigation Name</label>
+              <input
+                type="text"
+                placeholder="Defaults to target seed"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full h-8 px-2.5 bg-bg-canvas border border-border-subtle rounded text-text-primary"
+              />
+            </div>
+
+            <div>
+              <label className="text-text-secondary block mb-1 font-medium">Target Type</label>
+              <select
+                value={targetType}
+                onChange={(e) => setTargetType(e.target.value as EntityType)}
+                className="w-full h-8 px-2 bg-bg-canvas border border-border-subtle rounded text-text-primary"
+              >
+                <option value="domain">Domain Name</option>
+                <option value="ip_address">IP Address</option>
+                <option value="company">Organization / Company</option>
+                <option value="email">Email Address</option>
+                <option value="person">Individual Name</option>
+                <option value="hash">File Hash</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-text-secondary block mb-1 font-medium">
+              Context Briefing / Analyst Notes (Optional)
+            </label>
+            <textarea
+              rows={3}
+              placeholder="Specify known threat actors, targeted industries, or specific investigation focus..."
+              value={briefing}
+              onChange={(e) => setBriefing(e.target.value)}
+              className="w-full p-2 bg-bg-canvas border border-border-subtle rounded text-text-primary resize-none focus:border-accent focus:ring-0"
+            />
+          </div>
+
+          {/* Footer */}
+          <div className="pt-3 border-t border-border-subtle flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setIsNewModalOpen(false)}
+              className="px-3 py-1.5 text-2xs text-text-secondary hover:text-text-primary transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting || !targetSeed.trim()}
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded text-2xs font-medium text-white bg-accent hover:bg-accent-hover disabled:opacity-50 transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              {isSubmitting ? 'Creating...' : 'Create Investigation'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}

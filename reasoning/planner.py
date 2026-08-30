@@ -93,6 +93,9 @@ class Planner:
             "stealth_crawler", "vlm_processor", "metadata_extractor",
             "whois_lookup", "shodan_lookup", "github_dorker",
             "company_recon", "news_intel", "threat_intel",
+            "wayback_lookup", "favicon_fingerprint", "tech_stack_fingerprint",
+            "typosquat_recon", "asn_lookup", "ssl_cert_inspector",
+            "cloud_bucket_recon", "robots_sitemap_recon",
         ]
 
         context_section = ""
@@ -224,6 +227,22 @@ class Planner:
             return "news_intel", {"query": val}
         if "threat" in lower or "malware" in lower or "reputation" in lower or "abuse" in lower:
             return "threat_intel", {"target": val}
+        if "wayback" in lower or "archive" in lower or "snapshot" in lower:
+            return "wayback_lookup", {"domain": val}
+        if "favicon" in lower or "mmh3" in lower:
+            return "favicon_fingerprint", {"domain": val}
+        if "tech" in lower or "stack" in lower or "wappalyzer" in lower or "headers" in lower:
+            return "tech_stack_fingerprint", {"domain": val}
+        if "typosquat" in lower or "squat" in lower or "permutation" in lower:
+            return "typosquat_recon", {"domain": val}
+        if "asn" in lower or "bgp" in lower or "routing" in lower:
+            return "asn_lookup", {"query": val}
+        if "ssl" in lower or "cert" in lower or "x509" in lower or "tls" in lower:
+            return "ssl_cert_inspector", {"domain": val}
+        if "bucket" in lower or "s3" in lower or "gcs" in lower or "blob" in lower:
+            return "cloud_bucket_recon", {"target": val}
+        if "robot" in lower or "sitemap" in lower:
+            return "robots_sitemap_recon", {"domain": val}
         if "dns" in lower or "domain" in lower or "network" in lower:
             return "network_recon", {"domain": val}
         if "crawl" in lower or "http" in lower:

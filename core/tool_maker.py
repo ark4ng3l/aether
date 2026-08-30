@@ -43,6 +43,43 @@ BANNED_CALLS = {
 }
 
 
+class SandboxedDynamicTool(BaseTool):
+    """Wraps a synthesized tool to execute in an isolated subprocess sandbox."""
+
+    def __init__(self, original_tool: BaseTool, code: str):
+        super().__init__(
+            name=original_tool.name,
+            description=original_tool.description,
+            category=original_tool.category,
+            icon=original_tool.icon,
+            default_param_key=original_tool.default_param_key,
+            example_input=original_tool.example_input,
+        )
+        self.code = code
+        self.is_dynamic = True
+        self.registered_at = getattr(original_tool, "registered_at", "")
+
+    async def execute(self, **kwargs) -> ToolResult:
+        from aether.core.sandbox_runner import sandbox_runner
+        res = await sandbox_runner.run(
+            code=self.code,
+            func_name="execute",
+            params=kwargs,
+            timeout=25.0,
+        )
+        if res.get("success"):
+            data = res.get("data", {})
+            if isinstance(data, dict) and "success" in data:
+                return ToolResult(
+                    success=data.get("success", True),
+                    data=data.get("data", {}),
+                    error=data.get("error"),
+                    raw=data.get("raw"),
+                )
+            return ToolResult(success=True, data=data)
+        return ToolResult(success=False, data={}, error=res.get("error", "Sandbox execution failed"))
+
+
 def validate_tool_ast(code: str) -> Tuple[bool, Optional[str]]:
     """
     Statically analyzes generated tool Python code via Abstract Syntax Tree (AST).
@@ -217,19 +254,22 @@ def approve_and_register_tool(stage_id: str) -> Dict[str, Any]:
         tool_instance.is_dynamic = True
         tool_instance.registered_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
-        # Register into live registry
-        registry.register(tool_instance)
-        staged["status"] = "approved"
-        staged["tool_name"] = tool_instance.name
+        # Wrap in Subprocess Sandbox Runner
+        sandboxed_tool = SandboxedDynamicTool(tool_instance, code)
 
-        logger.success(f"Dynamic tool '{tool_instance.name}' approved and registered live.")
+        # Register into live registry
+        registry.register(sandboxed_tool)
+        staged["status"] = "approved"
+        staged["tool_name"] = sandboxed_tool.name
+
+        logger.success(f"Dynamic tool '{sandboxed_tool.name}' approved and registered with subprocess sandbox.")
 
         return {
             "status": "registered",
-            "tool_name": tool_instance.name,
-            "category": tool_instance.category,
-            "description": tool_instance.description,
-            "icon": tool_instance.icon,
+            "tool_name": sandboxed_tool.name,
+            "category": sandboxed_tool.category,
+            "description": sandboxed_tool.description,
+            "icon": sandboxed_tool.icon,
             "file_path": module_file,
             "code": code,
         }

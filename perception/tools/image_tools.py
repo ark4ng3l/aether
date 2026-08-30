@@ -205,7 +205,7 @@ class ImageOSINTTool(BaseTool):
                 "4. Identify any persons, uniforms, or notable visual entities."
             )
 
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(5.0, connect=1.5)) as client:
                 payload = {
                     "model": settings.MODEL_VLM,
                     "prompt": prompt,

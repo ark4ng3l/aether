@@ -111,14 +111,19 @@ class RedTeamCritic:
         technical_tools = {
             "subdomain_finder", "ip_geolocate", "network_recon",
             "image_osint", "metadata_extractor", "whois_lookup", "shodan_lookup",
+            "wayback_lookup", "favicon_fingerprint", "tech_stack_fingerprint",
+            "typosquat_recon", "asn_lookup", "ssl_cert_inspector",
+            "cloud_bucket_recon", "robots_sitemap_recon",
         }
-        if source_tool in technical_tools and ("error" not in text.lower() or "not found" not in text.lower()):
-            # Direct technical records are confirmed by nature of protocol response
-            return {
-                "verdict": "CONFIRMED",
-                "reasoning": f"Direct technical record verified via {source_tool}",
-                "confidence": 0.95,
-            }
+        lower_text = text.lower()
+        if source_tool in technical_tools:
+            if "error" not in lower_text and "not found" not in lower_text and "failed" not in lower_text:
+                # Direct technical records are confirmed by nature of protocol response
+                return {
+                    "verdict": "CONFIRMED",
+                    "reasoning": f"Direct technical record verified via {source_tool}",
+                    "confidence": 0.95,
+                }
 
         # Garbage or error page patterns
         lower = text.lower()

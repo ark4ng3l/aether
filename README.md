@@ -1,27 +1,30 @@
 <div align="center">
 
-# 🌐 AETHER v3.0
-### Autonomous Extraction, Tactical Heuristic Exploration & Resolution
-**Next-Generation Cyber Threat Intelligence, Passive OSINT & Autonomous Reasoning Platform**
+# 🌐 AETHER v4.0: The Autonomous Cyber-Intelligence Operator
+**Hierarchical Multi-Agent System • Multimodal Perception • Cognitive Self-Healing • GraphRAG Fusion**
 
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11+-38bdf8?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-v3.0-10b981?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![FastAPI](https://img.shields.io/badge/FastAPI-v4.0-10b981?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Ollama](https://img.shields.io/badge/Ollama-Local_Uncensored_AI-8b5cf6?style=for-the-badge&logo=ollama&logoColor=white)](https://ollama.com)
-[![Tests](https://img.shields.io/badge/Tests-82%20Passed%20(100%25)-10b981?style=for-the-badge&logo=pytest&logoColor=white)](https://pytest.org)
+[![Tests](https://img.shields.io/badge/Tests-143%20Passed%20(100%25)-10b981?style=for-the-badge&logo=pytest&logoColor=white)](https://pytest.org)
 [![Security](https://img.shields.io/badge/Security-AST_Sandboxed-f43f5e?style=for-the-badge&logo=security&logoColor=white)](https://github.com/ark4ng3l/aether)
 [![STIX 2.1](https://img.shields.io/badge/STIX-2.1_Compliant-f59e0b?style=for-the-badge)](https://oasis-open.github.io/cti-documentation/)
 [![License](https://img.shields.io/badge/License-MIT-38bdf8?style=for-the-badge)](LICENSE)
 
 <br/>
 
-[⚡ Live Web Dashboard](#-quickstart--launching) •
-[🧠 Neural Architecture](#-neural-models--vram-arbitration) •
-[🛡️ Security & Sandboxing](#-security-model--ast-sandboxing) •
-[🛠 Perception & Tool Arsenal](#-perception-layer--tool-arsenal) •
-[🗺️ Geo-OSINT & Image Forensics](#-visual-forensics--geo-osint) •
-[🤖 AI Tool Synthesizer](#-autonomous-tool-synthesis-ai-toolmaker) •
-[🐳 Docker Deployment](#-docker-deployment) •
-[📖 API Reference](#-rest--websocket-api-reference)
+**🌍 Languages / زبان‌ها / Языки / 语言:**  
+[English](README.md) • [فارسی (Persian)](README.fa.md) • [Русский (Russian)](README.ru.md) • [中文 (Chinese)](README.zh.md)
+
+<br/>
+
+[⚡ Quickstart](#-quickstart--launching) •
+[🧠 Hierarchical Multi-Agent System](#-hierarchical-multi-agent-system-v40) •
+[🩺 Cognitive Self-Healing Engine](#-autonomous-cognitive-self-healing-engine) •
+[🛡️ Dual-Layer Sandbox](#-dual-layer-defense-sandbox) •
+[🗺️ Multimodal Perception (Vision/Audio/Geo)](#-multimodal-perception--intelligence-pipelines) •
+[📊 GraphRAG & Hybrid Memory](#-graphrag--hybrid-memory-fusion) •
+[🌐 Multilingual UI (i18n)](#-multilingual-user-interface-i18n)
 
 <br/>
 
@@ -32,7 +35,7 @@
   / / _ \ \  |  __|   | | |  __  |  __| |  _  / 
  / / / \ \ \ | |____ _| |_| |  | | |____| | \ \ 
 /_/ /   \_\_\|______|_____|_|  |_|______|_|  \_\
-       AUTONOMOUS INTELLIGENCE ENGINE // v3.0
+       AUTONOMOUS COGNITIVE ENGINE // v4.0
 ```
 
 </div>
@@ -41,134 +44,127 @@
 
 ## 🌟 Executive Overview
 
-**AETHER** is an enterprise-grade autonomous cyber intelligence, visual reconnaissance, and passive open-source intelligence (OSINT) investigation platform. Designed for authorized security analysts and threat intelligence researchers, it completely automates multi-source investigations through a closed-loop multi-agent cognitive cycle:
+**AETHER v4.0** is an autonomous cyber intelligence, multimodal reconnaissance, and cognitive threat intelligence operating system. Built for security researchers and intelligence analysts, it transforms passive OSINT workflows into fully autonomous, hierarchical agent swarms with closed-loop reasoning:
 
-$$\text{Observation} \longrightarrow \text{Graph-of-Thoughts Planning} \longrightarrow \text{Bounded Parallel Recon} \longrightarrow \text{Adversarial Refutation} \longrightarrow \text{Dossier & STIX Synthesis}$$
+$$\text{Goal Input} \longrightarrow \text{Tree-of-Thought Decomposition} \longrightarrow \text{Specialist Parallel Dispatch} \longrightarrow \text{Cognitive Self-Healing} \longrightarrow \text{Red-Team Critic Refutation} \longrightarrow \text{GraphRAG Dossier Synthesis}$$
 
-Operating **100% locally via Ollama and public passive data sources**, AETHER guarantees total operational security (OPSEC) and data privacy with zero third-party telemetry, cloud leakage, or external API key dependencies.
-
----
-
-## 🧠 Neural Models & Resource Arbitration
-
-AETHER employs a specialized hierarchy of **local uncensored models**, dynamically arbitrated by a hardware-aware `ResourceArbiter` across GPU compute, network I/O, and disk concurrency:
-
-| Model | Parameters | Role in AETHER | Resource Arbiter |
-| :--- | :---: | :--- | :---: |
-| **`hermes-3.6-genesis:35b`** | **35B** | **Deep Reasoner & AI Toolmaker:** Abductive dead-end recovery, tool synthesis, and Executive Dossier writing | **Heavy LLM Semaphore (1 max)** |
-| **`Gemma4-31B-QAT`** | **31B** | **Deep Fallback Reasoner:** Secondary heavy inference fallback | **Heavy LLM Semaphore (1 max)** |
-| **`Gemma4-26B-A4B`** | **26B** | **Adversarial Red-Team Critic:** Skeptic fact verification ("Verification by Refutation") | **Heavy LLM Semaphore (1 max)** |
-| **`Gemma4-12B-QAT`** | **12B** | **Fast Heuristic Planner:** Graph-of-Thoughts task decomposition & Entity resolution | *Light LLM Semaphore (4 max)* |
-| **`Qwen3VL-8B`** | **8B** | **Vision / OCR:** Image text extraction, logo detection, and facial feature profiling | *Light LLM Semaphore (4 max)* |
-| **`Gemma-4-E4B-Aggressive`** | **4B** | **Aggressive Tool Caller:** Rapid token parsing and entity normalization | *Light LLM Semaphore (4 max)* |
+Operating **100% locally via Ollama and public passive data sources**, AETHER guarantees complete operational security (OPSEC) and data privacy with zero cloud leaks or third-party tracking.
 
 ---
 
-## 🛡️ Security Model & AST Sandboxing
+## 🧠 Hierarchical Multi-Agent System (v4.0)
 
-AETHER v3.0 introduces strict defense-in-depth security:
+AETHER implements the **Commander-Specialist-Critic** multi-agent cognitive architecture:
 
-1. **AST Static Code Sandboxing:** Dynamic tools generated by LLMs are analyzed at the Abstract Syntax Tree (AST) level before compilation. Any code containing forbidden imports (`os`, `subprocess`, `sys`, `socket`, `ctypes`, `shutil`, `pickle`), write-mode file operations, or dangerous calls (`eval`, `exec`, `__import__`) is immediately rejected.
-2. **Human-in-the-Loop Tool Approval:** Synthesized tools are held in a staged state for analyst review and explicit approval via `/api/tools/approve/{stage_id}` before live registration.
-3. **Local Bearer Token Authentication:** All `/api/*` routes (except `/api/health`) require a local cryptographic Bearer token generated on first boot and stored in `data/auth_token.txt`.
-4. **Path Traversal Protection:** All file and image serving endpoints enforce strict regex and directory containment validation.
-
----
-
-## ⚡ Performance & Fault Tolerance
-
-- **Parallel Tool Fan-Out:** Initial independent reconnaissance tasks (e.g. Subdomains, Network DNS, GeoIP, Web Search) execute concurrently via `asyncio.gather` for a **2-4x speedup**.
-- **Per-Tool Circuit Breakers:** Automatically isolates tools that fail 3 consecutive times with cool-down recovery probing.
-- **In-Memory TTL Response Caching:** Caches technical OSINT results (WHOIS/RDAP: 24h, GeoIP: 12h, Search: 1h) to eliminate redundant network overhead.
-- **Multi-Signal Confidence Scoring:** Combines source reliability weights, cross-tool corroboration counts, and critic verdicts with full provenance traceability.
+1. **Commander Agent (`CommanderAgent`)**:
+   - Decomposes high-level intelligence objectives into atomic sub-task dependency graphs.
+   - Evaluates execution branches using Tree-of-Thought (ToT) reasoning.
+   - Orchestrates parallel asynchronous execution across specialist agents.
+2. **Specialist Agents**:
+   - **`NetworkSpecialist`**: DNS permutations, BGP/ASN routing, SSL/TLS SANs, Tech Stack fingerprinting, cloud bucket exposure.
+   - **`VisionSpecialist`**: Optical Character Recognition (OCR), EXIF GPS coordinates, landmark heuristics, and scene understanding.
+   - **`AudioSpecialist`**: Speech-to-text transcriptions with Whisper, entity timestamp extraction, acoustic intelligence.
+   - **`ToolmakerSpecialist`**: Autonomous synthesis of custom Python query tools under AST static security verification.
+3. **Red-Team Critic (`RedTeamCritic`)**:
+   - Adversarially cross-examines all findings before ingestion to refute hallucinations and false positives.
 
 ---
 
-## 🛠 Perception Layer & Tool Arsenal
+## 🩺 Autonomous Cognitive Self-Healing Engine
 
-All data collection is purely **passive and public**:
+When operations encounter obstacles (Cloudflare/WAF blocks, HTTP 429 rate-limits, format mismatches, or missing tools), AETHER autonomously diagnoses and repairs the failure:
 
-| Tool Name | Category | Primary Function | API Key Required? |
-| :--- | :--- | :--- | :---: |
-| `whois_lookup` | Domain Intel | Queries IANA RDAP protocol for registration, dates, nameservers | ❌ None |
-| `shodan_lookup` | Infrastructure | Shodan InternetDB query for open ports, CVEs, CPEs, hostnames | ❌ None |
-| `github_dorker` | Secrets Discovery | Searches for exposed API keys, tokens, .env configs via code search | ❌ None |
-| `company_recon` | Corporate Intel | OpenCorporates & business registries for jurisdiction and officers | ❌ None |
-| `news_intel` | Media & Events | Aggregates global news and RSS feeds for incidents and legal filings | ❌ None |
-| `threat_intel` | Threat Feeds | Passive reputation scoring from URLhaus and AlienVault OTX | ❌ None |
-| `subdomain_finder` | Infrastructure | Certificate Transparency log mining via crt.sh | ❌ None |
-| `ip_geolocate` | Geolocation | IP-API geolocation, ISP, ASN, timezone resolution | ❌ None |
-| `network_recon` | Network | DNS record mapping (A, AAAA, MX, TXT, NS, SOA) | ❌ None |
-| `social_recon` | Identity | Multi-platform username and handle availability checking | ❌ None |
-| `breach_lookup` | Compromise | Public breach database indicator verification | ❌ None |
-| `image_osint` | Visual Forensics | EXIF metadata, decimal GPS, perceptual hashes (dHash), reverse search | ❌ None |
+- **Root Cause Analysis (RCA)**: Two-tier diagnostic engine classifying faults into 6 distinct categories (`INPUT_FORMAT_ERROR`, `RATE_LIMITED_OR_BLOCKED`, `TARGET_UNREACHABLE`, `TOOL_DEFICIENCY`, `CRITIC_REJECTION`, `UNKNOWN_TRANSIENT`).
+- **Parameter Transmutation**: Automatically extracts hostnames from URLs, normalizes ports, and strips CIDR notation.
+- **Passive Strategy Shift**: Automatically pivots from active scanning to passive repositories (Internet Archive CDX, DNS over HTTPS, BGPView) upon detecting defensive barriers.
+- **Episodic Failure Memory**: Stores proven remedies to pre-emptively fix similar obstacles in future missions.
 
 ---
 
-## 🚀 Quickstart & Launching
+## 🛡️ Dual-Layer Defense Sandbox
+
+Dynamic tools generated by the `ToolmakerSpecialist` undergo dual-layer execution containment:
+
+1. **AST Static Security Analyzer (`aether/perception/tools/sandbox.py`)**:
+   - Blocks blacklisted modules (`os`, `sys`, `subprocess`, `socket`, `shutil`, `ctypes`).
+   - Forbids dangerous dunder attributes (`__class__`, `__subclasses__`, `__globals__`).
+   - Blocks dangerous builtins (`eval`, `exec`, `open`, `__import__`).
+2. **Subprocess Isolation Runner (`aether/core/sandbox_runner.py`)**:
+   - CLI execution in isolated subprocesses with stripped environment variables.
+   - Enforces POSIX resource limits (256MB memory cap, 10s CPU cap) and strict timeout guards.
+
+---
+
+## 🗺️ Multimodal Perception & Intelligence Pipelines
+
+- **Geo-Correlation (`GeoCorrelator`)**: Correlates EXIF metadata, Reverse Nominatim geolocation, and visual terrain cues.
+- **Whisper Audio Intelligence (`WhisperAudioPipeline`)**: Transcribes audio intercepts and indexes spoken threat actor aliases.
+- **Vision-Language Engine (`VisionLanguageIntelligenceEngine`)**: Multimodal scene understanding and document parsing.
+- **Pipeline Chainer (`PipelineChainer`)**: Extracts IPs, domains, hashes, and emails from raw outputs and feeds them into downstream specialist tasks.
+
+---
+
+## 📊 GraphRAG & Hybrid Memory Fusion
+
+- **GraphRAG Engine (`GraphRAG`)**: Performs multi-hop bi-directional entity traversals and community clustering.
+- **Hybrid Knowledge Store (`HybridKnowledgeStore`)**: Combines dense semantic vector search (Qdrant) and graph topology using **Reciprocal Rank Fusion (RRF)**.
+
+---
+
+## 🌐 Multilingual User Interface (i18n)
+
+AETHER features a fully localized user interface with instant language switching and dedicated RTL support:
+- 🇺🇸 **English** (Default)
+- 🇮🇷 **فارسی (Persian)** (Full RTL layout with Vazirmatn typography)
+- 🇷🇺 **Русский (Russian)**
+- 🇨🇳 **中文 (Chinese)**
+
+---
+
+## ⚡ Quickstart & Launching
 
 ### Prerequisites
 - Python 3.11+
-- [Ollama](https://ollama.com) running locally with models pulled:
-```bash
-ollama pull hermes-3.6-genesis:35b-a3b-uncensored-v7
-ollama pull Gemma4-12B-QAT-Uncensored
-```
+- Node.js 18+ (for building frontend)
+- [Ollama](https://ollama.com) with models: `qwen2.5:7b`, `qwen2.5-coder:7b`, `qwen3-vl:8b` (optional)
 
-### Installation
+### 1. Installation
 ```bash
 git clone https://github.com/ark4ng3l/aether.git
 cd aether
 pip install -r requirements.txt
 ```
 
-### Run Tests
-```bash
-python -m pytest tests/ -v
-# 82 passed in ~45s
-```
-
-### Start Server
+### 2. Launching AETHER
 ```bash
 python run.py
 ```
-Open **`http://127.0.0.1:8000`** in your browser. The dashboard automatically authenticates using the local token.
 
----
-
-## 🐳 Docker Deployment
-
-To launch AETHER with Docker Compose in a single command:
-
-```bash
-docker compose up --build -d
+The server will generate a secure session token and log the one-time bootstrap URL in your terminal:
+```text
+[bold green]================================================================[/bold green]
+[bold green]  AETHER v4.0 — Autonomous Cyber-Intelligence Operator Ready    [/bold green]
+[bold cyan]  Access UI at: http://127.0.0.1:8000/#token=<SECURE_SESSION_TOKEN>[/bold cyan]
+[bold green]================================================================[/bold green]
 ```
 
-Access the dashboard at `http://localhost:8000`.
+Open the link in your browser to access the dashboard!
 
 ---
 
-## 📖 REST & WebSocket API Reference
+## 🧪 Running Automated Tests
 
-| Method | Endpoint | Description | Auth |
-| :--- | :--- | :--- | :---: |
-| `GET` | `/api/health` | Service health status check | Public |
-| `GET` | `/api/auth/token` | Local token bootstrap endpoint | Public |
-| `GET` | `/api/metrics` | System telemetry, tool success rates, ResourceArbiter state | Bearer |
-| `GET` | `/api/projects` | List all investigation projects | Bearer |
-| `POST` | `/api/projects` | Create a new investigation | Bearer |
-| `POST` | `/api/projects/{id}/run` | Execute investigation engine | Bearer |
-| `GET` | `/api/projects/{id}/graph` | Cytoscape graph nodes and relationships | Bearer |
-| `GET` | `/api/projects/{id}/export/stix` | Export project as STIX 2.1 Threat Intel Bundle | Bearer |
-| `GET` | `/api/tools` | List all registered tools and metadata | Bearer |
-| `POST` | `/api/tools/synthesize` | Generate new tool with AST sandboxing | Bearer |
-| `GET` | `/api/tools/staged` | List synthesized tools awaiting approval | Bearer |
-| `POST` | `/api/tools/approve/{id}` | Approve and hot-register synthesized tool | Bearer |
-| `WS` | `/ws/global` | Real-time global WebSocket event stream | Token |
+```bash
+python -m pytest tests/ -v
+```
+
+```text
+================= 143 passed in 133.95s (100% Success) =================
+```
 
 ---
 
-## 📜 License
+## 📄 License & Responsible Use
 
-AETHER is released under the **MIT License**.
-Developed for authorized cyber threat intelligence analysis and defensive security operations.
+This software is licensed under the [MIT License](LICENSE).  
+**Notice:** AETHER is strictly designed for defensive threat intelligence, authorized security audits, and passive OSINT research. All tools operate strictly on public passive data sources.

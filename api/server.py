@@ -16,8 +16,9 @@ if str(BASE_DIR) not in sys.path:
 
 import secrets
 import re
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query, File, UploadFile, Request
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query, File, UploadFile, Request, Response
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -27,14 +28,27 @@ from aether.core.project_manager import project_manager
 from aether.core.events import event_bus
 
 # ── Local API Security Token ──────────────────────────────────────────────────
-AUTH_TOKEN_FILE = BASE_DIR / "data" / "auth_token.txt"
+AUTH_TOKEN_FILE = BASE_DIR / "data" / ".session_token"
 AUTH_TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
 if not AUTH_TOKEN_FILE.exists():
-    AUTH_TOKEN = secrets.token_hex(24)
+    legacy_file = BASE_DIR / "data" / "auth_token.txt"
+    if legacy_file.exists():
+        AUTH_TOKEN = legacy_file.read_text(encoding="utf-8").strip()
+    else:
+        AUTH_TOKEN = secrets.token_hex(24)
     AUTH_TOKEN_FILE.write_text(AUTH_TOKEN, encoding="utf-8")
+    try:
+        os.chmod(AUTH_TOKEN_FILE, 0o600)
+    except Exception:
+        pass
     logger.mission_critical(f"AETHER Local API Security Token: {AUTH_TOKEN}")
+    logger.mission_critical(f"AETHER Dashboard Login URL: http://127.0.0.1:8000/#token={AUTH_TOKEN}")
 else:
     AUTH_TOKEN = AUTH_TOKEN_FILE.read_text(encoding="utf-8").strip()
+    try:
+        os.chmod(AUTH_TOKEN_FILE, 0o600)
+    except Exception:
+        pass
 
 app = FastAPI(title="AETHER Intelligence Engine API", version="3.0.0")
 
@@ -55,7 +69,6 @@ async def local_auth_middleware(request: Request, call_next):
     if (
         path == "/"
         or path == "/api/health"
-        or path == "/api/auth/token"
         or path.startswith("/docs")
         or path.startswith("/redoc")
         or path.startswith("/openapi.json")
@@ -80,7 +93,11 @@ async def local_auth_middleware(request: Request, call_next):
 
     return await call_next(request)
 
-UI_FILE = BASE_DIR / "ui" / "index.html"
+FRONTEND_DIST = BASE_DIR / "frontend" / "dist"
+UI_FILE = FRONTEND_DIST / "index.html" if FRONTEND_DIST.exists() else BASE_DIR / "ui" / "index.html"
+
+if FRONTEND_DIST.exists() and (FRONTEND_DIST / "assets").exists():
+    app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="assets")
 
 
 # ── Request Models ────────────────────────────────────────────────────────────
@@ -108,9 +125,27 @@ class InjectTaskRequest(BaseModel):
 # ── Root & Static UI ──────────────────────────────────────────────────────────
 
 @app.get("/")
-async def root():
+async def root(request: Request):
     if UI_FILE.exists():
-        return FileResponse(UI_FILE)
+        html = UI_FILE.read_text(encoding="utf-8")
+
+        # Check if incoming request already carries a valid session
+        auth_header = request.headers.get("Authorization", "")
+        token = ""
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:].strip()
+        elif request.cookies.get("aether_token"):
+            token = request.cookies.get("aether_token", "").strip()
+
+        # Inject boot token ONLY when request already carries a valid authenticated session
+        if token == AUTH_TOKEN:
+            bootstrap_script = f'<script>window.__AETHER_BOOT_TOKEN__ = "{AUTH_TOKEN}"; window.__AETHER_BOOTSTRAP__ = {{ token: "{AUTH_TOKEN}" }};</script>'
+            if "</head>" in html:
+                html = html.replace("</head>", f"{bootstrap_script}</head>")
+            else:
+                html = f"{bootstrap_script}{html}"
+
+        return Response(content=html, media_type="text/html")
     return {"status": "online", "engine": "AETHER"}
 
 
@@ -121,8 +156,18 @@ async def health():
 
 @app.get("/api/auth/token")
 async def get_auth_token():
-    """Returns local auth token for local UI bootstrap."""
+    """Returns local auth token for authorized clients."""
     return {"token": AUTH_TOKEN}
+
+
+@app.post("/api/auth/token/regenerate")
+async def regenerate_auth_token():
+    """Generates and persists a new Bearer auth token, invalidating the previous one."""
+    global AUTH_TOKEN
+    AUTH_TOKEN = secrets.token_hex(24)
+    AUTH_TOKEN_FILE.write_text(AUTH_TOKEN, encoding="utf-8")
+    logger.mission_critical(f"AETHER Auth Token Regenerated: {AUTH_TOKEN}")
+    return {"status": "regenerated", "token": AUTH_TOKEN}
 
 
 # ── Project Management Endpoints ──────────────────────────────────────────────
@@ -258,6 +303,25 @@ async def get_project_tasks(project_id: str):
     }
 
 
+@app.get("/api/projects/{project_id}/entities/{entity_id}/provenance")
+async def get_entity_provenance_endpoint(project_id: str, entity_id: str):
+    """Returns task_steps that produced or touched this entity for provenance tracking."""
+    proj = project_manager.get_project(project_id)
+    if not proj:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    from aether.core.db import db
+    tasks = db.get_entity_provenance(project_id, entity_id)
+
+    # Fallback to in-memory state if SQLite doesn't have it yet
+    if not tasks and proj.state:
+        for t in proj.state.completed_tasks:
+            if entity_id in t.produced_entity_ids or entity_id in t.output_summary:
+                tasks.append(t.model_dump(mode="json"))
+
+    return {"project_id": project_id, "entity_id": entity_id, "provenance_tasks": tasks}
+
+
 @app.get("/api/projects/{project_id}/dossier")
 async def get_project_dossier(project_id: str):
     """Get generated intelligence dossier."""
@@ -267,6 +331,52 @@ async def get_project_dossier(project_id: str):
 
     dossier = proj.dossier or (proj.state.dossier if proj.state else "")
     return {"project_id": project_id, "dossier": dossier}
+
+
+@app.get("/api/projects/{project_id}/dossier/export")
+async def export_dossier_consolidated(
+    project_id: str,
+    format: str = Query("json", description="Export format: pdf, stix, json, or md"),
+):
+    """Consolidated dossier export endpoint supporting pdf, stix, json, and md formats."""
+    proj = project_manager.get_project(project_id)
+    if not proj:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    dossier_text = proj.dossier or (proj.state.dossier if proj.state else "")
+
+    if format == "stix":
+        return await export_project_stix(project_id)
+    elif format == "md":
+        return Response(
+            content=dossier_text,
+            media_type="text/markdown",
+            headers={"Content-Disposition": f"attachment; filename=dossier_{project_id}.md"},
+        )
+    elif format == "pdf":
+        html_content = (
+            f"<html><head><title>AETHER Dossier - {proj.name}</title>"
+            f"<style>body{{font-family:sans-serif;padding:40px;background:#fff;color:#111;line-height:1.6;}}"
+            f"h1,h2{{color:#003366;}}</style></head><body>"
+            f"<h1>AETHER Intelligence Dossier: {proj.name}</h1>"
+            f"<p><b>Target Seed:</b> {proj.target_seed} ({proj.target_type.value})</p><hr/>"
+            f"<pre style='white-space:pre-wrap;'>{dossier_text}</pre></body></html>"
+        )
+        return Response(
+            content=html_content,
+            media_type="text/html",
+            headers={"Content-Disposition": f"inline; filename=dossier_{project_id}.html"},
+        )
+    else:
+        return {
+            "project_id": project_id,
+            "name": proj.name,
+            "target_seed": proj.target_seed,
+            "target_type": proj.target_type.value,
+            "dossier": dossier_text,
+            "created_at": proj.created_at.isoformat(),
+            "finished_at": proj.finished_at.isoformat() if proj.finished_at else None,
+        }
 
 
 @app.get("/api/projects/{project_id}/export/stix")
@@ -464,6 +574,7 @@ async def get_staged_tools_endpoint():
 
 
 @app.post("/api/tools/approve/{stage_id}")
+@app.post("/api/tools/synthesize/{stage_id}/approve")
 async def approve_tool_endpoint(stage_id: str):
     """Approves and registers a staged tool."""
     from aether.core.tool_maker import approve_and_register_tool
@@ -471,6 +582,17 @@ async def approve_tool_endpoint(stage_id: str):
     if result.get("status") == "error":
         raise HTTPException(status_code=400, detail=result.get("error"))
     return result
+
+
+@app.post("/api/tools/reject/{stage_id}")
+@app.post("/api/tools/synthesize/{stage_id}/reject")
+async def reject_tool_endpoint(stage_id: str):
+    """Rejects a staged tool draft."""
+    from aether.core.tool_maker import _staged_tools
+    if stage_id in _staged_tools:
+        _staged_tools[stage_id]["status"] = "rejected"
+        return {"status": "rejected", "stage_id": stage_id}
+    raise HTTPException(status_code=404, detail="Staged tool draft not found")
 
 
 @app.post("/api/tools/execute")
@@ -626,7 +748,15 @@ async def websocket_stream(websocket: WebSocket, channel_id: str):
     """
     WebSocket endpoint for real-time telemetry, stepper updates, and graph changes.
     Supports subscribing by project_id, investigation_id, or 'global'/'main'.
+    
+    NOTE: Browser WebSocket API does not allow custom headers during the initial handshake,
+    so validating token via ?token= query parameter is a deliberate, scoped exception.
     """
+    ws_token = websocket.query_params.get("token", "").strip()
+    if ws_token != AUTH_TOKEN:
+        await websocket.close(code=1008, reason="Unauthorized")
+        return
+
     await websocket.accept()
     logger.info(f"WebSocket client connected for channel: '{channel_id}'")
 

@@ -1,0 +1,136 @@
+/* ── Google & Persian Fonts ─────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css');
+
+/* AETHER Design System v2 — Global Styles */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── CSS Custom Properties — Light Theme (default) ──────────────────────── */
+:root {
+  --bg-canvas: #f7f8fa;
+  --bg-surface: #ffffff;
+  --bg-surface-raised: #ffffff;
+  --bg-overlay: rgba(255, 255, 255, 0.72);
+  --border-subtle: #e6e8ec;
+  --border-strong: #d3d7de;
+  --text-primary: #14171c;
+  --text-secondary: #5b6472;
+  --text-tertiary: #8b93a1;
+  --shadow-raised: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.08);
+
+  color-scheme: light;
+}
+
+/* ── CSS Custom Properties — Dark Theme ─────────────────────────────────── */
+.dark {
+  --bg-canvas: #0b0d12;
+  --bg-surface: #12151c;
+  --bg-surface-raised: #191d26;
+  --bg-overlay: rgba(11, 13, 18, 0.72);
+  --border-subtle: #232834;
+  --border-strong: #323847;
+  --text-primary: #eef1f6;
+  --text-secondary: #9aa4b2;
+  --text-tertiary: #5b6472;
+  --shadow-raised: 0 1px 2px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.24);
+
+  color-scheme: dark;
+}
+
+/* ── Base Layer ──────────────────────────────────────────────────────────── */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    border-color: var(--border-subtle);
+  }
+
+  html {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-feature-settings: 'cv11', 'ss01';  /* Inter stylistic alternates */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  html[dir="rtl"],
+  .rtl-layout {
+    font-family: 'Vazirmatn', 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  body {
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
+    line-height: 1.5;
+  }
+
+  /* ── Focus Rings — Always visible, never outline:none without replacement */
+  :focus-visible {
+    outline: 2px solid #4f9dff;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Scrollbar styling — subtle, consistent */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--text-tertiary);
+  }
+
+  /* Selection */
+  ::selection {
+    background-color: rgba(79, 157, 255, 0.25);
+    color: inherit;
+  }
+}
+
+/* ── Utility Layer ───────────────────────────────────────────────────────── */
+@layer utilities {
+  .font-mono-data {
+    font-family: 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  .glass {
+    backdrop-filter: blur(12px) saturate(1.4);
+  }
+}
+
+/* ── Reduced Motion ──────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Leaflet Overrides (prevent tile layer z-index issues) ───────────────── */
+.leaflet-container {
+  background-color: var(--bg-canvas) !important;
+  font-family: 'Inter', sans-serif !important;
+}

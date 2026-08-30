@@ -64,19 +64,21 @@ class SocialTools(BaseTool):
         permutations = self._generate_permutations(username)
         found: List[Dict[str, Any]] = []
 
-        async def _check(platform: str, user: str) -> Optional[Dict[str, Any]]:
-            url = self.platforms[platform].format(user=user)
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            }
-            try:
-                async with httpx.AsyncClient(
-                    follow_redirects=True,
-                    timeout=httpx.Timeout(6.0),
-                    headers=headers,
-                ) as client:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+        limits = httpx.Limits(max_connections=25, max_keepalive_connections=15)
+
+        async with httpx.AsyncClient(
+            follow_redirects=True,
+            timeout=httpx.Timeout(4.0),
+            headers=headers,
+            limits=limits,
+        ) as client:
+            async def _check(platform: str, user: str) -> Optional[Dict[str, Any]]:
+                url = self.platforms[platform].format(user=user)
+                try:
                     resp = await client.get(url)
-                    # Specific platform checks
                     if resp.status_code == 200:
                         body_lower = resp.text.lower()
                         # Verify false positives on soft-404 sites
@@ -89,20 +91,19 @@ class SocialTools(BaseTool):
                             "status": 200,
                             "confidence": 0.95 if user == permutations[0] else 0.80,
                         }
-            except Exception:
-                pass
-            return None
+                except Exception:
+                    pass
+                return None
 
-        # Execute platform checks in parallel
-        tasks = [
-            _check(platform, perm)
-            for perm in permutations[:3]  # Check primary variations
-            for platform in self.platforms
-        ]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        for r in results:
-            if isinstance(r, dict) and r is not None:
-                found.append(r)
+            tasks = [
+                _check(platform, perm)
+                for perm in permutations[:2]  # Check top variations
+                for platform in self.platforms
+            ]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for r in results:
+                if isinstance(r, dict) and r is not None:
+                    found.append(r)
 
         return ToolResult(success=True, data=found)
 

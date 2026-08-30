@@ -29,6 +29,7 @@ class BaseTool:
         icon: str = "build",
         default_param_key: str = "query",
         example_input: str = "example.com",
+        params: Optional[Dict[str, Any]] = None,
     ):
         self.name = name
         self.description = description
@@ -36,6 +37,7 @@ class BaseTool:
         self.icon = icon
         self.default_param_key = default_param_key
         self.example_input = example_input
+        self.params = params or {}
         self.is_dynamic = False
         self.registered_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
@@ -50,6 +52,7 @@ class BaseTool:
             "icon": self.icon,
             "default_param_key": self.default_param_key,
             "example_input": self.example_input,
+            "params": self.params,
             "is_dynamic": self.is_dynamic,
             "registered_at": self.registered_at,
             "status": "ready",

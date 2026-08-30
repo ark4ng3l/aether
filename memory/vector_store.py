@@ -51,15 +51,25 @@ class VectorStore:
                 self.client = QdrantClient(location=":memory:")
             else:
                 disk_path = path or settings.VECTOR_DB_PATH
-                os.makedirs(disk_path, exist_ok=True)
-                self.client = QdrantClient(path=disk_path)
+                try:
+                    os.makedirs(disk_path, exist_ok=True)
+                    self.client = QdrantClient(path=disk_path)
+                except Exception as lock_exc:
+                    logger.warning(f"Qdrant disk storage locked, using in-memory mode: {lock_exc}")
+                    self.client = QdrantClient(location=":memory:")
 
             self._ensure_collection()
             self.embedder = TextEmbedding(model_name=self.EMBED_MODEL)
             logger.success("Vector Store initialised")
         except Exception as exc:
-            logger.error(f"Failed to initialise Vector Store: {exc}")
-            raise
+            try:
+                self.client = QdrantClient(location=":memory:")
+                self._ensure_collection()
+                self.embedder = TextEmbedding(model_name=self.EMBED_MODEL)
+                logger.success("Vector Store initialised in memory fallback")
+            except Exception:
+                logger.error(f"Failed to initialise Vector Store: {exc}")
+                raise
 
     # ------------------------------------------------------------------
     # Setup
@@ -96,11 +106,20 @@ class VectorStore:
 
     def search(self, query_vector: List[float], limit: int = 5):
         """Raw vector similarity search."""
-        return self.client.search(
-            collection_name=self.COLLECTION,
-            query_vector=query_vector,
-            limit=limit,
-        )
+        if hasattr(self.client, "search"):
+            return self.client.search(
+                collection_name=self.COLLECTION,
+                query_vector=query_vector,
+                limit=limit,
+            )
+        elif hasattr(self.client, "query_points"):
+            res = self.client.query_points(
+                collection_name=self.COLLECTION,
+                query=query_vector,
+                limit=limit,
+            )
+            return getattr(res, "points", res)
+        return []
 
     def search_text(self, query: str, limit: int = 5):
         """Convenience: embeds *query* then performs similarity search."""
