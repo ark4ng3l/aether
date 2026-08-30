@@ -20,6 +20,7 @@ import { Tooltip } from '../../components/ui/Tooltip'
 import { Kbd } from '../../components/ui/Kbd'
 import { showToast } from '../../components/ui/Toast'
 import { api } from '../../api/endpoints'
+import aetherLogo from '../../assets/aether_logo.png'
 
 
 interface LeftRailProps {
@@ -54,7 +55,7 @@ export const LeftRail: React.FC<LeftRailProps> = ({ onOpenShortcuts }) => {
       <aside className="flex flex-col items-center w-12 bg-bg-surface border-r border-border-subtle py-3 gap-2 shrink-0">
         <Tooltip content="AETHER" side="right">
           <button className="w-8 h-8 rounded-lg overflow-hidden border border-accent/20 shadow-sm flex items-center justify-center mb-2 hover:border-accent/50 transition-all">
-            <img src="/aether_logo.png" alt="AETHER" className="w-full h-full object-cover" />
+            <img src={aetherLogo} alt="AETHER" className="w-full h-full object-cover" />
           </button>
         </Tooltip>
 
@@ -132,7 +133,7 @@ export const LeftRail: React.FC<LeftRailProps> = ({ onOpenShortcuts }) => {
       <div className="flex items-center justify-between px-3 py-3 border-b border-border-subtle">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg overflow-hidden border border-accent/25 shadow-sm shrink-0">
-            <img src="/aether_logo.png" alt="AETHER" className="w-full h-full object-cover" />
+            <img src={aetherLogo} alt="AETHER" className="w-full h-full object-cover" />
           </div>
           <div>
             <h1 className="text-xs font-bold text-text-primary tracking-wider font-mono">AETHER</h1>

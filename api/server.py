@@ -124,6 +124,39 @@ class InjectTaskRequest(BaseModel):
 
 # ── Root & Static UI ──────────────────────────────────────────────────────────
 
+@app.get("/aether_logo.png")
+@app.get("/logo.png")
+@app.get("/favicon.png")
+async def get_static_logo():
+    """Serves the primary AETHER cyber-intelligence logo."""
+    candidates = [
+        FRONTEND_DIST / "aether_logo.png",
+        FRONTEND_DIST / "logo.png",
+        BASE_DIR / "frontend" / "public" / "aether_logo.png",
+        BASE_DIR / "assets" / "aether_logo.png",
+        BASE_DIR / "docs" / "assets" / "aether_logo.png",
+    ]
+    for c in candidates:
+        if c.exists():
+            return FileResponse(c, media_type="image/png")
+    raise HTTPException(status_code=404, detail="Logo asset not found")
+
+
+@app.get("/favicon.ico")
+async def get_favicon():
+    """Serves favicon icon."""
+    candidates = [
+        FRONTEND_DIST / "favicon.ico",
+        FRONTEND_DIST / "aether_logo.png",
+        BASE_DIR / "frontend" / "public" / "aether_logo.png",
+        BASE_DIR / "assets" / "aether_logo.png",
+    ]
+    for c in candidates:
+        if c.exists():
+            return FileResponse(c, media_type="image/png")
+    raise HTTPException(status_code=404, detail="Favicon not found")
+
+
 @app.get("/")
 async def root(request: Request):
     if UI_FILE.exists():
