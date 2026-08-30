@@ -13,6 +13,9 @@ import {
   Server,
   Sliders,
   Lock,
+  Cloud,
+  HardDrive,
+  Key,
 } from 'lucide-react'
 import { useProjectStore } from '../../stores/useProjectStore'
 import { useAuthStore } from '../../stores/useAuthStore'
@@ -32,6 +35,8 @@ export const SettingsModal: React.FC = () => {
   const [isFetchingModels, setIsFetchingModels] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
+
+  const provider = settings.LLM_PROVIDER || 'ollama'
 
   const loadSettingsAndModels = async () => {
     setIsLoading(true)
@@ -105,6 +110,7 @@ export const SettingsModal: React.FC = () => {
   ) => {
     const IconComp = icon
     const currentValue = (settings[key] as string) || ''
+    const isOllama = provider === 'ollama'
 
     return (
       <div className="bg-bg-canvas p-3 rounded-xl border border-border-subtle hover:border-border-strong transition-all">
@@ -113,7 +119,7 @@ export const SettingsModal: React.FC = () => {
             <IconComp className={`w-3.5 h-3.5 ${badgeColor}`} />
             {label}
           </label>
-          {availableModels.length > 0 && (
+          {isOllama && availableModels.length > 0 && (
             <span className="text-[10px] text-text-tertiary font-mono">
               {availableModels.includes(currentValue) ? (
                 <span className="text-status-confirmed flex items-center gap-1 font-sans">
@@ -130,7 +136,7 @@ export const SettingsModal: React.FC = () => {
 
         <div className="space-y-1.5">
           {/* Quick Selector Dropdown if Ollama models exist */}
-          {availableModels.length > 0 && (
+          {isOllama && availableModels.length > 0 && (
             <select
               value={availableModels.includes(currentValue) ? currentValue : ''}
               onChange={(e) => {
@@ -155,10 +161,14 @@ export const SettingsModal: React.FC = () => {
           <div className="relative">
             <input
               type="text"
-              list="ollama-models-datalist"
+              list={isOllama ? 'ollama-models-datalist' : undefined}
               value={currentValue}
               onChange={(e) => setSettings({ ...settings, [key]: e.target.value })}
-              placeholder="e.g. gemma2:9b or hf.co/..."
+              placeholder={
+                isOllama
+                  ? 'e.g. gemma2:9b or hf.co/...'
+                  : 'e.g. gpt-4o, claude-3-5-sonnet, deepseek-chat, mistral-large'
+              }
               className="w-full h-8 px-2.5 bg-bg-surface border border-border-subtle focus:border-accent rounded-lg text-text-primary font-mono text-[11px] outline-none transition-colors"
             />
           </div>
@@ -188,7 +198,7 @@ export const SettingsModal: React.FC = () => {
                 {t('settings.title', 'System Settings & Neural Model Matrix')}
               </h3>
               <p className="text-2xs text-text-tertiary">
-                {t('settings.subtitle', 'Configure local Ollama models, VRAM arbitration, and reasoning parameters')}
+                {t('settings.subtitle', 'Configure local Ollama models, custom OpenAI-compatible cloud APIs, and reasoning parameters')}
               </p>
             </div>
           </div>
@@ -202,57 +212,151 @@ export const SettingsModal: React.FC = () => {
 
         {/* Form Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 text-2xs select-text scrollbar-thin">
-          {/* Ollama Connection & Model Matrix */}
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-border-subtle">
-              <div className="flex items-center gap-2">
-                <Server className="w-4 h-4 text-purple-400" />
-                <span className="font-semibold text-text-primary text-xs">
-                  {t('settings.neuralSection', 'Local Ollama & Neural Models')}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span
-                  className={`text-[11px] px-2.5 py-0.5 rounded-full font-mono flex items-center gap-1.5 border ${
-                    availableModels.length > 0
-                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                      : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+          {/* Provider Selector Switcher */}
+          <div className="space-y-3">
+            <label className="text-text-primary font-semibold text-xs block">
+              LLM Inference Engine Provider
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setSettings({ ...settings, LLM_PROVIDER: 'ollama' })}
+                className={`p-3 rounded-xl border flex items-center gap-3 text-left transition-all ${
+                  provider === 'ollama'
+                    ? 'border-accent bg-accent/10 shadow-sm shadow-accent/10'
+                    : 'border-border-subtle bg-bg-canvas hover:border-border-strong text-text-secondary'
+                }`}
+              >
+                <div
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    provider === 'ollama' ? 'bg-accent text-white' : 'bg-bg-surface text-text-tertiary'
                   }`}
                 >
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      availableModels.length > 0 ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
-                    }`}
-                  />
-                  {availableModels.length > 0
-                    ? `${availableModels.length} Local Models Detected`
-                    : 'Ollama Offline / No Models'}
-                </span>
-                <button
-                  onClick={handleRefreshModels}
-                  disabled={isFetchingModels}
-                  title="Refresh models from Ollama"
-                  className="flex items-center gap-1 px-2.5 py-1 text-[11px] bg-bg-canvas hover:bg-bg-surface-raised border border-border-strong rounded-lg text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50 shadow-xs"
+                  <HardDrive className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="font-semibold text-text-primary text-2xs">Local Ollama Engine</div>
+                  <div className="text-[11px] text-text-tertiary">VRAM-arbitrated uncensored local models</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSettings({ ...settings, LLM_PROVIDER: 'openai_compatible' })}
+                className={`p-3 rounded-xl border flex items-center gap-3 text-left transition-all ${
+                  provider === 'openai_compatible'
+                    ? 'border-accent bg-accent/10 shadow-sm shadow-accent/10'
+                    : 'border-border-subtle bg-bg-canvas hover:border-border-strong text-text-secondary'
+                }`}
+              >
+                <div
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    provider === 'openai_compatible' ? 'bg-accent text-white' : 'bg-bg-surface text-text-tertiary'
+                  }`}
                 >
-                  <RefreshCw className={`w-3 h-3 ${isFetchingModels ? 'animate-spin text-accent' : ''}`} />
-                  <span>Fetch Models</span>
-                </button>
+                  <Cloud className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="font-semibold text-text-primary text-2xs">Custom / Cloud API</div>
+                  <div className="text-[11px] text-text-tertiary">OpenAI, vLLM, OpenRouter, DeepSeek, Groq</div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Connection Endpoint Details */}
+          {provider === 'ollama' ? (
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-border-subtle">
+                <div className="flex items-center gap-2">
+                  <Server className="w-4 h-4 text-purple-400" />
+                  <span className="font-semibold text-text-primary text-xs">
+                    {t('settings.neuralSection', 'Local Ollama & Neural Models')}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`text-[11px] px-2.5 py-0.5 rounded-full font-mono flex items-center gap-1.5 border ${
+                      availableModels.length > 0
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                        : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                    }`}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        availableModels.length > 0 ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
+                      }`}
+                    />
+                    {availableModels.length > 0
+                      ? `${availableModels.length} Local Models Detected`
+                      : 'Ollama Offline / No Models'}
+                  </span>
+                  <button
+                    onClick={handleRefreshModels}
+                    disabled={isFetchingModels}
+                    title="Refresh models from Ollama"
+                    className="flex items-center gap-1 px-2.5 py-1 text-[11px] bg-bg-canvas hover:bg-bg-surface-raised border border-border-strong rounded-lg text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50 shadow-xs"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${isFetchingModels ? 'animate-spin text-accent' : ''}`} />
+                    <span>Fetch Models</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Ollama Base URL */}
+              <div className="bg-bg-canvas p-3 rounded-xl border border-border-subtle">
+                <label className="text-text-secondary block mb-1 font-medium">{t('settings.ollamaUrl', 'Ollama Base URL')}</label>
+                <input
+                  type="text"
+                  value={settings.OLLAMA_BASE_URL || ''}
+                  onChange={(e) => setSettings({ ...settings, OLLAMA_BASE_URL: e.target.value })}
+                  placeholder="http://localhost:11434"
+                  className="w-full h-8 px-2.5 bg-bg-surface border border-border-subtle rounded-lg text-text-primary font-mono text-[11px] outline-none focus:border-accent"
+                />
               </div>
             </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 pb-2 border-b border-border-subtle">
+                <Cloud className="w-4 h-4 text-cyan-400" />
+                <span className="font-semibold text-text-primary text-xs">
+                  Custom OpenAI-Compatible API Configuration
+                </span>
+              </div>
 
-            {/* Ollama Base URL */}
-            <div className="bg-bg-canvas p-3 rounded-xl border border-border-subtle">
-              <label className="text-text-secondary block mb-1 font-medium">{t('settings.ollamaUrl', 'Ollama Base URL')}</label>
-              <input
-                type="text"
-                value={settings.OLLAMA_BASE_URL || ''}
-                onChange={(e) => setSettings({ ...settings, OLLAMA_BASE_URL: e.target.value })}
-                placeholder="http://localhost:11434"
-                className="w-full h-8 px-2.5 bg-bg-surface border border-border-subtle rounded-lg text-text-primary font-mono text-[11px] outline-none focus:border-accent"
-              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                <div className="bg-bg-canvas p-3 rounded-xl border border-border-subtle">
+                  <label className="text-text-secondary block mb-1 font-medium">Custom API Base URL</label>
+                  <input
+                    type="text"
+                    value={settings.CUSTOM_API_BASE_URL || ''}
+                    onChange={(e) => setSettings({ ...settings, CUSTOM_API_BASE_URL: e.target.value })}
+                    placeholder="https://api.openai.com/v1 or https://openrouter.ai/api/v1"
+                    className="w-full h-8 px-2.5 bg-bg-surface border border-border-subtle rounded-lg text-text-primary font-mono text-[11px] outline-none focus:border-accent"
+                  />
+                </div>
+
+                <div className="bg-bg-canvas p-3 rounded-xl border border-border-subtle">
+                  <label className="text-text-secondary flex items-center gap-1 mb-1 font-medium">
+                    <Key className="w-3 h-3 text-amber-400" /> API Key / Bearer Token
+                  </label>
+                  <input
+                    type="password"
+                    value={settings.CUSTOM_API_KEY || ''}
+                    onChange={(e) => setSettings({ ...settings, CUSTOM_API_KEY: e.target.value })}
+                    placeholder="sk-..."
+                    className="w-full h-8 px-2.5 bg-bg-surface border border-border-subtle rounded-lg text-text-primary font-mono text-[11px] outline-none focus:border-accent"
+                  />
+                </div>
+              </div>
             </div>
+          )}
 
-            {/* Neural Role Selectors Grid */}
+          {/* Neural Role Selectors Grid */}
+          <div className="space-y-3">
+            <span className="font-semibold text-accent uppercase tracking-wider block text-xs">
+              Model Mapping Matrix
+            </span>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
               {renderModelField(
                 'MODEL_FAST',

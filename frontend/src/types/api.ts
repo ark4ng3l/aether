@@ -156,7 +156,10 @@ export interface MetricsData {
 }
 
 export interface SettingsData {
+  LLM_PROVIDER?: 'ollama' | 'openai_compatible' | string
   OLLAMA_BASE_URL: string
+  CUSTOM_API_BASE_URL?: string
+  CUSTOM_API_KEY?: string
   MODEL_AGGRESSIVE_FAST: string
   MODEL_VLM: string
   MODEL_FAST: string
@@ -174,3 +177,4 @@ export interface SettingsData {
   VRAM_ARBITRATION_ENABLED: boolean
   available_ollama_models?: string[]
 }
+

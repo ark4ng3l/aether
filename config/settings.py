@@ -15,10 +15,13 @@ class Settings(BaseSettings):
     """
     model_config = SettingsConfigDict(env_prefix="AETHER_")
 
-    # ── Ollama Endpoint ────────────────────────────────────────────────
+    # ── LLM Provider Configuration (Ollama vs Custom / OpenAI-Compatible) ──
+    LLM_PROVIDER: str = "ollama"  # "ollama" | "openai_compatible"
     OLLAMA_BASE_URL: str = "http://localhost:11434"
+    CUSTOM_API_BASE_URL: str = "https://api.openai.com/v1"
+    CUSTOM_API_KEY: str = ""
 
-    # ── Uncensored Local Models Hierarchy ──────────────────────────────
+    # ── Neural Models Hierarchy ─────────────────────────────────────────
     # 1. Ultra-Fast Aggressive Tool Caller (E4B)
     MODEL_AGGRESSIVE_FAST: str = "hf.co/HauhauCS/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive:Q4_K_M"
 

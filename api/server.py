@@ -714,7 +714,10 @@ async def get_status_legacy(seed: str):
 # ── Neural Settings & Model Matrix Endpoints ─────────────────────────────────
 
 class UpdateSettingsRequest(BaseModel):
+    LLM_PROVIDER: Optional[str] = None
     OLLAMA_BASE_URL: Optional[str] = None
+    CUSTOM_API_BASE_URL: Optional[str] = None
+    CUSTOM_API_KEY: Optional[str] = None
     MODEL_AGGRESSIVE_FAST: Optional[str] = None
     MODEL_VLM: Optional[str] = None
     MODEL_FAST: Optional[str] = None
@@ -750,7 +753,10 @@ async def get_settings():
 
     return {
         "settings": {
+            "LLM_PROVIDER": settings.LLM_PROVIDER,
             "OLLAMA_BASE_URL": settings.OLLAMA_BASE_URL,
+            "CUSTOM_API_BASE_URL": settings.CUSTOM_API_BASE_URL,
+            "CUSTOM_API_KEY": settings.CUSTOM_API_KEY,
             "MODEL_AGGRESSIVE_FAST": settings.MODEL_AGGRESSIVE_FAST,
             "MODEL_VLM": settings.MODEL_VLM,
             "MODEL_FAST": settings.MODEL_FAST,

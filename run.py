@@ -1,10 +1,14 @@
 """
 AETHER — run.py
-Unified launcher for CLI and Web modes.
+Unified entry point for Web Dashboard, CLI investigations, Tool executions, and Headless automation.
 
 Usage:
-    python aether/run.py --web              Start FastAPI dashboard (default)
-    python aether/run.py --cli [seed]       Run a CLI investigation
+    python run.py --web                              Start FastAPI Dashboard (default)
+    python run.py --cli [seed]                       Start interactive CLI or run investigation
+    python run.py --scan <target> [--output rep.md]  Headless investigation
+    python run.py --tool <name> [--params '{...}']   Run a single Arsenal tool
+    python run.py --list-tools                       List all 34 registered tools
+    python run.py --config                           Inspect active LLM provider & settings
 """
 
 import argparse
@@ -13,66 +17,93 @@ import sys
 from pathlib import Path
 
 # ── Path bootstrap ────────────────────────────────────────────
-BASE_DIR = Path(__file__).resolve().parent        # aether/
-PARENT_DIR = BASE_DIR.parent                      # project root
-for p in (str(PARENT_DIR), str(BASE_DIR)):
+BASE_DIR = Path(__file__).resolve().parent
+PARENT_DIR = BASE_DIR.parent
+for p in (str(BASE_DIR), str(PARENT_DIR)):
     if p not in sys.path:
         sys.path.insert(0, p)
 
 
-def run_web():
+def run_web(host: str = "127.0.0.1", port: int = 8000):
     """Start the FastAPI dashboard with uvicorn."""
     import uvicorn
     print("Starting AETHER Web Dashboard...")
-    print("  -> http://127.0.0.1:8000")
+    print(f"  -> http://{host}:{port}")
     uvicorn.run(
         "aether.api.server:app",
-        host="127.0.0.1",
-        port=8000,
+        host=host,
+        port=port,
         reload=False,
         log_level="info",
     )
 
 
-def run_cli(seed: str | None = None):
-    """Run a single investigation in the terminal."""
-    from aether.orchestration.engine import OrchestrationEngine
-
-    if not seed:
-        seed = input("Enter investigation seed (e.g. @username, domain.com): ").strip()
-    if not seed:
-        print("No seed provided. Exiting.")
-        sys.exit(1)
-
-    print(f"\nStarting AETHER CLI investigation for: {seed}\n")
-    engine = OrchestrationEngine(target_seed=seed)
-    asyncio.run(engine.run_investigation())
-
-    if engine.dossier:
-        print("\n" + "=" * 60)
-        print(engine.dossier)
-        print("=" * 60)
-    print(f"\nInvestigation complete — {len(engine.state.discovered_entities)} entities found.")
-
-
-# ------------------------------------------------------------------
-
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(
-        description="AETHER — Autonomous Intelligence Engine",
+        description="AETHER — Autonomous Cyber-Intelligence & Neural OSINT Engine",
     )
     group = parser.add_mutually_exclusive_group()
+    group.add_argument("--web", action="store_true", help="Start the FastAPI web dashboard")
     group.add_argument("--cli", nargs="?", const="", metavar="SEED",
-                       help="Run a CLI investigation (optionally with a seed)")
-    group.add_argument("--web", action="store_true", default=True,
-                       help="Start the web dashboard (default)")
+                       help="Run interactive CLI or investigate a seed")
+    group.add_argument("--scan", metavar="TARGET",
+                       help="Run automated investigation on a target")
+    group.add_argument("--tool", metavar="TOOL_NAME",
+                       help="Execute a specific Arsenal tool directly")
+    group.add_argument("--list-tools", action="store_true",
+                       help="List all registered OSINT and Reconnaissance tools")
+    group.add_argument("--config", action="store_true",
+                       help="Display active LLM configuration and model mappings")
+
+    # Modifiers
+    parser.add_argument("--params", default="{}", help="JSON parameters for --tool execution")
+    parser.add_argument("--depth", type=int, default=None, help="Override maximum search depth")
+    parser.add_argument("--output", metavar="FILE", help="Save dossier/report to file")
+    parser.add_argument("--format", choices=["md", "json"], default="md", help="Export format")
+    parser.add_argument("--host", default="127.0.0.1", help="Web dashboard host (default: 127.0.0.1)")
+    parser.add_argument("--port", type=int, default=8000, help="Web dashboard port (default: 8000)")
+
     args = parser.parse_args()
 
+    from aether.cli.main import (
+        cli_scan,
+        cli_run_tool,
+        cli_list_tools,
+        cli_show_config,
+        cli_interactive,
+    )
+
     try:
-        if args.cli is not None:
-            run_cli(args.cli or None)
+        if args.list_tools:
+            cli_list_tools()
+        elif args.config:
+            cli_show_config()
+        elif args.tool:
+            asyncio.run(cli_run_tool(args.tool, args.params))
+        elif args.scan:
+            asyncio.run(cli_scan(
+                target=args.scan,
+                depth=args.depth,
+                output_file=args.output,
+                export_format=args.format,
+            ))
+        elif args.cli is not None:
+            if args.cli:
+                asyncio.run(cli_scan(
+                    target=args.cli,
+                    depth=args.depth,
+                    output_file=args.output,
+                    export_format=args.format,
+                ))
+            else:
+                asyncio.run(cli_interactive())
         else:
-            run_web()
+            # Default to web dashboard
+            run_web(host=args.host, port=args.port)
     except KeyboardInterrupt:
-        print("\nShutting down AETHER...")
+        print("\n[!] AETHER terminated by user.")
         sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()

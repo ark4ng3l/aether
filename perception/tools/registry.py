@@ -61,9 +61,7 @@ class BaseTool:
 
 class ToolRegistry:
     """Dynamic registry for tool discovery by the reasoning engine."""
-
-    def __init__(self):
-        self._tools: Dict[str, BaseTool] = {}
+    _tools: Dict[str, BaseTool] = {}
 
     def register(self, tool: BaseTool):
         self._tools[tool.name] = tool

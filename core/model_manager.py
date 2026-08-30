@@ -1,6 +1,7 @@
 """
-ModelManager — handles all Ollama LLM communication with VRAM-safe locking
-and real-time token streaming for all 6 uncensored local models on NVIDIA RTX 4070.
+ModelManager — handles LLM communication supporting both:
+  1. Local Ollama instances with VRAM-safe arbitration and real-time streaming.
+  2. Custom / Remote OpenAI-compatible endpoints (vLLM, LMStudio, OpenRouter, DeepSeek, Together, Groq, etc.).
 """
 
 import asyncio
@@ -21,7 +22,7 @@ from aether.core.events import event_bus
 # ---------------------------------------------------------------------------
 
 class _NullLock:
-    """No-op async context manager — replaces heavy lock for lightweight models."""
+    """No-op async context manager — replaces heavy lock for lightweight or cloud models."""
     async def __aenter__(self):
         return self
 
@@ -35,32 +36,40 @@ class _NullLock:
 
 class ModelManager:
     """
-    Handles communication with Ollama across 6 uncensored local models:
-      1. Gemma 4 E4B (Ultra-Fast Aggressive)
-      2. Qwen3 VL 8B (Vision / OCR)
-      3. Gemma 4 12B (Fast Heuristic Planning)
-      4. Gemma 4 26B (Adversarial Critic)
-      5. Gemma 4 31B (Deep Reasoning Fallback)
-      6. Hermes 3.6 Genesis 35B (Deep Abductive Reasoning & Dossier)
+    Unified LLM Controller with VRAM protection, stream broadcasting,
+    and hybrid provider support (Ollama & OpenAI-Compatible Custom APIs).
     """
 
     def __init__(self):
-        self.base_url = settings.OLLAMA_BASE_URL
         self._heavy_model_lock = asyncio.Lock()
         self._client: Optional[httpx.AsyncClient] = None
+        self._current_base_url: Optional[str] = None
         self.current_telemetry: Dict[str, Any] = {
             "active_model": None,
             "role": "Ready",
+            "provider": getattr(settings, "LLM_PROVIDER", "ollama"),
             "vram_locked": False,
             "status": "ready",
             "last_latency": 0.0,
         }
 
     def _get_client(self) -> httpx.AsyncClient:
-        if self._client is None or self._client.is_closed:
+        provider = getattr(settings, "LLM_PROVIDER", "ollama").lower()
+        if provider == "openai_compatible":
+            base_url = settings.CUSTOM_API_BASE_URL.rstrip("/")
+            headers = {"Content-Type": "application/json"}
+            if settings.CUSTOM_API_KEY:
+                headers["Authorization"] = f"Bearer {settings.CUSTOM_API_KEY}"
+        else:
+            base_url = settings.OLLAMA_BASE_URL.rstrip("/")
+            headers = {}
+
+        if self._client is None or self._client.is_closed or self._current_base_url != base_url:
+            self._current_base_url = base_url
             self._client = httpx.AsyncClient(
-                base_url=self.base_url,
-                timeout=httpx.Timeout(connect=10.0, read=300.0, write=30.0, pool=10.0),
+                base_url=base_url,
+                headers=headers,
+                timeout=httpx.Timeout(connect=15.0, read=300.0, write=30.0, pool=10.0),
             )
         return self._client
 
@@ -79,33 +88,34 @@ class ModelManager:
         on_token: Optional[Callable[[str], None]] = None,
     ) -> Union[str, BaseModel]:
         """
-        Dispatches request to uncensored Ollama model with VRAM lock protection
-        and real-time token streaming over WebSocket event bus.
+        Dispatches request to LLM (Ollama or OpenAI-Compatible Custom API)
+        with VRAM locking and real-time streaming.
         """
+        provider = getattr(settings, "LLM_PROVIDER", "ollama").lower()
         target_model = model or settings.MODEL_FAST
-        
-        # Heavy models (≥ 26B parameters) require single sequential VRAM lock
+
+        # Local VRAM locking only applies to local Ollama on heavy models
         heavy_models = {
             settings.MODEL_DEEP,
             settings.MODEL_DEEP_31B,
             settings.MODEL_CRITIC,
             settings.MODEL_DEEP_FALLBACK,
         }
-        use_lock = is_heavy or target_model in heavy_models
+        use_lock = (provider == "ollama") and (is_heavy or target_model in heavy_models)
 
         # Role mapping for HUD
         if target_model == settings.MODEL_DEEP:
-            role_name = "Hermes 35B [Deep Abductive Reasoning]"
+            role_name = "Deep Abductive Reasoning"
         elif target_model == settings.MODEL_DEEP_31B:
-            role_name = "Gemma4 31B [Heavy Reasoning Fallback]"
+            role_name = "Heavy Reasoning Fallback"
         elif target_model == settings.MODEL_CRITIC:
-            role_name = "Gemma4 26B [Adversarial Refutation Critic]"
+            role_name = "Adversarial Refutation Critic"
         elif target_model == settings.MODEL_FAST:
-            role_name = "Gemma4 12B [Fast Heuristic Planner]"
+            role_name = "Fast Heuristic Planner"
         elif target_model == settings.MODEL_AGGRESSIVE_FAST:
-            role_name = "Gemma4 E4B [Aggressive Tool Extractor]"
+            role_name = "Aggressive Tool Extractor"
         elif target_model == settings.MODEL_VLM:
-            role_name = "Qwen3 VL 8B [Vision / OCR]"
+            role_name = "Vision / OCR Engine"
         else:
             role_name = "Neural Engine"
 
@@ -115,6 +125,7 @@ class ModelManager:
         self.current_telemetry = {
             "active_model": short_name,
             "full_model": target_model,
+            "provider": provider,
             "role": role_name,
             "task_label": task_label,
             "vram_locked": use_lock,
@@ -136,9 +147,14 @@ class ModelManager:
                     "data": self.current_telemetry,
                 })
 
-            result = await self._call_streaming(
-                target_model, prompt, response_format, temperature, on_token
-            )
+            if provider == "openai_compatible":
+                result = await self._call_openai_compatible(
+                    target_model, prompt, response_format, temperature, on_token
+                )
+            else:
+                result = await self._call_ollama(
+                    target_model, prompt, response_format, temperature, on_token
+                )
 
         latency = round(time.time() - start_time, 2)
         self.current_telemetry["status"] = "idle"
@@ -153,10 +169,10 @@ class ModelManager:
         return result
 
     # ------------------------------------------------------------------
-    # Streaming Internals
+    # Ollama Streaming
     # ------------------------------------------------------------------
 
-    async def _call_streaming(
+    async def _call_ollama(
         self,
         target_model: str,
         prompt: str,
@@ -192,7 +208,6 @@ class ModelManager:
                             collected_tokens.append(token)
                             if on_token:
                                 on_token(token)
-                            # Broadcast real-time token stream in chunks
                             if len(collected_tokens) % 3 == 0 or chunk.get("done", False):
                                 current_text = "".join(collected_tokens)
                                 await event_bus.emit_global({
@@ -208,7 +223,6 @@ class ModelManager:
 
             raw_text = "".join(collected_tokens)
 
-            # Final thought emission
             await event_bus.emit_global({
                 "type": "ai_thought_stream",
                 "data": {
@@ -222,13 +236,91 @@ class ModelManager:
             return raw_text
 
         except Exception as exc:
-            logger.error(f"Model {target_model} failed: {exc}")
-            # Fallback chain: Hermes 35B -> Gemma 31B -> Gemma 26B
+            logger.error(f"Ollama Model {target_model} failed: {exc}")
             if target_model == settings.MODEL_DEEP:
-                logger.warning(f"Falling back from Hermes 35B to {settings.MODEL_DEEP_FALLBACK}")
-                return await self._call_streaming(
+                logger.warning(f"Falling back to {settings.MODEL_DEEP_FALLBACK}")
+                return await self._call_ollama(
                     settings.MODEL_DEEP_FALLBACK, prompt, response_format, temperature, on_token
                 )
+            raise
+
+    # ------------------------------------------------------------------
+    # Custom / OpenAI-Compatible API Streaming
+    # ------------------------------------------------------------------
+
+    async def _call_openai_compatible(
+        self,
+        target_model: str,
+        prompt: str,
+        response_format: Optional[Type[BaseModel]],
+        temperature: float,
+        on_token: Optional[Callable[[str], None]] = None,
+    ) -> Union[str, BaseModel]:
+        client = self._get_client()
+        payload: dict = {
+            "model": target_model,
+            "messages": [
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": temperature,
+            "stream": True,
+        }
+
+        if response_format is not None:
+            payload["response_format"] = {"type": "json_object"}
+
+        short_model = target_model.split("/")[-1].split(":")[0]
+        collected_tokens = []
+
+        try:
+            async with client.stream("POST", "/chat/completions", json=payload) as response:
+                response.raise_for_status()
+                async for line in response.aiter_lines():
+                    if not line:
+                        continue
+                    if line.startswith("data: "):
+                        data_str = line[6:].strip()
+                        if data_str == "[DONE]":
+                            break
+                        try:
+                            chunk = json.loads(data_str)
+                            choices = chunk.get("choices", [])
+                            if choices:
+                                delta = choices[0].get("delta", {})
+                                token = delta.get("content", "")
+                                if token:
+                                    collected_tokens.append(token)
+                                    if on_token:
+                                        on_token(token)
+                                    if len(collected_tokens) % 3 == 0:
+                                        current_text = "".join(collected_tokens)
+                                        await event_bus.emit_global({
+                                            "type": "ai_thought_stream",
+                                            "data": {
+                                                "model": short_model,
+                                                "thought": current_text[-400:],
+                                                "full_preview": current_text[:400],
+                                            },
+                                        })
+                        except Exception:
+                            continue
+
+            raw_text = "".join(collected_tokens)
+
+            await event_bus.emit_global({
+                "type": "ai_thought_stream",
+                "data": {
+                    "model": short_model,
+                    "thought": raw_text[:500],
+                },
+            })
+
+            if response_format is not None:
+                return self._parse_json(raw_text, response_format)
+            return raw_text
+
+        except Exception as exc:
+            logger.error(f"Custom OpenAI API model {target_model} failed: {exc}")
             raise
 
     # ------------------------------------------------------------------
