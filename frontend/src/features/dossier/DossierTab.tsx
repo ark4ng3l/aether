@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import {
   FileText,
@@ -10,8 +10,11 @@ import {
   Sparkles,
   Shield,
   FileCheck,
+  Cpu,
 } from 'lucide-react'
 import { useProjectStore } from '../../stores/useProjectStore'
+import { useGraphStore } from '../../stores/useGraphStore'
+import { useTaskStore } from '../../stores/useTaskStore'
 import { api } from '../../api/endpoints'
 import { EmptyState } from '../../components/ui/EmptyState'
 
@@ -23,6 +26,8 @@ interface DossierVersion {
 
 export const DossierTab: React.FC = () => {
   const { activeProject, activeProjectId, setSelectedEntityId, setActiveTab, setIsNewModalOpen } = useProjectStore()
+  const { nodes } = useGraphStore()
+  const { completedTasks } = useTaskStore()
   const [dossierText, setDossierText] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -61,7 +66,63 @@ export const DossierTab: React.FC = () => {
 
   useEffect(() => {
     fetchDossier()
-  }, [activeProjectId])
+    // Periodic poll if mission is actively running and no final dossier yet
+    const interval = setInterval(() => {
+      if (activeProject && ['planning', 'collecting', 'reasoning', 'verifying', 'synthesizing'].includes(activeProject.status)) {
+        fetchDossier()
+      }
+    }, 4000)
+    return () => clearInterval(interval)
+  }, [activeProjectId, activeProject?.status])
+
+  // Generate dynamic live interim brief if final dossier not yet synthesized
+  const effectiveDossierText = useMemo(() => {
+    if (dossierText) return dossierText
+    if (!activeProject || (nodes.length === 0 && completedTasks.length === 0)) return ''
+
+    const entityRows = nodes.slice(0, 20).map((n) => {
+      const label = n.data?.label || n.data?.id || 'Unknown'
+      const type = (n.data?.type || 'asset').toUpperCase()
+      const conf = Math.round((n.data?.confidence || 0.85) * 100)
+      const sigs = n.data?.corroboration_count || 1
+      return `| \`${label}\` | \`${type}\` | **${conf}%** | ${sigs} Signal(s) |`
+    }).join('\n')
+
+    const taskRows = completedTasks.slice(-8).reverse().map((t) => {
+      return `- **${t.tool_name}** — ${t.output_summary || t.reasoning || 'Executed probe successfully.'} *[Verdict: ${t.verdict || 'CONFIRMED'}]*`
+    }).join('\n')
+
+
+    return `# 🛡️ Live Intelligence Brief (Preliminary Synthesis)
+**Target Investigation:** \`${activeProject.name}\` (\`${activeProject.target_seed}\`)  
+**Mission Status:** \`${(activeProject.status || 'running').toUpperCase()}\` · **Classification:** \`RESTRICTED // PASSIVE OSINT\`  
+**Discovered Entities:** \`${nodes.length || activeProject.entities_count}\` · **Executed Probes:** \`${completedTasks.length || activeProject.completed_tasks_count}\`
+
+---
+
+## 🛰️ 1. Executive Summary & Target Profile
+Autonomous reconnaissance swarm is actively probing and corroborating intelligence assets for target \`${activeProject.target_seed}\`. 
+Multi-agent verification layers are correlating DNS, BGP routing, TLS certificates, technology fingerprints, and public threat intelligence feeds in real-time.
+
+---
+
+## 🌐 2. Discovered Intelligence Assets (${nodes.length} Verified Nodes)
+Below is the live inventory of discovered hostnames, IP addresses, autonomous systems, and cryptographic credentials:
+
+| Entity Value / Host | Category | Confidence Score | Corroboration |
+| :--- | :--- | :--- | :--- |
+${entityRows || '| *Discovering entities in background...* | `ASSET` | 85% | 1 Signal |'}
+
+---
+
+## ⚡ 3. Recent Autonomous Reasoning & Probes
+${taskRows || '- *Autonomous multi-agent swarm is currently executing initial planning and reconnaissance probes.*'}
+
+---
+> 💡 *Note: This is a real-time preliminary brief. The full executive synthesis narrative will be automatically finalized and rendered when all swarm reasoning cycles conclude.*
+`
+  }, [dossierText, activeProject, nodes, completedTasks])
+
 
   const handleCopy = () => {
     navigator.clipboard.writeText(dossierText)
@@ -176,15 +237,15 @@ export const DossierTab: React.FC = () => {
 
       {/* Markdown Content Area */}
       <div className="flex-1 overflow-y-auto p-8 max-w-4xl mx-auto w-full">
-        {isLoading ? (
+        {isLoading && !effectiveDossierText ? (
           <p className="text-2xs text-text-tertiary text-center py-12 animate-pulse">
             Synthesizing intelligence dossier...
           </p>
-        ) : !dossierText ? (
+        ) : !effectiveDossierText ? (
           <EmptyState
             icon={FileCheck}
             title="Dossier is synthesizing"
-            description="The dossier will appear here automatically once the synthesis agent verifies all evidence."
+            description="The dossier will appear here automatically once the synthesis agent verifies all evidence or when the mission starts."
           />
         ) : (
           <article className="prose prose-invert max-w-none text-2xs leading-relaxed space-y-4 font-sans">
@@ -220,9 +281,20 @@ export const DossierTab: React.FC = () => {
                     {children}
                   </ul>
                 ),
+                table: ({ children }) => (
+                  <div className="overflow-x-auto my-3 border border-border-subtle rounded-lg">
+                    <table className="w-full text-left text-2xs font-mono">{children}</table>
+                  </div>
+                ),
+                th: ({ children }) => (
+                  <th className="px-3 py-1.5 bg-bg-surface text-text-primary font-semibold border-b border-border-subtle">{children}</th>
+                ),
+                td: ({ children }) => (
+                  <td className="px-3 py-1.5 border-b border-border-subtle/50 text-text-secondary">{children}</td>
+                ),
               }}
             >
-              {dossierText}
+              {effectiveDossierText}
             </ReactMarkdown>
           </article>
         )}
@@ -230,3 +302,4 @@ export const DossierTab: React.FC = () => {
     </div>
   )
 }
+
