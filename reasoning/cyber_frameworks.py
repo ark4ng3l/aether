@@ -91,10 +91,30 @@ class CyberFrameworksEngine:
         "D3-MTA": {"name": "Money Movement Anomaly Detection", "target": "F1020"},
     }
 
+    ATLAS_AI_TECHNIQUES: Dict[str, Dict[str, str]] = {
+        "AML.T0051": {"name": "LLM Prompt Injection", "tactic": "Initial Access & Execution"},
+        "AML.T0051.000": {"name": "Direct Prompt Injection / Jailbreak", "tactic": "Execution"},
+        "AML.T0051.001": {"name": "Indirect Prompt Injection via Web Content", "tactic": "Execution"},
+        "AML.T0018": {"name": "Backdoor / Training Data Poisoning", "tactic": "Persistence"},
+        "AML.T0015": {"name": "Adversarial Model Evasion", "tactic": "Defense Evasion"},
+        "AML.T0040": {"name": "ML Model Extraction & Weight Scraping", "tactic": "Exfiltration"},
+        "AML.T0043": {"name": "Adversarial Context & RAG Manipulation", "tactic": "Execution"},
+        "AML.T0024": {"name": "Insecure Output Handling", "tactic": "Impact"},
+    }
+
+    NIST_CSF2_FUNCTIONS: Dict[str, Dict[str, str]] = {
+        "GV": {"name": "Govern", "desc": "Organizational context, risk strategy, policy"},
+        "ID": {"name": "Identify", "desc": "Asset management, vulnerability discovery, risk assessment"},
+        "PR": {"name": "Protect", "desc": "Access control, data security, platform defense"},
+        "DE": {"name": "Detect", "desc": "Anomalies, events, continuous monitoring"},
+        "RS": {"name": "Respond", "desc": "Incident management, analysis, mitigation"},
+        "RC": {"name": "Recover", "desc": "Restoration, operational resilience, post-incident review"},
+    }
+
     @classmethod
     def map_findings(cls, findings_summary: str, discovered_types: Optional[List[str]] = None) -> List[FrameworkMapping]:
         """
-        Cognitively maps text findings and entities to MITRE ATT&CK, D3FEND, and F3 techniques.
+        Cognitively maps text findings and entities to MITRE ATT&CK, ATLAS, D3FEND, and F3 techniques.
         """
         mappings: List[FrameworkMapping] = []
         text = findings_summary.lower()
@@ -186,6 +206,16 @@ class CyberFrameworksEngine:
                 evidence="Synthetic persona fabrication or identity resolution match.",
             ))
 
+        # AI & LLM Threat vectors (MITRE ATLAS)
+        if "prompt" in text or "injection" in text or "jailbreak" in text or "llm" in text:
+            mappings.append(FrameworkMapping(
+                framework="MITRE_ATLAS",
+                technique_id="AML.T0051",
+                technique_name=cls.ATLAS_AI_TECHNIQUES["AML.T0051"]["name"],
+                tactic="Execution",
+                evidence="Prompt injection or adversarial LLM input heuristic identified.",
+            ))
+
         return mappings
 
     @classmethod
@@ -211,8 +241,26 @@ class CyberFrameworksEngine:
                     "techniques_count": len(cls.D3FEND_COUNTERMEASURES),
                     "scope": "Defensive Countermeasures & Hardening",
                 },
+                {
+                    "name": "MITRE ATLAS",
+                    "version": "v4.0 (2026)",
+                    "techniques_count": len(cls.ATLAS_AI_TECHNIQUES),
+                    "scope": "Adversarial Threat Landscape for AI & LLM Systems",
+                },
+                {
+                    "name": "NIST CSF",
+                    "version": "2.0",
+                    "techniques_count": len(cls.NIST_CSF2_FUNCTIONS),
+                    "scope": "Govern, Identify, Protect, Detect, Respond, Recover",
+                },
             ],
-            "total_supported_techniques": len(cls.ATTACK_V19_TECHNIQUES) + len(cls.F3_FRAUD_TECHNIQUES) + len(cls.D3FEND_COUNTERMEASURES),
+            "total_supported_techniques": (
+                len(cls.ATTACK_V19_TECHNIQUES)
+                + len(cls.F3_FRAUD_TECHNIQUES)
+                + len(cls.D3FEND_COUNTERMEASURES)
+                + len(cls.ATLAS_AI_TECHNIQUES)
+                + len(cls.NIST_CSF2_FUNCTIONS)
+            ),
         }
 
 

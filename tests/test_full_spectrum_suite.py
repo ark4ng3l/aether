@@ -106,8 +106,8 @@ class TestCyberFrameworks:
     def test_frameworks_summary(self):
         summary = cyber_frameworks.get_matrix_summary()
         assert "frameworks" in summary
-        assert len(summary["frameworks"]) == 3
-        assert summary["total_supported_techniques"] > 20
+        assert len(summary["frameworks"]) == 5
+        assert summary["total_supported_techniques"] > 40
 
 
 class TestSunChronolocator:
@@ -165,3 +165,10 @@ class TestFullSpectrumServerEndpoints:
         resp = client.get("/api/intelligence/frameworks/mitre")
         assert resp.status_code == 200
         assert "frameworks" in resp.json()
+        assert resp.json()["total_supported_techniques"] >= 40
+
+    def test_atlas_ai_framework(self):
+        findings = "Adversary attempted direct prompt injection and adversarial context manipulation on local LLM."
+        mappings = cyber_frameworks.map_findings(findings)
+        assert any(m.framework == "MITRE_ATLAS" for m in mappings)
+        assert any(m.technique_id == "AML.T0051" for m in mappings)

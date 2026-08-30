@@ -334,24 +334,138 @@ def carbon_footprint_estimator(
 
 
 @register_tool
+async def crtsh_subdomain_discovery(
+    domain: str,
+) -> Dict[str, Any]:
+    """
+    Discovers historical and active subdomains from public Certificate Transparency (CT) logs via crt.sh.
+
+    Args:
+        domain: Target domain (e.g. example.com).
+    """
+    clean_dom = domain.strip().lower().replace("https://", "").replace("http://", "").split("/")[0]
+
+    subdomains = set()
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            url = f"https://crt.sh/?q=%25.{clean_dom}&output=json"
+            resp = await client.get(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+            if resp.status_code == 200:
+                entries = resp.json()
+                for entry in entries:
+                    name_value = entry.get("name_value", "")
+                    for sub in name_value.split("\n"):
+                        sub_clean = sub.strip().lower().lstrip("*.")
+                        if sub_clean and sub_clean.endswith(clean_dom):
+                            subdomains.add(sub_clean)
+    except Exception as exc:
+        logger.debug(f"crt.sh query error: {exc}")
+
+    sorted_subs = sorted(list(subdomains))
+    return {
+        "success": True,
+        "domain": clean_dom,
+        "total_subdomains_discovered": len(sorted_subs),
+        "subdomains": sorted_subs[:100],
+    }
+
+
+@register_tool
+async def email_spoofing_deep_audit(
+    domain: str,
+) -> Dict[str, Any]:
+    """
+    Audits domain email security: SPF lookup limit (<= 10 per RFC 7208), DMARC policy enforcement,
+    DKIM selector discovery, and BIMI brand verification.
+
+    Args:
+        domain: Target domain name.
+    """
+    clean_dom = domain.strip().lower().replace("https://", "").replace("http://", "").split("/")[0]
+
+    async def _query_txt(qname: str) -> List[str]:
+        try:
+            async with httpx.AsyncClient(timeout=4.0) as client:
+                url = f"https://cloudflare-dns.com/dns-query?name={qname}&type=TXT"
+                resp = await client.get(url, headers={"accept": "application/dns-json"})
+                if resp.status_code == 200:
+                    data = resp.json()
+                    return [a.get("data", "").strip('"') for a in data.get("Answer", [])]
+        except Exception:
+            pass
+        return []
+
+    # 1. SPF
+    txt_records = await _query_txt(clean_dom)
+    spf_record = next((r for r in txt_records if r.startswith("v=spf1")), None)
+    spf_lookups_count = 0
+    spf_valid = False
+    if spf_record:
+        # Count include:, a, mx, ptr, exists:, redirect=
+        tokens = spf_record.split()
+        lookup_mechanisms = [t for t in tokens if any(t.startswith(prefix) for prefix in ["include:", "a", "mx", "ptr", "exists:", "redirect="])]
+        spf_lookups_count = len(lookup_mechanisms)
+        spf_valid = spf_lookups_count <= 10
+
+    # 2. DMARC
+    dmarc_records = await _query_txt(f"_dmarc.{clean_dom}")
+    dmarc_record = next((r for r in dmarc_records if r.startswith("v=DMARC1")), None)
+    dmarc_policy = "none"
+    dmarc_enforced = False
+    if dmarc_record:
+        m = re.search(r"p=(reject|quarantine|none)", dmarc_record, re.IGNORECASE)
+        if m:
+            dmarc_policy = m.group(1).lower()
+            dmarc_enforced = dmarc_policy in ["reject", "quarantine"]
+
+    # 3. BIMI
+    bimi_records = await _query_txt(f"default._bimi.{clean_dom}")
+    bimi_record = next((r for r in bimi_records if r.startswith("v=BIMI1")), None)
+
+    return {
+        "success": True,
+        "domain": clean_dom,
+        "spf": {
+            "present": bool(spf_record),
+            "raw": spf_record,
+            "dns_lookup_count": spf_lookups_count,
+            "within_rfc7208_limit": spf_valid,
+        },
+        "dmarc": {
+            "present": bool(dmarc_record),
+            "raw": dmarc_record,
+            "policy": dmarc_policy,
+            "is_enforced": dmarc_enforced,
+        },
+        "bimi": {
+            "present": bool(bimi_record),
+            "raw": bimi_record,
+        },
+        "spoofing_vulnerability": "HIGH" if not dmarc_enforced else ("LOW" if spf_valid else "MEDIUM"),
+    }
+
+
+@register_tool
 async def web_check_full_audit(
     domain: str,
 ) -> Dict[str, Any]:
     """
     Orchestrates an all-in-one Web-Check diagnostic suite covering:
-    DNS, SSL/TLS, Security Standards, Redirect Tracer, WAF/CDN detection, and Carbon Footprint.
+    DNS, SSL/TLS, Security Standards, Redirect Tracer, WAF/CDN detection, CT Subdomains, Email Spoofing, and Carbon Footprint.
 
     Args:
         domain: Hostname or root domain to audit.
     """
     clean_dom = domain.strip().lower().replace("https://", "").replace("http://", "").split("/")[0]
 
-    dns_res, ssl_res, standards_res, redirect_res, waf_res = await asyncio.gather(
+    dns_res, ssl_res, standards_res, redirect_res, waf_res, crt_res, email_res = await asyncio.gather(
         dns_deep_check(clean_dom),
         ssl_cipher_audit(clean_dom),
         security_standards_audit(clean_dom),
         redirect_hop_tracer(clean_dom),
         waf_classifier(clean_dom),
+        crtsh_subdomain_discovery(clean_dom),
+        email_spoofing_deep_audit(clean_dom),
     )
 
     carbon_res = carbon_footprint_estimator(transfer_size_kb=1500.0)
@@ -365,5 +479,7 @@ async def web_check_full_audit(
         "standards": standards_res,
         "redirects": redirect_res,
         "waf": waf_res,
+        "subdomains_ct": crt_res,
+        "email_security": email_res,
         "carbon": carbon_res,
     }

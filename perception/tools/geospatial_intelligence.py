@@ -206,3 +206,67 @@ async def corporate_registry_intel(
         "sec_edgar_filings": sec_matches,
         "total_filings_found": len(sec_matches),
     }
+
+
+@register_tool
+async def osm_spatial_query(
+    latitude: float,
+    longitude: float,
+    radius_meters: int = 500,
+    amenity_types: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    """
+    Executes an OpenStreetMap Overpass Turbo query around target coordinates to locate nearby
+    CCTV cameras, cell towers, embassies, banks, police stations, and critical infrastructure.
+
+    Args:
+        latitude: Target center latitude.
+        longitude: Target center longitude.
+        radius_meters: Search radius in meters (default 500m).
+        amenity_types: List of OSM tags (e.g. ['surveillance', 'embassy', 'police', 'bank', 'fuel', 'hospital']).
+    """
+    types = amenity_types or ["surveillance", "embassy", "police", "bank", "fuel", "hospital", "telecom"]
+
+    # Build Overpass QL query
+    amenity_clauses = "".join([f'node["amenity"="{t}"](around:{radius_meters},{latitude},{longitude});' for t in types if t != "surveillance"])
+    surveillance_clause = f'node["man_made"="surveillance"](around:{radius_meters},{latitude},{longitude});'
+    telecom_clause = f'node["man_made"="mast"](around:{radius_meters},{latitude},{longitude});'
+
+    overpass_query = f"""
+    [out:json][timeout:10];
+    (
+      {amenity_clauses}
+      {surveillance_clause}
+      {telecom_clause}
+    );
+    out body 25;
+    """
+
+    found_nodes = []
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post("https://overpass-api.de/api/interpreter", data={"data": overpass_query})
+            if resp.status_code == 200:
+                elements = resp.json().get("elements", [])
+                for el in elements:
+                    tags = el.get("tags", {})
+                    found_nodes.append({
+                        "id": el.get("id"),
+                        "lat": el.get("lat"),
+                        "lon": el.get("lon"),
+                        "name": tags.get("name", "Unnamed Facility"),
+                        "type": tags.get("amenity") or tags.get("man_made", "infrastructure"),
+                        "operator": tags.get("operator"),
+                        "surveillance_type": tags.get("surveillance:type"),
+                    })
+    except Exception as exc:
+        logger.debug(f"Overpass query error: {exc}")
+
+    return {
+        "success": True,
+        "center_latitude": latitude,
+        "center_longitude": longitude,
+        "radius_meters": radius_meters,
+        "total_infrastructure_nodes_found": len(found_nodes),
+        "nodes": found_nodes,
+    }

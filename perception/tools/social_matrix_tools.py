@@ -74,16 +74,21 @@ async def social_matrix_scanner(
         if regex_check and not re.match(regex_check, clean_user):
             return None  # Handle invalid for this platform, skip network request
 
-        target_url = config["url"].replace("{}", clean_user)
+        profile_url = config["url"].replace("{}", clean_user)
+        probe_url = config.get("url_probe", profile_url).replace("{}", clean_user)
         err_type = config.get("error_type", "status_code")
         err_code = config.get("error_code", 404)
         err_msg = config.get("error_msg", "")
+        presence_msg = config.get("presence_msg", "")
+        method = config.get("request_method", "GET").upper()
+        custom_headers = config.get("headers", {})
 
         async with semaphore:
             try:
                 headers = {
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
                     "Accept-Language": "en-US,en;q=0.9",
+                    **custom_headers,
                 }
                 async with httpx.AsyncClient(
                     timeout=timeout_sec,
@@ -91,10 +96,25 @@ async def social_matrix_scanner(
                     proxy=proxy,
                     headers=headers,
                 ) as client:
-                    resp = await client.get(target_url)
+                    if method == "POST":
+                        payload = config.get("request_payload", {})
+                        # Replace {} in payload strings
+                        str_payload = json.dumps(payload).replace("{}", clean_user)
+                        resp = await client.post(probe_url, content=str_payload, headers={"Content-Type": "application/json"})
+                    else:
+                        resp = await client.get(probe_url)
+
+                    # Check for WAF/Cloudflare blocks
+                    if resp.status_code in [403, 503] and ("cloudflare" in resp.text.lower() or "challenge" in resp.text.lower()):
+                        return None
 
                     is_found = False
-                    if err_type == "status_code":
+                    confidence = 0.9
+
+                    if presence_msg and presence_msg in resp.text:
+                        is_found = True
+                        confidence = 0.98
+                    elif err_type == "status_code":
                         is_found = (resp.status_code == 200)
                     elif err_type == "message":
                         is_found = (resp.status_code == 200) and (err_msg not in resp.text)
@@ -105,8 +125,11 @@ async def social_matrix_scanner(
                         # Metadata extraction
                         bio = ""
                         real_name = ""
+                        avatar_url = ""
                         bio_regex = config.get("extract_bio_regex")
                         name_regex = config.get("extract_name_regex")
+                        avatar_regex = config.get("extract_avatar_regex", r'\"(?:avatar_url|avatar|profile_image_url)\"\s*:\s*\"([^\"]+)\"')
+
                         if bio_regex:
                             m = re.search(bio_regex, resp.text)
                             if m:
@@ -115,15 +138,31 @@ async def social_matrix_scanner(
                             m = re.search(name_regex, resp.text)
                             if m:
                                 real_name = m.group(1).strip()
+                        if avatar_regex:
+                            m = re.search(avatar_regex, resp.text)
+                            if m:
+                                avatar_url = m.group(1).strip().replace(r"\/", "/")
+
+                        # Extract external links from bio or response
+                        external_links = []
+                        ext_matches = re.findall(r'https?://(?:www\.)?([a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:/[^\s"<>\'\)]*)?)', bio or resp.text[:2000])
+                        for link in ext_matches:
+                            if not any(d in link for d in ["github.com", "google.com", "schema.org", "w3.org"]):
+                                external_links.append(f"https://{link}")
 
                         return {
                             "platform": name,
-                            "url": target_url,
+                            "url": profile_url,
+                            "probe_url": probe_url if probe_url != profile_url else None,
                             "category": cat,
+                            "is_nsfw": config.get("is_nsfw", False),
+                            "confidence": confidence,
                             "status": "claimed",
                             "http_code": resp.status_code,
                             "real_name": real_name or None,
                             "bio": bio or None,
+                            "avatar_url": avatar_url or None,
+                            "discovered_links": external_links[:5] or None,
                         }
             except Exception:
                 pass
