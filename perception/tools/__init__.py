@@ -220,3 +220,41 @@ try:
     registry.register(darkweb_recon_tool)
 except ImportError:
     pass
+
+# ── OSINT Framework Complete Expansion Suite ───────────────────────
+try:
+    from aether.perception.tools.crypto_tools import crypto_tracer_tool
+    registry.register(crypto_tracer_tool)
+except ImportError:
+    pass
+
+try:
+    from aether.perception.tools.transport_tools import geo_transport_tool
+    registry.register(geo_transport_tool)
+except ImportError:
+    pass
+
+try:
+    from aether.perception.tools.sanctions_tools import sanctions_screener_tool
+    registry.register(sanctions_screener_tool)
+except ImportError:
+    pass
+
+try:
+    from aether.perception.tools.advanced_visual_tools import visual_forensics_tool
+    registry.register(visual_forensics_tool)
+except ImportError:
+    pass
+
+try:
+    from aether.perception.tools.paste_tools import paste_hunter_tool
+    registry.register(paste_hunter_tool)
+except ImportError:
+    pass
+
+try:
+    from aether.perception.tools.reverse_whois_tools import reverse_whois_tool
+    registry.register(reverse_whois_tool)
+except ImportError:
+    pass
+

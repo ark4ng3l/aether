@@ -650,6 +650,20 @@ class OrchestrationEngine:
         for cve in cves:
             self._add_sub_entity(cve.upper(), EntityType.CVE, parent_id, RelationshipType.ASSOCIATED_WITH, task_step)
 
+        # 6. Cryptocurrency Wallet Addresses (ETH, BTC, TRON)
+        eth_addrs = set(re.findall(r'\b0x[a-fA-F0-9]{40}\b', text))
+        for eth in eth_addrs:
+            self._add_sub_entity(eth, EntityType.CRYPTO_WALLET, parent_id, RelationshipType.ASSOCIATED_WITH, task_step)
+
+        btc_addrs = set(re.findall(r'\b(?:[13][a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-z0-9]{38,59})\b', text))
+        for btc in btc_addrs:
+            if not btc.startswith("127."):
+                self._add_sub_entity(btc, EntityType.CRYPTO_WALLET, parent_id, RelationshipType.ASSOCIATED_WITH, task_step)
+
+        trx_addrs = set(re.findall(r'\bT[A-Za-z1-9]{33}\b', text))
+        for trx in trx_addrs:
+            self._add_sub_entity(trx, EntityType.CRYPTO_WALLET, parent_id, RelationshipType.ASSOCIATED_WITH, task_step)
+
     def _add_sub_entity(
         self, entity_id: str, entity_type: EntityType,
         parent_id: str, rel_type: RelationshipType,

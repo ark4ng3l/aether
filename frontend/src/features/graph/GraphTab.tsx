@@ -16,6 +16,10 @@ import {
   Mail,
   User,
   Terminal,
+  Coins,
+  Plane,
+  FileText,
+  Layers,
 } from 'lucide-react'
 import { useProjectStore } from '../../stores/useProjectStore'
 import { useGraphStore } from '../../stores/useGraphStore'
@@ -392,7 +396,82 @@ export const GraphTab: React.FC = () => {
                   <Lock className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
                   <span>Pivot: Cert Transparency</span>
                 </button>
+                <button
+                  onClick={async () => {
+                    setContextMenu((prev) => ({ ...prev, visible: false }))
+                    if (!activeProjectId) return
+                    await api.executeToolDirect(activeProjectId, 'reverse_whois_matrix', { identifier: contextMenu.nodeId })
+                    const g = await api.getProjectGraph(activeProjectId)
+                    setGraphData(g)
+                  }}
+                  className="w-full px-3 py-1.5 flex items-center gap-2 hover:bg-bg-canvas text-left text-text-primary group"
+                >
+                  <Layers className="w-3.5 h-3.5 text-indigo-400 group-hover:scale-110 transition-transform" />
+                  <span>Pivot: Reverse WHOIS</span>
+                </button>
+                <button
+                  onClick={async () => {
+                    setContextMenu((prev) => ({ ...prev, visible: false }))
+                    if (!activeProjectId) return
+                    await api.executeToolDirect(activeProjectId, 'paste_dump_hunter', { query: contextMenu.nodeId })
+                    const g = await api.getProjectGraph(activeProjectId)
+                    setGraphData(g)
+                  }}
+                  className="w-full px-3 py-1.5 flex items-center gap-2 hover:bg-bg-canvas text-left text-text-primary group"
+                >
+                  <FileText className="w-3.5 h-3.5 text-rose-400 group-hover:scale-110 transition-transform" />
+                  <span>Pivot: Leaked Pastes</span>
+                </button>
               </>
+            )}
+
+            {/* Crypto Wallet Pivots */}
+            {contextMenu.nodeData?.type === 'crypto_wallet' && (
+              <>
+                <button
+                  onClick={async () => {
+                    setContextMenu((prev) => ({ ...prev, visible: false }))
+                    if (!activeProjectId) return
+                    await api.executeToolDirect(activeProjectId, 'crypto_tracer', { address: contextMenu.nodeId })
+                    const g = await api.getProjectGraph(activeProjectId)
+                    setGraphData(g)
+                  }}
+                  className="w-full px-3 py-1.5 flex items-center gap-2 hover:bg-bg-canvas text-left text-text-primary group"
+                >
+                  <Coins className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
+                  <span>Pivot: Trace Blockchain</span>
+                </button>
+                <button
+                  onClick={async () => {
+                    setContextMenu((prev) => ({ ...prev, visible: false }))
+                    if (!activeProjectId) return
+                    await api.executeToolDirect(activeProjectId, 'sanctions_pep_screener', { name: contextMenu.nodeId })
+                    const g = await api.getProjectGraph(activeProjectId)
+                    setGraphData(g)
+                  }}
+                  className="w-full px-3 py-1.5 flex items-center gap-2 hover:bg-bg-canvas text-left text-text-primary group"
+                >
+                  <Shield className="w-3.5 h-3.5 text-rose-400 group-hover:scale-110 transition-transform" />
+                  <span>Pivot: Sanctions Screening</span>
+                </button>
+              </>
+            )}
+
+            {/* Aircraft / Vessel Pivots */}
+            {(contextMenu.nodeData?.type === 'aircraft' || contextMenu.nodeData?.type === 'vessel') && (
+              <button
+                onClick={async () => {
+                  setContextMenu((prev) => ({ ...prev, visible: false }))
+                  if (!activeProjectId) return
+                  await api.executeToolDirect(activeProjectId, 'geo_transport_tracker', { identifier: contextMenu.nodeId })
+                  const g = await api.getProjectGraph(activeProjectId)
+                  setGraphData(g)
+                }}
+                className="w-full px-3 py-1.5 flex items-center gap-2 hover:bg-bg-canvas text-left text-text-primary group"
+              >
+                <Plane className="w-3.5 h-3.5 text-sky-400 group-hover:scale-110 transition-transform" />
+                <span>Pivot: Live Radar Tracking</span>
+              </button>
             )}
 
             {/* Email Specific Pivots */}
@@ -424,11 +503,24 @@ export const GraphTab: React.FC = () => {
                   <Skull className="w-3.5 h-3.5 text-purple-400 group-hover:scale-110 transition-transform" />
                   <span>Pivot: Dark Web Leaks</span>
                 </button>
+                <button
+                  onClick={async () => {
+                    setContextMenu((prev) => ({ ...prev, visible: false }))
+                    if (!activeProjectId) return
+                    await api.executeToolDirect(activeProjectId, 'paste_dump_hunter', { query: contextMenu.nodeId })
+                    const g = await api.getProjectGraph(activeProjectId)
+                    setGraphData(g)
+                  }}
+                  className="w-full px-3 py-1.5 flex items-center gap-2 hover:bg-bg-canvas text-left text-text-primary group"
+                >
+                  <FileText className="w-3.5 h-3.5 text-rose-400 group-hover:scale-110 transition-transform" />
+                  <span>Pivot: Leaked Pastes</span>
+                </button>
               </>
             )}
 
-            {/* Social / Person Pivots */}
-            {(contextMenu.nodeData?.type === 'social_handle' || contextMenu.nodeData?.type === 'person') && (
+            {/* Social / Person / Company Pivots */}
+            {(contextMenu.nodeData?.type === 'social_handle' || contextMenu.nodeData?.type === 'person' || contextMenu.nodeData?.type === 'company') && (
               <>
                 <button
                   onClick={async () => {
@@ -442,6 +534,19 @@ export const GraphTab: React.FC = () => {
                 >
                   <User className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
                   <span>Pivot: Deep Social Matrix</span>
+                </button>
+                <button
+                  onClick={async () => {
+                    setContextMenu((prev) => ({ ...prev, visible: false }))
+                    if (!activeProjectId) return
+                    await api.executeToolDirect(activeProjectId, 'sanctions_pep_screener', { name: contextMenu.nodeId })
+                    const g = await api.getProjectGraph(activeProjectId)
+                    setGraphData(g)
+                  }}
+                  className="w-full px-3 py-1.5 flex items-center gap-2 hover:bg-bg-canvas text-left text-text-primary group"
+                >
+                  <Shield className="w-3.5 h-3.5 text-rose-400 group-hover:scale-110 transition-transform" />
+                  <span>Pivot: Sanctions Screening</span>
                 </button>
                 <button
                   onClick={async () => {

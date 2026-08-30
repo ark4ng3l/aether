@@ -25,6 +25,10 @@ class EntityType(str, Enum):
     CVE = "cve"
     ATTACK_PATTERN = "attack_pattern"
     THREAT_ACTOR = "threat_actor"
+    CRYPTO_WALLET = "crypto_wallet"
+    VESSEL = "vessel"
+    AIRCRAFT = "aircraft"
+    SANCTION = "sanction"
     UNKNOWN = "unknown"
 
 
