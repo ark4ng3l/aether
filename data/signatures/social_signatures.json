@@ -1,0 +1,358 @@
+{
+  "version": "2.1.0",
+  "total_platforms": 60,
+  "platforms": {
+    "GitHub": {
+      "url": "https://github.com/{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$",
+      "category": "coding",
+      "extract_bio_regex": "<div class=\"p-note user-profile-bio[^\"]*\"><div>([^<]+)</div>",
+      "extract_name_regex": "<span class=\"p-name vcard-fullname d-block overflow-hidden\" itemprop=\"name\">([^<]+)</span>"
+    },
+    "GitLab": {
+      "url": "https://gitlab.com/{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_.-]+$",
+      "category": "coding"
+    },
+    "Twitter": {
+      "url": "https://x.com/{}",
+      "error_type": "message",
+      "error_msg": "This account doesn’t exist",
+      "regex_check": "^[a-zA-Z0-9_]{1,15}$",
+      "category": "social"
+    },
+    "Reddit": {
+      "url": "https://www.reddit.com/user/{}/about.json",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_-]{3,20}$",
+      "category": "social"
+    },
+    "Telegram": {
+      "url": "https://t.me/{}",
+      "error_type": "message",
+      "error_msg": "If you have <strong>Telegram</strong>, you can contact",
+      "regex_check": "^[a-zA-Z0-9_]{5,32}$",
+      "category": "messaging"
+    },
+    "Instagram": {
+      "url": "https://www.instagram.com/{}/",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9._]{1,30}$",
+      "category": "social"
+    },
+    "Keybase": {
+      "url": "https://keybase.io/{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_]{2,16}$",
+      "category": "security"
+    },
+    "Steam": {
+      "url": "https://steamcommunity.com/id/{}",
+      "error_type": "message",
+      "error_msg": "The specified profile could not be found",
+      "regex_check": "^[a-zA-Z0-9_-]{2,32}$",
+      "category": "gaming"
+    },
+    "Twitch": {
+      "url": "https://www.twitch.tv/{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_]{4,25}$",
+      "category": "gaming"
+    },
+    "Medium": {
+      "url": "https://medium.com/@{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_.-]+$",
+      "category": "social"
+    },
+    "Dev.to": {
+      "url": "https://dev.to/{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_-]+$",
+      "category": "coding"
+    },
+    "HackerNews": {
+      "url": "https://news.ycombinator.com/user?id={}",
+      "error_type": "message",
+      "error_msg": "No such user",
+      "regex_check": "^[a-zA-Z0-9_-]+$",
+      "category": "coding"
+    },
+    "Pinterest": {
+      "url": "https://www.pinterest.com/{}/",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9._]{3,30}$",
+      "category": "social"
+    },
+    "TikTok": {
+      "url": "https://www.tiktok.com/@{}",
+      "error_type": "message",
+      "error_msg": "Couldn't find this account",
+      "regex_check": "^[a-zA-Z0-9._]{2,24}$",
+      "category": "social"
+    },
+    "Vimeo": {
+      "url": "https://vimeo.com/{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_]+$",
+      "category": "creative"
+    },
+    "SoundCloud": {
+      "url": "https://soundcloud.com/{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_-]{3,25}$",
+      "category": "creative"
+    },
+    "Spotify": {
+      "url": "https://open.spotify.com/user/{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_.-]+$",
+      "category": "creative"
+    },
+    "Behance": {
+      "url": "https://www.behance.net/{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_.-]+$",
+      "category": "creative"
+    },
+    "Dribbble": {
+      "url": "https://dribbble.com/{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_-]+$",
+      "category": "creative"
+    },
+    "ArtStation": {
+      "url": "https://www.artstation.com/{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_-]+$",
+      "category": "creative"
+    },
+    "Chess.com": {
+      "url": "https://www.chess.com/member/{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_-]{3,20}$",
+      "category": "gaming"
+    },
+    "Lichess": {
+      "url": "https://lichess.org/@/{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_-]{2,20}$",
+      "category": "gaming"
+    },
+    "Patreon": {
+      "url": "https://www.patreon.com/{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_-]+$",
+      "category": "finance"
+    },
+    "BuyMeACoffee": {
+      "url": "https://www.buymeacoffee.com/{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_.-]+$",
+      "category": "finance"
+    },
+    "Ko-fi": {
+      "url": "https://ko-fi.com/{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_]+$",
+      "category": "finance"
+    },
+    "ProductHunt": {
+      "url": "https://www.producthunt.com/@{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_]+$",
+      "category": "finance"
+    },
+    "Kaggle": {
+      "url": "https://www.kaggle.com/{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_]{3,20}$",
+      "category": "coding"
+    },
+    "LeetCode": {
+      "url": "https://leetcode.com/{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_-]{3,20}$",
+      "category": "coding"
+    },
+    "Codeforces": {
+      "url": "https://codeforces.com/profile/{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_.-]{3,24}$",
+      "category": "coding"
+    },
+    "HackerRank": {
+      "url": "https://www.hackerrank.com/{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_]{2,30}$",
+      "category": "coding"
+    },
+    "NPM": {
+      "url": "https://www.npmjs.com/~{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_.-]+$",
+      "category": "coding"
+    },
+    "PyPI": {
+      "url": "https://pypi.org/user/{}/",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_.-]+$",
+      "category": "coding"
+    },
+    "DockerHub": {
+      "url": "https://hub.docker.com/u/{}/",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9]{4,30}$",
+      "category": "coding"
+    },
+    "TradingView": {
+      "url": "https://www.tradingview.com/u/{}/",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_-]+$",
+      "category": "crypto"
+    },
+    "OpenSea": {
+      "url": "https://opensea.io/{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_-]+$",
+      "category": "crypto"
+    },
+    "Substack": {
+      "url": "https://{}.substack.com",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9-]+$",
+      "category": "social"
+    },
+    "Bluesky": {
+      "url": "https://bsky.app/profile/{}.bsky.social",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9-]+$",
+      "category": "social"
+    },
+    "Mastodon": {
+      "url": "https://mastodon.social/@{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_]+$",
+      "category": "social"
+    },
+    "Disqus": {
+      "url": "https://disqus.com/by/{}/",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_]+$",
+      "category": "social"
+    },
+    "VKontakte": {
+      "url": "https://vk.com/{}",
+      "error_type": "message",
+      "error_msg": "Page not found",
+      "regex_check": "^[a-zA-Z0-9_.]+$",
+      "category": "social"
+    },
+    "Habr": {
+      "url": "https://habr.com/en/users/{}/",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_-]+$",
+      "category": "coding"
+    },
+    "Odnoklassniki": {
+      "url": "https://ok.ru/{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_.]+$",
+      "category": "social"
+    },
+    "AskFM": {
+      "url": "https://ask.fm/{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_]+$",
+      "category": "social"
+    },
+    "Bandcamp": {
+      "url": "https://bandcamp.com/{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_-]+$",
+      "category": "creative"
+    },
+    "Flickr": {
+      "url": "https://www.flickr.com/people/{}/",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_@.-]+$",
+      "category": "creative"
+    },
+    "500px": {
+      "url": "https://500px.com/p/{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_-]+$",
+      "category": "creative"
+    },
+    "DeviantArt": {
+      "url": "https://www.deviantart.com/{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_-]+$",
+      "category": "creative"
+    },
+    "Goodreads": {
+      "url": "https://www.goodreads.com/{}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_-]+$",
+      "category": "social"
+    },
+    "Letterboxd": {
+      "url": "https://letterboxd.com/{}/",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_]{2,15}$",
+      "category": "social"
+    },
+    "Roblox": {
+      "url": "https://www.roblox.com/user.aspx?username={}",
+      "error_type": "status_code",
+      "error_code": 404,
+      "regex_check": "^[a-zA-Z0-9_]{3,20}$",
+      "category": "gaming"
+    }
+  }
+}

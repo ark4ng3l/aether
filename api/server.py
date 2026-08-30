@@ -460,6 +460,81 @@ async def temporal_rhythm_endpoint(payload: Dict[str, Any]):
     return temporal_estimator.estimate_timezone(timestamps)
 
 
+@app.post("/api/intelligence/social-matrix")
+async def social_matrix_endpoint(payload: Dict[str, Any]):
+    """Scans 50+ platforms with tri-detection and regex filters for target username."""
+    from aether.perception.tools.social_matrix_tools import social_matrix_scanner
+    user = payload.get("username", "")
+    cats = payload.get("categories")
+    use_tor = payload.get("use_tor", False)
+    if not user:
+        raise HTTPException(status_code=400, detail="Requires username field")
+    return await social_matrix_scanner(username=user, categories=cats, use_tor=use_tor)
+
+
+@app.post("/api/intelligence/permutations")
+async def permutations_endpoint(payload: Dict[str, Any]):
+    """Generates combinatorial and leetspeak username mutations from identity components."""
+    from aether.reasoning.handle_permutator import handle_permutator
+    return {
+        "success": True,
+        "permutations": handle_permutator.generate(
+            first_name=payload.get("first_name", ""),
+            last_name=payload.get("last_name", ""),
+            handle=payload.get("handle", ""),
+            birth_year=payload.get("birth_year"),
+            company=payload.get("company", ""),
+            limit=payload.get("limit", 50),
+        ),
+    }
+
+
+@app.post("/api/intelligence/avatar-match")
+async def avatar_match_endpoint(payload: Dict[str, Any]):
+    """Compares perceptual image hashes (dHash/aHash) across profiles."""
+    from aether.reasoning.avatar_comparator import avatar_comparator
+    hash_a = payload.get("hash_a", "")
+    hash_b = payload.get("hash_b", "")
+    if not hash_a or not hash_b:
+        raise HTTPException(status_code=400, detail="Requires hash_a and hash_b")
+    return avatar_comparator.compare_hashes(hash_a, hash_b)
+
+
+@app.post("/api/intelligence/web-check")
+async def web_check_endpoint(payload: Dict[str, Any]):
+    """Runs all-in-one Web-Check diagnostic suite (DNS, SSL, Standards, Redirects, WAF, Carbon)."""
+    from aether.perception.tools.web_check_suite import web_check_full_audit
+    domain = payload.get("domain", "")
+    if not domain:
+        raise HTTPException(status_code=400, detail="Requires domain field")
+    return await web_check_full_audit(domain)
+
+
+@app.post("/api/intelligence/chronolocate")
+async def chronolocate_endpoint(payload: Dict[str, Any]):
+    """Calculates solar elevation/azimuth or estimates photo capture time from shadow length."""
+    from aether.perception.tools.geospatial_intelligence import sun_chronolocator
+    lat = payload.get("latitude")
+    lon = payload.get("longitude")
+    if lat is None or lon is None:
+        raise HTTPException(status_code=400, detail="Requires latitude and longitude")
+    return sun_chronolocator(
+        latitude=float(lat),
+        longitude=float(lon),
+        utc_timestamp=payload.get("utc_timestamp"),
+        shadow_length_meters=payload.get("shadow_length_meters"),
+        object_height_meters=payload.get("object_height_meters"),
+        target_date=payload.get("target_date"),
+    )
+
+
+@app.get("/api/intelligence/frameworks/mitre")
+async def get_cyber_frameworks_summary():
+    """Returns MITRE ATT&CK v19.1, D3FEND, and Fight Fraud F3 framework matrix summary."""
+    from aether.reasoning.cyber_frameworks import cyber_frameworks
+    return cyber_frameworks.get_matrix_summary()
+
+
 @app.post("/api/auth/token/regenerate")
 async def regenerate_auth_token():
     """Generates and persists a new Bearer auth token, invalidating the previous one."""

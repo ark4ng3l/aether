@@ -84,3 +84,46 @@ class ToolRegistry:
 
 # Global registry instance
 registry = ToolRegistry()
+
+
+class FunctionTool(BaseTool):
+    """Wraps a standard callable function into an AETHER BaseTool."""
+
+    def __init__(self, func: Callable, name: Optional[str] = None, category: str = "Specialized OSINT", description: Optional[str] = None):
+        t_name = name or func.__name__
+        t_desc = description or (func.__doc__ or "Specialized AETHER analytical tool").strip()
+        super().__init__(name=t_name, description=t_desc, category=category)
+        self.func = func
+
+    async def execute(self, **kwargs) -> ToolResult:
+        import time
+        t0 = time.time()
+        try:
+            if asyncio.iscoroutinefunction(self.func):
+                res = await self.func(**kwargs)
+            else:
+                res = self.func(**kwargs)
+            elapsed = round((time.time() - t0) * 1000, 2)
+            if isinstance(res, dict) and "success" in res:
+                return ToolResult(
+                    success=res.get("success", True),
+                    data=res,
+                    error=res.get("error"),
+                    execution_time_ms=elapsed,
+                )
+            return ToolResult(success=True, data=res, execution_time_ms=elapsed)
+        except Exception as exc:
+            elapsed = round((time.time() - t0) * 1000, 2)
+            return ToolResult(success=False, data=None, error=str(exc), execution_time_ms=elapsed)
+
+
+def register_tool(func_or_tool: Any, category: str = "Specialized OSINT"):
+    """Decorator or function to register a tool into the global registry."""
+    if isinstance(func_or_tool, BaseTool):
+        registry.register(func_or_tool)
+        return func_or_tool
+
+    # Otherwise wrap function
+    tool_instance = FunctionTool(func=func_or_tool, category=category)
+    registry.register(tool_instance)
+    return func_or_tool

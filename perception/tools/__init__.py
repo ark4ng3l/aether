@@ -271,3 +271,11 @@ try:
 except ImportError:
     pass
 
+# ── Full-Spectrum OSINT & Cyber Infrastructure Expansion ────────────
+try:
+    import aether.perception.tools.social_matrix_tools
+    import aether.perception.tools.web_check_suite
+    import aether.perception.tools.geospatial_intelligence
+except ImportError:
+    pass
+
