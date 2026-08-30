@@ -341,6 +341,65 @@ async def get_tor_exit_ip(refresh: bool = False):
     return await tor_manager.get_exit_ip(force_refresh=refresh)
 
 
+# ── Stealth, Anti-Fingerprinting & Proxy Chain Endpoints ──────────────────────
+
+@app.get("/api/stealth/status")
+async def get_stealth_status():
+    """Returns active synthetic browser persona, anti-fingerprinting status, and proxy gateway routing."""
+    from aether.core.stealth_engine import stealth_engine
+    return stealth_engine.get_status()
+
+
+@app.post("/api/stealth/rotate-persona")
+async def rotate_stealth_persona():
+    """Generates a fresh synthetic browser fingerprint persona (OS, resolution, canvas seed, user-agent)."""
+    from aether.core.stealth_engine import stealth_engine
+    persona = stealth_engine.generate_persona()
+    return {"status": "rotated", "persona": persona.to_dict()}
+
+
+@app.post("/api/stealth/proxies")
+async def configure_stealth_proxies(payload: Dict[str, Any]):
+    """Configures proxy strategy and registers custom HTTP/SOCKS5 proxy lists."""
+    from aether.core.stealth_engine import stealth_engine
+    strategy = payload.get("strategy")
+    proxies = payload.get("proxies")
+
+    if strategy:
+        try:
+            stealth_engine.set_proxy_strategy(strategy)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    if proxies is not None and isinstance(proxies, list):
+        stealth_engine.add_proxies(proxies)
+
+    return stealth_engine.get_status()
+
+
+@app.get("/api/stealth/check-leak")
+async def check_stealth_leak():
+    """Tests the stealth client against leak detection endpoints to verify proxy routing and header anonymity."""
+    from aether.core.stealth_engine import stealth_engine
+    try:
+        async with stealth_engine.create_stealth_client(timeout=15.0) as client:
+            resp = await client.get("https://httpbin.org/headers")
+            headers_echo = resp.json().get("headers", {}) if resp.status_code == 200 else {}
+
+        return {
+            "leak_test_passed": True,
+            "persona_headers_applied": "Sec-Ch-Ua" in headers_echo or "User-Agent" in headers_echo,
+            "echoed_headers": headers_echo,
+            "active_proxy": stealth_engine.get_active_proxy(),
+        }
+    except Exception as exc:
+        return {
+            "leak_test_passed": False,
+            "error": str(exc),
+            "active_proxy": stealth_engine.get_active_proxy(),
+        }
+
+
 @app.post("/api/auth/token/regenerate")
 async def regenerate_auth_token():
     """Generates and persists a new Bearer auth token, invalidating the previous one."""

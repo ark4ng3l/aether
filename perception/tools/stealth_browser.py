@@ -67,28 +67,11 @@ class StealthBrowserTool(BaseTool):
         if not target.startswith(("http://", "https://")):
             target = f"https://{target}"
 
-        ua = USER_AGENTS[hash(target) % len(USER_AGENTS)]
-        headers = {
-            "User-Agent": ua,
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Accept-Encoding": "gzip, deflate, br",
-            "DNT": "1",
-            "Connection": "keep-alive",
-            "Upgrade-Insecure-Requests": "1",
-            "Sec-Fetch-Dest": "document",
-            "Sec-Fetch-Mode": "navigate",
-            "Sec-Fetch-Site": "none",
-            "Sec-Fetch-User": "?1",
-        }
+        from aether.core.stealth_engine import stealth_engine
 
         try:
-            async with httpx.AsyncClient(
-                headers=headers,
-                follow_redirects=True,
-                timeout=25.0,
-                verify=False,
-            ) as client:
+            # Create stealth client with dynamic persona headers, anti-fingerprinting, and proxy routing
+            async with stealth_engine.create_stealth_client(timeout=25.0, verify_ssl=False) as client:
                 resp = await client.get(target)
                 html = resp.text
                 status_code = resp.status_code
