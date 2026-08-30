@@ -181,5 +181,31 @@ try:
 except ImportError:
     pass
 
+# ── Persona & Human OSINT Suite (Phase 5) ───────────────────────────
+try:
+    from aether.perception.tools.email_oracle_tools import email_oracle_tool
+    registry.register(email_oracle_tool)
+except ImportError:
+    pass
+
+try:
+    from aether.perception.tools.phone_intel_tools import phone_intel_tool
+    registry.register(phone_intel_tool)
+except ImportError:
+    pass
+
+try:
+    from aether.perception.tools.deep_social_matrix_tools import deep_social_matrix_tool
+    registry.register(deep_social_matrix_tool)
+except ImportError:
+    pass
+
+try:
+    from aether.perception.tools.scholarly_tools import scholarly_intel_tool
+    registry.register(scholarly_intel_tool)
+except ImportError:
+    pass
+
+
 
 
