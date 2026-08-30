@@ -6,7 +6,21 @@ export async function getAuthToken(): Promise<string> {
   if (cachedToken) return cachedToken
 
   if (typeof window !== 'undefined') {
-    // 1. Check URL hash (e.g. #token=abc123...)
+    // 1. Check window global bootstrap tokens
+    if ((window as any).__AETHER_BOOT_TOKEN__) {
+      cachedToken = (window as any).__AETHER_BOOT_TOKEN__
+      localStorage.setItem('aether_auth_token', cachedToken!)
+      return cachedToken!
+    }
+    if ((window as any).__AETHER_BOOTSTRAP__?.token) {
+      cachedToken = (window as any).__AETHER_BOOTSTRAP__.token
+      if (cachedToken) {
+        localStorage.setItem('aether_auth_token', cachedToken)
+        return cachedToken
+      }
+    }
+
+    // 2. Check URL hash (e.g. #token=abc123...)
     if (window.location.hash) {
       const match = window.location.hash.match(/[#&]token=([a-zA-Z0-9_-]+)/)
       if (match && match[1]) {
@@ -16,7 +30,7 @@ export async function getAuthToken(): Promise<string> {
       }
     }
 
-    // 2. Check URL search query parameter (e.g. ?token=abc123...)
+    // 3. Check URL search query parameter (e.g. ?token=abc123...)
     if (window.location.search) {
       const params = new URLSearchParams(window.location.search)
       const qToken = params.get('token')
@@ -27,20 +41,36 @@ export async function getAuthToken(): Promise<string> {
       }
     }
 
-    // 3. Check window bootstrap object
-    if ((window as any).__AETHER_BOOTSTRAP__?.token) {
-      cachedToken = (window as any).__AETHER_BOOTSTRAP__.token
-      if (cachedToken) {
+    // 4. Check document cookies for aether_token
+    if (typeof document !== 'undefined' && document.cookie) {
+      const match = document.cookie.match(/(?:^|;\s*)aether_token=([^;]+)/)
+      if (match && match[1]) {
+        cachedToken = decodeURIComponent(match[1])
         localStorage.setItem('aether_auth_token', cachedToken)
         return cachedToken
       }
     }
 
-    // 4. Check localStorage
+    // 5. Check localStorage
     const stored = localStorage.getItem('aether_auth_token')
     if (stored) {
       cachedToken = stored
       return stored
+    }
+
+    // 6. Direct fallback fetch from local session endpoint
+    try {
+      const res = await fetch('/api/auth/token')
+      if (res.ok) {
+        const data = await res.json()
+        if (data && data.token) {
+          cachedToken = data.token
+          localStorage.setItem('aether_auth_token', cachedToken!)
+          return cachedToken!
+        }
+      }
+    } catch {
+      // ignore
     }
   }
 

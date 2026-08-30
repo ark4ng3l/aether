@@ -14,6 +14,8 @@ import { CognitiveReasoningHUD } from './CognitiveReasoningHUD'
 import { IntelligenceBentoFeed } from './IntelligenceBentoFeed'
 import { MissionTelemetryBar } from './MissionTelemetryBar'
 
+import { showToast } from '../../components/ui/Toast'
+
 export const OverviewTab: React.FC = () => {
   const { activeProject, updateProjectStatus, setIsNewModalOpen } = useProjectStore()
   const { completedTasks, activeTask } = useTaskStore()
@@ -48,8 +50,10 @@ export const OverviewTab: React.FC = () => {
     try {
       await api.runProject(activeProject.id)
       updateProjectStatus(activeProject.id, 'planning')
-    } catch (err) {
+      showToast({ message: `Autonomous mission started for "${activeProject.name}"`, type: 'success' })
+    } catch (err: any) {
       console.error(err)
+      showToast({ message: err?.message || 'Failed to start mission', type: 'error' })
     }
   }
 
@@ -57,8 +61,10 @@ export const OverviewTab: React.FC = () => {
     try {
       await api.stopProject(activeProject.id)
       updateProjectStatus(activeProject.id, 'stopped')
-    } catch (err) {
+      showToast({ message: `Mission stopped for "${activeProject.name}"`, type: 'info' })
+    } catch (err: any) {
       console.error(err)
+      showToast({ message: err?.message || 'Failed to stop mission', type: 'error' })
     }
   }
 

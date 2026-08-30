@@ -1,12 +1,13 @@
 import React, { useState } from 'react'
-import { Plus, X, Shield } from 'lucide-react'
+import { Plus, X, Shield, AlertCircle } from 'lucide-react'
 import { useProjectStore } from '../../stores/useProjectStore'
 import { useLocaleStore } from '../../stores/useLocaleStore'
+import { showToast } from '../../components/ui/Toast'
 import { api } from '../../api/endpoints'
 import { EntityType } from '../../types/api'
 
 export const NewInvestigationModal: React.FC = () => {
-  const { isNewModalOpen, setIsNewModalOpen, setProjects, setActiveProjectId } = useProjectStore()
+  const { isNewModalOpen, setIsNewModalOpen, setProjects, setActiveProjectId, setActiveProject } = useProjectStore()
   const { t } = useLocaleStore()
 
   const [name, setName] = useState('')
@@ -14,18 +15,22 @@ export const NewInvestigationModal: React.FC = () => {
   const [targetType, setTargetType] = useState<EntityType>('domain')
   const [briefing, setBriefing] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   if (!isNewModalOpen) return null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!targetSeed.trim() || isSubmitting) return
+    const cleanSeed = targetSeed.trim()
+    if (!cleanSeed || isSubmitting) return
+
     setIsSubmitting(true)
+    setErrorMsg(null)
 
     try {
       const project = await api.createProject({
-        name: name.trim() || targetSeed.trim(),
-        target_seed: targetSeed.trim(),
+        name: name.trim() || cleanSeed,
+        target_seed: cleanSeed,
         target_type: targetType,
         context_briefing: briefing.trim(),
       })
@@ -34,14 +39,24 @@ export const NewInvestigationModal: React.FC = () => {
       const list = await api.listProjects()
       setProjects(list)
       setActiveProjectId(project.id)
+      setActiveProject(project)
       setIsNewModalOpen(false)
 
       // Reset form
       setName('')
       setTargetSeed('')
       setBriefing('')
-    } catch (err) {
+      setErrorMsg(null)
+
+      showToast({
+        message: `Investigation "${project.name}" initialized successfully.`,
+        type: 'success',
+      })
+    } catch (err: any) {
+      const msg = err?.message || 'Failed to initialize investigation'
       console.error('Failed to create investigation:', err)
+      setErrorMsg(msg)
+      showToast({ message: msg, type: 'error' })
     } finally {
       setIsSubmitting(false)
     }
@@ -75,6 +90,13 @@ export const NewInvestigationModal: React.FC = () => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-4 space-y-4 text-2xs select-text">
+          {errorMsg && (
+            <div className="flex items-center gap-2 p-2.5 rounded bg-status-rejected/10 border border-status-rejected/30 text-status-rejected animate-shake">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span className="text-2xs font-medium">{errorMsg}</span>
+            </div>
+          )}
+
           <div>
             <label className="text-text-secondary block mb-1 font-medium">
               {t('project.targetSeed', 'Target Seed (Domain, IP, Org, Email, Hash)')} *
@@ -84,7 +106,10 @@ export const NewInvestigationModal: React.FC = () => {
               required
               placeholder="e.g. example.com, 185.199.108.153, Acme Corp"
               value={targetSeed}
-              onChange={(e) => setTargetSeed(e.target.value)}
+              onChange={(e) => {
+                setTargetSeed(e.target.value)
+                if (errorMsg) setErrorMsg(null)
+              }}
               className="w-full h-8 px-2.5 bg-bg-canvas border border-border-subtle rounded text-text-primary font-mono-data focus:border-accent focus:ring-0"
               autoFocus
             />

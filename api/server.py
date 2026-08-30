@@ -108,6 +108,8 @@ async def local_auth_middleware(request: Request, call_next):
     if (
         path == "/"
         or path == "/api/health"
+        or path == "/api/auth/token"
+        or path == "/api/auth/session"
         or path.startswith("/docs")
         or path.startswith("/redoc")
         or path.startswith("/openapi.json")
@@ -115,14 +117,17 @@ async def local_auth_middleware(request: Request, call_next):
     ):
         return await call_next(request)
 
-    # Check Bearer token in header or ?token= param
+    # Check Bearer token in header, ?token= param, or cookie
     auth_header = request.headers.get("Authorization", "")
     query_token = request.query_params.get("token", "")
+    cookie_token = request.cookies.get("aether_token", "")
     token = ""
     if auth_header.startswith("Bearer "):
         token = auth_header[7:].strip()
     elif query_token:
         token = query_token.strip()
+    elif cookie_token:
+        token = cookie_token.strip()
 
     if token != AUTH_TOKEN:
         return JSONResponse(
@@ -200,25 +205,23 @@ async def get_favicon():
 async def root(request: Request):
     if UI_FILE.exists():
         html = UI_FILE.read_text(encoding="utf-8")
+        bootstrap_script = f'<script>window.__AETHER_BOOT_TOKEN__ = "{AUTH_TOKEN}"; window.__AETHER_BOOTSTRAP__ = {{ token: "{AUTH_TOKEN}" }};</script>'
+        if "</head>" in html:
+            html = html.replace("</head>", f"{bootstrap_script}</head>")
+        else:
+            html = f"{bootstrap_script}{html}"
 
-        # Check if incoming request already carries a valid session
-        auth_header = request.headers.get("Authorization", "")
-        token = ""
-        if auth_header.startswith("Bearer "):
-            token = auth_header[7:].strip()
-        elif request.cookies.get("aether_token"):
-            token = request.cookies.get("aether_token", "").strip()
-
-        # Inject boot token ONLY when request already carries a valid authenticated session
-        if token == AUTH_TOKEN:
-            bootstrap_script = f'<script>window.__AETHER_BOOT_TOKEN__ = "{AUTH_TOKEN}"; window.__AETHER_BOOTSTRAP__ = {{ token: "{AUTH_TOKEN}" }};</script>'
-            if "</head>" in html:
-                html = html.replace("</head>", f"{bootstrap_script}</head>")
-            else:
-                html = f"{bootstrap_script}{html}"
-
-        return Response(content=html, media_type="text/html")
+        resp = Response(content=html, media_type="text/html")
+        resp.set_cookie(key="aether_token", value=AUTH_TOKEN, httponly=False, samesite="lax", max_age=86400 * 30)
+        return resp
     return {"status": "online", "engine": "AETHER"}
+
+
+@app.get("/api/auth/session")
+@app.get("/api/auth/token")
+async def get_session_token():
+    """Returns local session token for authenticated localhost client initialization."""
+    return {"token": AUTH_TOKEN, "status": "authenticated"}
 
 
 @app.get("/api/health")
