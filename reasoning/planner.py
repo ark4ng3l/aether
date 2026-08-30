@@ -210,7 +210,7 @@ class Planner:
                 params={"email": self.state.target_seed},
                 reasoning="Email Target: Online service oracle & avatar reconnaissance",
             )
-        elif self.state.target_type == EntityType.PHONE_NUMBER:
+        elif self.state.target_type == EntityType.PHONE:
             return PlanAction(
                 action="tool_call",
                 tool_name="phone_intel",

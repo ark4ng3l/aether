@@ -10,7 +10,8 @@ Covers:
 
 import pytest
 from fastapi.testclient import TestClient
-from aether.api.server import app, AUTH_TOKEN
+from aether.api.server import app
+import aether.api.server as server_module
 
 
 @pytest.fixture
@@ -19,8 +20,8 @@ def client():
 
 
 def test_auth_token_endpoint_rejects_unauthenticated(client: TestClient):
-    """GET /api/auth/token must be protected by local auth middleware."""
-    resp = client.get("/api/auth/token")
+    """POST /api/auth/token/regenerate must be protected by local auth middleware."""
+    resp = client.post("/api/auth/token/regenerate")
     assert resp.status_code == 401
     assert "Unauthorized" in resp.json()["detail"]
 
@@ -33,7 +34,7 @@ def test_api_projects_rejects_unauthenticated(client: TestClient):
 
 def test_api_projects_accepts_valid_bearer_token(client: TestClient):
     """Valid Bearer token grants access to protected API endpoints."""
-    headers = {"Authorization": f"Bearer {AUTH_TOKEN}"}
+    headers = {"Authorization": f"Bearer {server_module.AUTH_TOKEN}"}
     resp = client.get("/api/projects", headers=headers)
     assert resp.status_code == 200
     assert "projects" in resp.json()
@@ -44,13 +45,13 @@ def test_root_endpoint_boot_token_injection(client: TestClient):
     # 1. Unauthenticated request -> no token in HTML
     unauth_resp = client.get("/")
     if unauth_resp.status_code == 200 and unauth_resp.headers.get("content-type", "").startswith("text/html"):
-        assert AUTH_TOKEN not in unauth_resp.text
+        assert server_module.AUTH_TOKEN not in unauth_resp.text
 
     # 2. Authenticated request -> contains injected boot script
-    headers = {"Authorization": f"Bearer {AUTH_TOKEN}"}
+    headers = {"Authorization": f"Bearer {server_module.AUTH_TOKEN}"}
     auth_resp = client.get("/", headers=headers)
     if auth_resp.status_code == 200 and auth_resp.headers.get("content-type", "").startswith("text/html"):
-        assert f'window.__AETHER_BOOT_TOKEN__ = "{AUTH_TOKEN}"' in auth_resp.text
+        assert f'window.__AETHER_BOOT_TOKEN__ = "{server_module.AUTH_TOKEN}"' in auth_resp.text
 
 
 def test_websocket_rejects_unauthorized(client: TestClient):

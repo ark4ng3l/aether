@@ -217,7 +217,7 @@ class OrchestrationEngine:
                         f"breach: {seed}",
                         f"search: {seed}",
                     ]
-                elif seed_type == EntityType.PHONE_NUMBER:
+                elif seed_type == EntityType.PHONE:
                     initial_tasks = [
                         f"phone: {seed}",
                         f"search: {seed}",

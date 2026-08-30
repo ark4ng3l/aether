@@ -41,9 +41,12 @@ class CacheEntry:
 
 
 class ResponseCache:
-    """In-memory key-value cache for tool results with per-tool TTLs."""
+    """In-memory key-value cache for tool results with per-tool TTLs and bounded capacity."""
 
-    def __init__(self):
+    MAX_ENTRIES: int = 1000
+
+    def __init__(self, max_entries: int = 1000):
+        self.max_entries = max_entries
         self._store: Dict[str, CacheEntry] = {}
 
     @staticmethod
@@ -51,6 +54,20 @@ class ResponseCache:
         param_str = json.dumps(params, sort_keys=True, default=str)
         digest = hashlib.sha256(f"{tool_name}:{param_str}".encode()).hexdigest()[:16]
         return f"{tool_name}:{digest}"
+
+    def _evict_if_needed(self):
+        now = time.time()
+        # 1. Purge expired keys
+        expired = [k for k, v in self._store.items() if now > v.expires_at]
+        for k in expired:
+            del self._store[k]
+
+        # 2. If still exceeding capacity, evict entries nearest expiration
+        if len(self._store) >= self.max_entries:
+            sorted_entries = sorted(self._store.items(), key=lambda item: item[1].expires_at)
+            overflow = len(self._store) - self.max_entries + 1
+            for k, _ in sorted_entries[:overflow]:
+                del self._store[k]
 
     def get(self, tool_name: str, params: Dict[str, Any]) -> Optional[ToolResult]:
         key = self._make_key(tool_name, params)
@@ -68,6 +85,8 @@ class ResponseCache:
     def set(self, tool_name: str, params: Dict[str, Any], result: ToolResult):
         if not result.success:
             return  # Do not cache failed results
+
+        self._evict_if_needed()
 
         ttl = TOOL_CACHE_TTL.get(tool_name, DEFAULT_CACHE_TTL)
         key = self._make_key(tool_name, params)

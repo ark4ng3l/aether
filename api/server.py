@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import os
 import sys
+import time
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
@@ -62,7 +63,44 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Local Bearer Token Authentication Middleware
+# ── Simple In-Memory Rate Limiting ────────────────────────────────────────────
+class SlidingWindowRateLimiter:
+    def __init__(self, default_limit: int = 120, window_seconds: int = 60):
+        self.default_limit = default_limit
+        self.window_seconds = window_seconds
+        self._requests: Dict[str, List[float]] = {}
+        self._lock = asyncio.Lock()
+
+    async def is_allowed(self, client_ip: str, limit: Optional[int] = None) -> bool:
+        now = time.time()
+        max_reqs = limit or self.default_limit
+        cutoff = now - self.window_seconds
+
+        async with self._lock:
+            history = self._requests.get(client_ip, [])
+            valid_history = [t for t in history if t > cutoff]
+            if len(valid_history) >= max_reqs:
+                self._requests[client_ip] = valid_history
+                return False
+            valid_history.append(now)
+            self._requests[client_ip] = valid_history
+            return True
+
+rate_limiter = SlidingWindowRateLimiter(default_limit=240, window_seconds=60)
+
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    # Localhost gets higher threshold (600 req/min) vs remote clients (120 req/min)
+    limit = 600 if client_ip in ("127.0.0.1", "localhost", "::1") else 120
+    allowed = await rate_limiter.is_allowed(client_ip, limit=limit)
+    if not allowed:
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "Too Many Requests. Rate limit exceeded. Please slow down."},
+            headers={"Retry-After": "15"},
+        )
+    return await call_next(request)
 @app.middleware("http")
 async def local_auth_middleware(request: Request, call_next):
     path = request.url.path
@@ -185,13 +223,122 @@ async def root(request: Request):
 
 @app.get("/api/health")
 async def health():
-    return {"status": "online", "engine": "AETHER", "version": "3.0.0"}
+    """Deep system health diagnostics covering Database, Memory Stores, and Telemetry."""
+    db_ok = False
+    active_projects_count = 0
+    try:
+        active_projects_count = len(project_manager._projects)
+        # Test SQLite connection
+        db_projects = project_manager.db.list_projects()
+        db_ok = True
+    except Exception as exc:
+        logger.error(f"Health check DB probe error: {exc}")
+
+    from aether.perception.tools.registry import registry
+    from aether.core.cache import response_cache, circuit_breaker
+    from aether.core.resource_arbiter import resource_arbiter
+    from aether.core.tor_manager import tor_manager
+
+    return {
+        "status": "online",
+        "engine": "AETHER",
+        "version": "3.0.0",
+        "diagnostics": {
+            "database_connected": db_ok,
+            "registered_tools_count": len(registry.list_tools()),
+            "active_projects_count": active_projects_count,
+            "cache_entries_count": len(response_cache._store),
+            "circuit_breakers_tripped": any(s.get("degraded", False) for s in circuit_breaker.get_status().values()),
+            "resource_arbiter": resource_arbiter.get_telemetry(),
+            "tor_status": tor_manager.get_status(),
+        }
+    }
 
 
-@app.get("/api/auth/token")
-async def get_auth_token():
-    """Returns local auth token for authorized clients."""
-    return {"token": AUTH_TOKEN}
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Graceful shutdown handler: cancels active background engines and cleanly terminates daemons."""
+    logger.info("AETHER Server is shutting down... Initiating graceful cleanup.")
+    # 1. Stop all active project runs
+    for pid in list(project_manager._active_tasks.keys()):
+        project_manager.stop_project(pid)
+
+    # 2. Stop watchdog if active
+    try:
+        from aether.core.watchdog import watchdog_daemon
+        watchdog_daemon.stop()
+    except Exception:
+        pass
+
+    # 3. Stop embedded Tor daemon if active
+    try:
+        from aether.core.tor_manager import tor_manager
+        if tor_manager.is_running:
+            await tor_manager.stop()
+    except Exception:
+        pass
+
+    logger.info("AETHER graceful shutdown complete.")
+
+
+# ── Embedded Tor Daemon Controller Endpoints ──────────────────────────────────
+
+@app.get("/api/tor/status")
+async def get_tor_status():
+    """Returns the current status, bootstrap progress, and SOCKS5 proxy info of the embedded Tor daemon."""
+    from aether.core.tor_manager import tor_manager
+    return tor_manager.get_status()
+
+
+@app.post("/api/tor/start")
+async def start_tor_daemon():
+    """Starts the embedded Tor core daemon (automatically downloads binaries if not already present)."""
+    from aether.core.tor_manager import tor_manager
+    ok = await tor_manager.start()
+    return {
+        "success": ok,
+        "status": tor_manager.get_status(),
+        "error": tor_manager.last_error if not ok else None,
+    }
+
+
+@app.post("/api/tor/stop")
+async def stop_tor_daemon():
+    """Stops the embedded Tor core daemon."""
+    from aether.core.tor_manager import tor_manager
+    ok = await tor_manager.stop()
+    return {"success": ok, "status": tor_manager.get_status()}
+
+
+@app.post("/api/tor/bootstrap")
+async def bootstrap_tor():
+    """Downloads and extracts the standalone Tor core binary into data/tor/."""
+    from aether.core.tor_manager import tor_manager
+    ok = await tor_manager.bootstrap_binaries()
+    return {
+        "success": ok,
+        "installed": tor_manager.is_installed,
+        "status": tor_manager.get_status(),
+        "error": tor_manager.last_error if not ok else None,
+    }
+
+
+@app.post("/api/tor/new-circuit")
+async def rotate_tor_circuit():
+    """Sends SIGNAL NEWNYM to rotate the Tor identity and obtain a fresh circuit/exit IP."""
+    from aether.core.tor_manager import tor_manager
+    if not tor_manager.is_running:
+        raise HTTPException(status_code=400, detail="Tor daemon is not running")
+    ok = await tor_manager.new_circuit()
+    ip_info = await tor_manager.get_exit_ip(force_refresh=True)
+    return {"success": ok, "exit_ip_info": ip_info}
+
+
+@app.get("/api/tor/exit-ip")
+async def get_tor_exit_ip(refresh: bool = False):
+    """Verifies and returns the active Tor exit IP via the local SOCKS5 proxy."""
+    from aether.core.tor_manager import tor_manager
+    return await tor_manager.get_exit_ip(force_refresh=refresh)
 
 
 @app.post("/api/auth/token/regenerate")
@@ -200,7 +347,11 @@ async def regenerate_auth_token():
     global AUTH_TOKEN
     AUTH_TOKEN = secrets.token_hex(24)
     AUTH_TOKEN_FILE.write_text(AUTH_TOKEN, encoding="utf-8")
-    logger.mission_critical(f"AETHER Auth Token Regenerated: {AUTH_TOKEN}")
+    try:
+        os.chmod(AUTH_TOKEN_FILE, 0o600)
+    except Exception:
+        pass
+    logger.mission_critical(f"AETHER Auth Token Regenerated.")
     return {"status": "regenerated", "token": AUTH_TOKEN}
 
 
@@ -529,13 +680,12 @@ async def get_project_timeline(project_id: str):
 async def generate_threat_model(project_id: str, inject_nodes: bool = Query(False)):
     """Runs automated MITRE ATT&CK correlation on all discovered entities."""
     from aether.reasoning.attack_mapper import attack_mapper
-    from aether.core.state import RelationshipType
 
     proj = project_manager.get_project(project_id)
     if not proj:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    entities = proj.state.entities if proj.state else []
+    entities = proj.state.discovered_entities if proj.state else []
     techniques = attack_mapper.analyze_entities(entities)
 
     injected_count = 0
@@ -543,14 +693,10 @@ async def generate_threat_model(project_id: str, inject_nodes: bool = Query(Fals
         attack_nodes = attack_mapper.generate_attack_path_nodes(techniques, proj.target_seed)
         for node in attack_nodes:
             proj.state.add_entity(node)
-            # Link to target
-            proj.state.add_relationship(
-                source_id=node.id,
-                target_id=proj.target_seed,
-                rel_type=RelationshipType.ASSOCIATED_WITH,
-                confidence=node.confidence,
-                source_tool="mitre_threat_mapper"
-            )
+            try:
+                project_manager.db.save_entity(project_id, node)
+            except Exception:
+                pass
             injected_count += 1
         project_manager._save_to_disk()
 
@@ -701,12 +847,14 @@ async def analyze_image_endpoint(req: AnalyzeImageRequest):
         raise HTTPException(status_code=400, detail="Filename or image_path required")
 
     upload_dir = (BASE_DIR / "data" / "uploads").resolve()
-    target_path = upload_dir / Path(filename).name
+    # Security: only allow basename to prevent path traversal
+    safe_name = Path(filename).name
+    target_path = (upload_dir / safe_name).resolve()
+    # Verify resolved path is still within upload_dir
+    if not str(target_path).startswith(str(upload_dir)):
+        raise HTTPException(status_code=400, detail="Invalid file path — access denied")
     if not target_path.exists():
-        if Path(filename).exists():
-            target_path = Path(filename)
-        else:
-            raise HTTPException(status_code=404, detail=f"Image file '{filename}' not found in uploads")
+        raise HTTPException(status_code=404, detail=f"Image file '{safe_name}' not found in uploads")
 
     tool = ImageOSINTTool()
     result = await tool.execute(image_path=str(target_path), prompt=req.prompt)
@@ -719,19 +867,7 @@ async def analyze_image_endpoint(req: AnalyzeImageRequest):
 
 
 
-@app.post("/api/auth/token/regenerate")
-async def regenerate_token_endpoint():
-    """Regenerates a new local API security token and updates persistent storage."""
-    global AUTH_TOKEN
-    new_token = secrets.token_hex(24)
-    AUTH_TOKEN = new_token
-    AUTH_TOKEN_FILE.write_text(new_token, encoding="utf-8")
-    try:
-        os.chmod(AUTH_TOKEN_FILE, 0o600)
-    except Exception:
-        pass
-    logger.mission_critical(f"AETHER Local API Security Token Regenerated: {new_token}")
-    return {"status": "regenerated", "token": new_token}
+# [REMOVED] Duplicate /api/auth/token/regenerate endpoint — consolidated at line ~191
 
 
 

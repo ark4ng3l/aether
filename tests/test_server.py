@@ -22,7 +22,7 @@ def isolate_project_manager(tmp_path: Path, monkeypatch):
 
 @pytest.fixture
 def client():
-    return TestClient(app, headers={"Authorization": f"Bearer {AUTH_TOKEN}"})
+    return TestClient(app, headers={"Authorization": f"Bearer {server_module.AUTH_TOKEN}"})
 
 
 @pytest.fixture
@@ -38,15 +38,15 @@ class TestHealthAndAuthEndpoints:
         assert data["status"] == "online"
         assert data["engine"] == "AETHER"
 
-    def test_auth_token_protected(self, client: TestClient, unauth_client: TestClient):
+    def test_auth_token_regenerate_protected(self, client: TestClient, unauth_client: TestClient):
         # Unauthenticated request without token header is rejected with 401
-        resp_unauth = unauth_client.get("/api/auth/token")
+        resp_unauth = unauth_client.post("/api/auth/token/regenerate")
         assert resp_unauth.status_code == 401
 
-        # Authenticated request returns token
-        resp_auth = client.get("/api/auth/token")
+        # Authenticated request allows regeneration
+        resp_auth = client.post("/api/auth/token/regenerate")
         assert resp_auth.status_code == 200
-        assert resp_auth.json()["token"] == AUTH_TOKEN
+        assert resp_auth.json()["status"] == "regenerated"
 
     def test_unauthenticated_request_rejected(self, unauth_client: TestClient):
         resp = unauth_client.get("/api/projects")
@@ -54,14 +54,14 @@ class TestHealthAndAuthEndpoints:
         assert "Unauthorized" in resp.json()["detail"]
 
     def test_authenticated_request_with_query_param(self, unauth_client: TestClient):
-        resp = unauth_client.get(f"/api/projects?token={AUTH_TOKEN}")
+        resp = unauth_client.get(f"/api/projects?token={server_module.AUTH_TOKEN}")
         assert resp.status_code == 200
 
     def test_root_injects_bootstrap_token_only_when_authenticated(self, client: TestClient, unauth_client: TestClient):
         resp_unauth = unauth_client.get("/")
         assert resp_unauth.status_code == 200
         if "text/html" in resp_unauth.headers.get("content-type", ""):
-            assert AUTH_TOKEN not in resp_unauth.text
+            assert server_module.AUTH_TOKEN not in resp_unauth.text
 
         resp_auth = client.get("/")
         assert resp_auth.status_code == 200

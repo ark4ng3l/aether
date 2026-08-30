@@ -5,7 +5,8 @@ from typing import Dict, Any, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-SETTINGS_FILE = Path("aether/data/settings.json")
+BASE_DIR = Path(__file__).resolve().parent.parent
+SETTINGS_FILE = BASE_DIR / "data" / "settings.json"
 
 
 class Settings(BaseSettings):

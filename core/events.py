@@ -46,30 +46,33 @@ class EventBus:
                 del self._subscribers[investigation_id]
 
     async def emit(self, investigation_id: str, event: dict):
-        """Broadcast an event to all subscribers of the given investigation."""
+        """Broadcast an event to all subscribers of the given investigation with resilient ring-buffer backpressure."""
         event.setdefault("timestamp", datetime.now(timezone.utc).isoformat())
         if investigation_id in self._subscribers:
-            dead: list[asyncio.Queue] = []
-            for queue in self._subscribers[investigation_id]:
+            for queue in list(self._subscribers[investigation_id]):
                 try:
                     queue.put_nowait(event)
                 except asyncio.QueueFull:
-                    dead.append(queue)
-            for q in dead:
-                self._subscribers[investigation_id].discard(q)
+                    # Drop oldest unconsumed event to make room for newest telemetry
+                    try:
+                        queue.get_nowait()
+                        queue.put_nowait(event)
+                    except Exception:
+                        pass
 
     def publish(self, investigation_id: str, event: dict):
-        """Synchronous helper to broadcast an event across subscriber queues."""
+        """Synchronous helper to broadcast an event across subscriber queues with ring-buffer backpressure."""
         event.setdefault("timestamp", datetime.now(timezone.utc).isoformat())
         if investigation_id in self._subscribers:
-            dead: list[asyncio.Queue] = []
-            for queue in self._subscribers[investigation_id]:
+            for queue in list(self._subscribers[investigation_id]):
                 try:
                     queue.put_nowait(event)
                 except asyncio.QueueFull:
-                    dead.append(queue)
-            for q in dead:
-                self._subscribers[investigation_id].discard(q)
+                    try:
+                        queue.get_nowait()
+                        queue.put_nowait(event)
+                    except Exception:
+                        pass
 
     async def emit_global(self, event: dict):
         """Broadcast to every active investigation."""

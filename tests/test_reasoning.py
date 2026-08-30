@@ -26,8 +26,8 @@ class TestPlanner:
         state = AgentState(investigation_id="test-plan-2", target_seed="testuser")
         state.add_entity(Entity(id="e1", type=EntityType.PERSON))
         planner = Planner(state)
-        # First step records count = 1
         planner._previous_entity_count = 1  # Gain = 0
+        planner._stagnant_steps = 2         # Next zero-gain step reaches threshold of 3
 
         action = await planner.plan_next_step()
         assert action is not None

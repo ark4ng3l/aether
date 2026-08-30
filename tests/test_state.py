@@ -13,7 +13,8 @@ class TestEntityType:
         expected = {
             "person", "company", "domain", "ip_address", "email",
             "social_handle", "image", "document", "artifact",
-            "phone", "hash", "cve", "unknown",
+            "phone", "hash", "cve", "attack_pattern", "threat_actor",
+            "crypto_wallet", "vessel", "aircraft", "sanction", "unknown",
         }
         assert {e.value for e in EntityType} == expected
 

@@ -70,10 +70,22 @@ class DarkWebReconTool(BaseTool):
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         }
 
+        # ── 0. Ensure Tor Daemon is Active ──
+        from aether.core.tor_manager import tor_manager
+        tor_proxy = None
+        if tor_manager.is_running:
+            tor_proxy = tor_manager.socks_proxy_url
+        elif tor_manager.is_installed:
+            try:
+                # Auto-start embedded daemon
+                asyncio.create_task(tor_manager.start())
+            except Exception:
+                pass
+
         # ── 1. Query Ahmia Onion Search ──
         try:
             ahmia_url = f"https://ahmia.fi/search/?q={httpx.URL(clean_query)}"
-            async with httpx.AsyncClient(headers=headers, timeout=12.0, verify=False) as client:
+            async with httpx.AsyncClient(headers=headers, proxy=tor_proxy, timeout=15.0, verify=False) as client:
                 resp = await client.get(ahmia_url)
                 if resp.status_code == 200:
                     soup = BeautifulSoup(resp.text, "html.parser")
@@ -144,7 +156,7 @@ class DarkWebReconTool(BaseTool):
             "ransomware_hits_count": len(ransomware_hits),
             "onion_indexed_pages_count": len(onion_results),
             "onion_results": onion_results,
-            "tor_proxy_status": "Clearnet Gateway Fallback (Active)",
+            "tor_proxy_status": "Embedded Tor SOCKS5 Daemon (Active)" if tor_proxy else "Clearnet Gateway Fallback (Active)",
             "summary": (
                 f"Found {len(ransomware_hits)} ransomware extortion record(s) and "
                 f"{len(onion_results)} .onion indexed result(s) on the Dark Web."
