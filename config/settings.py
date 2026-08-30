@@ -94,7 +94,10 @@ class Settings(BaseSettings):
 
         # Save to disk
         data = {
+            "LLM_PROVIDER": self.LLM_PROVIDER,
             "OLLAMA_BASE_URL": self.OLLAMA_BASE_URL,
+            "CUSTOM_API_BASE_URL": self.CUSTOM_API_BASE_URL,
+            "CUSTOM_API_KEY": self.CUSTOM_API_KEY,
             "MODEL_AGGRESSIVE_FAST": self.MODEL_AGGRESSIVE_FAST,
             "MODEL_VLM": self.MODEL_VLM,
             "MODEL_FAST": self.MODEL_FAST,
