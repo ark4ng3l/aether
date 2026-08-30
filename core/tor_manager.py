@@ -38,13 +38,14 @@ TOR_CONF_FILE = TOR_DIR / "torrc"
 
 # Official Tor Expert Bundle archive versions
 TOR_VERSION = "14.0.6"
-TOR_ARCHIVE_BASE = f"https://archive.torproject.org/tor-package-archive/torbrowser/{TOR_VERSION}/"
+TOR_VERSION_FILE = TOR_DIR / "version.json"
+TOR_ARCHIVE_BASE = "https://archive.torproject.org/tor-package-archive/torbrowser/"
 
 
 class TorManager:
     """
     Autonomous Manager for embedded Tor daemon.
-    Handles downloading, process lifecycle, circuit rotation, and proxy routing.
+    Handles downloading, process lifecycle, circuit rotation, version inspection, and hot upgrades.
     """
 
     def __init__(
@@ -64,6 +65,34 @@ class TorManager:
         self.last_error: Optional[str] = None
         self._exit_ip_cache: Optional[str] = None
         self._exit_ip_updated_at: float = 0
+        self._installed_bundle_version: str = self._load_installed_bundle_version()
+
+    def _load_installed_bundle_version(self) -> str:
+        """Reads installed bundle version from version.json or defaults to TOR_VERSION."""
+        if TOR_VERSION_FILE.exists():
+            try:
+                import json
+                data = json.loads(TOR_VERSION_FILE.read_text(encoding="utf-8"))
+                return data.get("bundle_version", TOR_VERSION)
+            except Exception:
+                pass
+        return TOR_VERSION
+
+    def _save_installed_bundle_version(self, version: str):
+        """Persists the installed bundle version to version.json."""
+        try:
+            import json
+            TOR_DIR.mkdir(parents=True, exist_ok=True)
+            TOR_VERSION_FILE.write_text(
+                json.dumps({
+                    "bundle_version": version,
+                    "updated_at": time.time(),
+                }, indent=2),
+                encoding="utf-8",
+            )
+            self._installed_bundle_version = version
+        except Exception as exc:
+            logger.warning(f"Failed to write version.json: {exc}")
 
     @property
     def socks_proxy_url(self) -> str:
@@ -107,6 +136,140 @@ class TorManager:
 
         return None
 
+    def get_installed_version(self) -> Dict[str, Any]:
+        """Queries local tor.exe binary for engine version and reports bundle release."""
+        tor_exe = self._get_tor_executable()
+        if not tor_exe or not tor_exe.exists():
+            return {
+                "installed": False,
+                "engine_version": None,
+                "bundle_version": None,
+            }
+
+        engine_ver = "Unknown"
+        try:
+            import subprocess
+            out = subprocess.check_output([str(tor_exe), "--version"], stderr=subprocess.STDOUT, timeout=5).decode(errors="ignore")
+            first_line = out.strip().splitlines()[0] if out.strip() else ""
+            if "Tor version" in first_line:
+                engine_ver = first_line.split("(")[0].strip()
+            else:
+                engine_ver = first_line
+        except Exception as exc:
+            engine_ver = f"Probe error: {exc}"
+
+        return {
+            "installed": True,
+            "engine_version": engine_ver,
+            "bundle_version": self._installed_bundle_version,
+            "binary_path": str(tor_exe),
+        }
+
+    async def check_updates(self) -> Dict[str, Any]:
+        """
+        Scans official Tor Project distribution archive for latest release bundles.
+        Compares with local version to determine upgrade availability.
+        """
+        current_ver_info = self.get_installed_version()
+        installed_bundle = self._installed_bundle_version
+
+        try:
+            async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+                resp = await client.get(TOR_ARCHIVE_BASE)
+                if resp.status_code != 200:
+                    return {
+                        "check_success": False,
+                        "error": f"HTTP {resp.status_code} from Tor Project Archive",
+                        "current_bundle": installed_bundle,
+                        "latest_bundle": installed_bundle,
+                        "update_available": False,
+                    }
+
+                matches = [m for m in re.findall(r'href="([0-9]+\.[0-9]+(?:\.[0-9]+)?)/"', resp.text) if m[0].isdigit()]
+                if not matches:
+                    return {
+                        "check_success": False,
+                        "error": "No version tags discovered",
+                        "current_bundle": installed_bundle,
+                        "latest_bundle": installed_bundle,
+                        "update_available": False,
+                    }
+
+                # Sort by semver (ignoring alpha/beta tags)
+                valid_versions = []
+                for v in matches:
+                    parts = v.split(".")
+                    if len(parts) >= 2 and all(p.isdigit() for p in parts):
+                        # Filter for stable 14.x branch
+                        if parts[0] == "14":
+                            valid_versions.append(v)
+
+                sorted_v = sorted(valid_versions, key=lambda v: [int(x) for x in v.split(".")]) if valid_versions else matches
+                latest_bundle = sorted_v[-1] if sorted_v else installed_bundle
+
+                # Compare versions
+                curr_parts = [int(x) for x in installed_bundle.split(".") if x.isdigit()]
+                latest_parts = [int(x) for x in latest_bundle.split(".") if x.isdigit()]
+                update_available = latest_parts > curr_parts
+
+                return {
+                    "check_success": True,
+                    "installed_engine_version": current_ver_info.get("engine_version"),
+                    "installed_bundle": installed_bundle,
+                    "latest_bundle": latest_bundle,
+                    "update_available": update_available,
+                    "release_archive_url": f"{TOR_ARCHIVE_BASE}{latest_bundle}/",
+                }
+
+        except Exception as exc:
+            return {
+                "check_success": False,
+                "error": str(exc),
+                "installed_bundle": installed_bundle,
+                "latest_bundle": installed_bundle,
+                "update_available": False,
+            }
+
+    async def upgrade(self, target_version: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Performs an in-place hot upgrade to target_version (or latest discovered release).
+        Gracefully pauses daemon, extracts new binaries, and resumes Tor service.
+        """
+        if not target_version:
+            up_info = await self.check_updates()
+            target_version = up_info.get("latest_bundle") or TOR_VERSION
+
+        logger.info(f"Initiating Tor upgrade to bundle version: {target_version}")
+        was_running = self.is_running
+        prev_version = self._installed_bundle_version
+
+        if was_running:
+            logger.info("Stopping active Tor daemon for binary replacement...")
+            await self.stop()
+
+        ok = await self.bootstrap_binaries(version=target_version)
+        if not ok:
+            return {
+                "success": False,
+                "error": self.last_error or "Failed to install new Tor bundle",
+                "current_version": prev_version,
+            }
+
+        self._save_installed_bundle_version(target_version)
+        logger.info(f"Tor upgraded successfully from {prev_version} to {target_version}")
+
+        if was_running:
+            logger.info("Restarting upgraded Tor daemon...")
+            await self.start()
+
+        return {
+            "success": True,
+            "previous_version": prev_version,
+            "current_bundle_version": target_version,
+            "current_engine_version": self.get_installed_version().get("engine_version"),
+            "running": self.is_running,
+        }
+
     @staticmethod
     def _is_port_listening(host: str, port: int, timeout: float = 0.5) -> bool:
         """Probes whether a TCP port is currently open."""
@@ -120,10 +283,11 @@ class TorManager:
     # Autonomous Download & Setup (Bootstrap)
     # --------------------------------------------------------------------------
 
-    async def bootstrap_binaries(self, on_progress=None) -> bool:
+    async def bootstrap_binaries(self, version: Optional[str] = None, on_progress=None) -> bool:
         """
         Automatically downloads and extracts official Tor Expert Bundle for the host OS.
         """
+        target_v = version or self._installed_bundle_version or TOR_VERSION
         TOR_DIR.mkdir(parents=True, exist_ok=True)
         TOR_BIN_DIR.mkdir(parents=True, exist_ok=True)
         TOR_DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -132,15 +296,15 @@ class TorManager:
         machine = platform.machine().lower()
 
         if system == "windows":
-            pkg_name = f"tor-expert-bundle-windows-x86_64-{TOR_VERSION}.tar.gz"
+            pkg_name = f"tor-expert-bundle-windows-x86_64-{target_v}.tar.gz"
         elif system == "linux":
-            pkg_name = f"tor-expert-bundle-linux-x86_64-{TOR_VERSION}.tar.gz"
+            pkg_name = f"tor-expert-bundle-linux-x86_64-{target_v}.tar.gz"
         elif system == "darwin":
-            pkg_name = f"tor-expert-bundle-macos-{'aarch64' if 'arm' in machine or 'aarch64' in machine else 'x86_64'}-{TOR_VERSION}.tar.gz"
+            pkg_name = f"tor-expert-bundle-macos-{'aarch64' if 'arm' in machine or 'aarch64' in machine else 'x86_64'}-{target_v}.tar.gz"
         else:
-            pkg_name = f"tor-expert-bundle-windows-x86_64-{TOR_VERSION}.tar.gz"
+            pkg_name = f"tor-expert-bundle-windows-x86_64-{target_v}.tar.gz"
 
-        download_url = f"{TOR_ARCHIVE_BASE}{pkg_name}"
+        download_url = f"{TOR_ARCHIVE_BASE}{target_v}/{pkg_name}"
         logger.info(f"Downloading standalone Tor bundle from: {download_url}")
         self.bootstrap_summary = f"Downloading Tor bundle ({pkg_name})..."
 
@@ -162,8 +326,9 @@ class TorManager:
                 if exe and exe.exists():
                     os.chmod(exe, 0o755)
 
+            self._save_installed_bundle_version(target_v)
             self._write_torrc()
-            logger.info("Tor binaries successfully installed and configured in data/tor/")
+            logger.info(f"Tor binaries v{target_v} successfully installed and configured in data/tor/")
             self.bootstrap_summary = "Installed & Ready"
             return True
 
@@ -360,12 +525,15 @@ class TorManager:
 
     def get_status(self) -> Dict[str, Any]:
         """Returns comprehensive diagnostic status of the Tor subsystem."""
+        ver_info = self.get_installed_version()
         return {
             "installed": self.is_installed,
             "running": self.is_running,
             "bootstrapped": self.is_bootstrapped,
             "bootstrap_progress_pct": self.bootstrap_progress,
             "bootstrap_summary": self.bootstrap_summary,
+            "engine_version": ver_info.get("engine_version"),
+            "bundle_version": self._installed_bundle_version,
             "socks_proxy_url": self.socks_proxy_url,
             "socks_port": self.socks_port,
             "control_port": self.control_port,

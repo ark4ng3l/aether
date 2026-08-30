@@ -71,3 +71,24 @@ class TestTorServerEndpoints:
             assert resp.status_code == 200
             assert resp.json()["tor_active"] is True
             assert resp.json()["ip"] == "185.220.101.103"
+
+    def test_get_tor_version_endpoint(self, client: TestClient):
+        resp = client.get("/api/tor/version")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "installed" in data
+        assert "bundle_version" in data
+
+    @pytest.mark.asyncio
+    async def test_check_tor_update_endpoint(self, client: TestClient):
+        with patch("aether.core.tor_manager.tor_manager.check_updates", new_callable=AsyncMock) as mock_up:
+            mock_up.return_value = {
+                "check_success": True,
+                "installed_bundle": "14.0.6",
+                "latest_bundle": "14.0.8",
+                "update_available": True,
+            }
+            resp = client.get("/api/tor/check-update")
+            assert resp.status_code == 200
+            assert resp.json()["update_available"] is True
+            assert resp.json()["latest_bundle"] == "14.0.8"

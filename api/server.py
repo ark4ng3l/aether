@@ -341,6 +341,28 @@ async def get_tor_exit_ip(refresh: bool = False):
     return await tor_manager.get_exit_ip(force_refresh=refresh)
 
 
+@app.get("/api/tor/version")
+async def get_tor_version():
+    """Returns local Tor binary engine version and installed bundle version."""
+    from aether.core.tor_manager import tor_manager
+    return tor_manager.get_installed_version()
+
+
+@app.get("/api/tor/check-update")
+async def check_tor_update():
+    """Scans official Tor Project archive to check if a newer release bundle is available."""
+    from aether.core.tor_manager import tor_manager
+    return await tor_manager.check_updates()
+
+
+@app.post("/api/tor/update")
+async def update_tor_bundle(payload: Optional[Dict[str, Any]] = None):
+    """Performs in-place hot upgrade to latest (or specified) Tor Expert Bundle version."""
+    from aether.core.tor_manager import tor_manager
+    target_v = payload.get("version") if payload else None
+    return await tor_manager.upgrade(target_version=target_v)
+
+
 # ── Stealth, Anti-Fingerprinting & Proxy Chain Endpoints ──────────────────────
 
 @app.get("/api/stealth/status")
