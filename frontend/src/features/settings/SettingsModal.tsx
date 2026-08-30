@@ -419,14 +419,14 @@ export const SettingsModal: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="bg-bg-canvas p-3 rounded-xl border border-border-subtle">
                 <label className="text-text-secondary block mb-1 font-medium">
-                  {t('settings.confidenceThreshold', 'Confidence Threshold')}
+                  {t('settings.confidenceThreshold', 'Confidence Threshold')} (0.1 - 1.0)
                 </label>
                 <input
                   type="number"
                   step="0.05"
-                  min="0"
+                  min="0.1"
                   max="1"
-                  value={settings.ENTITY_CONFIDENCE_THRESHOLD ?? 0.75}
+                  value={settings.ENTITY_CONFIDENCE_THRESHOLD ?? 0.45}
                   onChange={(e) =>
                     setSettings({ ...settings, ENTITY_CONFIDENCE_THRESHOLD: parseFloat(e.target.value) })
                   }
@@ -436,13 +436,13 @@ export const SettingsModal: React.FC = () => {
 
               <div className="bg-bg-canvas p-3 rounded-xl border border-border-subtle">
                 <label className="text-text-secondary block mb-1 font-medium">
-                  {t('settings.searchDepth', 'Max Search Depth')}
+                  {t('settings.searchDepth', 'Max Search Depth')} (1 - 500)
                 </label>
                 <input
                   type="number"
                   min="1"
-                  max="50"
-                  value={settings.MAX_SEARCH_DEPTH ?? 30}
+                  max="500"
+                  value={settings.MAX_SEARCH_DEPTH ?? 100}
                   onChange={(e) =>
                     setSettings({ ...settings, MAX_SEARCH_DEPTH: parseInt(e.target.value, 10) })
                   }
@@ -452,13 +452,13 @@ export const SettingsModal: React.FC = () => {
 
               <div className="bg-bg-canvas p-3 rounded-xl border border-border-subtle">
                 <label className="text-text-secondary block mb-1 font-medium">
-                  {t('settings.hypothesisLimit', 'Hypothesis Limit')}
+                  {t('settings.hypothesisLimit', 'Hypothesis Limit')} (1 - 50)
                 </label>
                 <input
                   type="number"
                   min="1"
-                  max="10"
-                  value={settings.HYPOTHESIS_RECURSION_LIMIT ?? 5}
+                  max="50"
+                  value={settings.HYPOTHESIS_RECURSION_LIMIT ?? 20}
                   onChange={(e) =>
                     setSettings({ ...settings, HYPOTHESIS_RECURSION_LIMIT: parseInt(e.target.value, 10) })
                   }
