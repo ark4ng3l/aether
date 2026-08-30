@@ -34,6 +34,9 @@ class TestStealthEngine:
         assert "RTCPeerConnection" in script  # WebRTC leak blocker
         assert "toDataURL" in script  # Canvas noise
         assert "AudioBuffer" in script  # Audio noise
+        assert "makeNative" in script  # Native function masking
+        assert "UNMASKED_RENDERER_WEBGL" in script  # GPU hardware spoofing
+        assert "getTimezoneOffset" in script  # Timezone alignment
 
     def test_proxy_pool_and_strategies(self):
         engine = StealthEngine()
@@ -55,7 +58,7 @@ class TestStealthServerEndpoints:
         assert resp.status_code == 200
         data = resp.json()
         assert "active_persona" in data
-        assert "anti_fingerprinting" in data
+        assert "anti_fingerprinting_suite" in data
         assert "proxy_strategy" in data
 
     def test_rotate_persona_endpoint(self, client: TestClient):
