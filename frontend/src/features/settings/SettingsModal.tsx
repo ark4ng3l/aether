@@ -3,22 +3,18 @@ import {
   Settings,
   X,
   Save,
-  Key,
-  Cpu,
-  Sliders,
-  Shield,
-  RefreshCw,
   CheckCircle2,
-  AlertTriangle,
 } from 'lucide-react'
 import { useProjectStore } from '../../stores/useProjectStore'
 import { useAuthStore } from '../../stores/useAuthStore'
+import { useLocaleStore } from '../../stores/useLocaleStore'
 import { api } from '../../api/endpoints'
 import { SettingsData, MetricsData } from '../../types/api'
 
 export const SettingsModal: React.FC = () => {
   const { isSettingsOpen, setIsSettingsOpen } = useProjectStore()
   const { token, updateToken } = useAuthStore()
+  const { t } = useLocaleStore()
 
   const [settings, setSettings] = useState<Partial<SettingsData>>({})
   const [metrics, setMetrics] = useState<MetricsData | null>(null)
@@ -81,8 +77,12 @@ export const SettingsModal: React.FC = () => {
               <Settings className="w-4 h-4" strokeWidth={1.5} />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-text-primary">System Settings & Neural Config</h3>
-              <p className="text-2xs text-text-tertiary">Configure local Ollama models, VRAM arbitration, and security parameters</p>
+              <h3 className="text-sm font-bold text-text-primary">
+                {t('settings.title', 'System Settings & Neural Config')}
+              </h3>
+              <p className="text-2xs text-text-tertiary">
+                {t('settings.subtitle', 'Configure local Ollama models, VRAM arbitration, and security parameters')}
+              </p>
             </div>
           </div>
           <button
@@ -98,11 +98,11 @@ export const SettingsModal: React.FC = () => {
           {/* LLM & Neural Model Mapping */}
           <div className="space-y-3">
             <span className="font-semibold text-accent uppercase tracking-wider block">
-              Local Ollama & Neural Models
+              {t('settings.neuralSection', 'Local Ollama & Neural Models')}
             </span>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="text-text-secondary block mb-1">Ollama Base URL</label>
+                <label className="text-text-secondary block mb-1">{t('settings.ollamaUrl', 'Ollama Base URL')}</label>
                 <input
                   type="text"
                   value={settings.OLLAMA_BASE_URL || ''}
@@ -111,7 +111,7 @@ export const SettingsModal: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="text-text-secondary block mb-1">Fast Model (Planner / Extractor)</label>
+                <label className="text-text-secondary block mb-1">{t('settings.fastModel', 'Fast Model (Planner / Extractor)')}</label>
                 <input
                   type="text"
                   value={settings.MODEL_FAST || ''}
@@ -120,7 +120,7 @@ export const SettingsModal: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="text-text-secondary block mb-1">Critic Model (Adversarial Refuter)</label>
+                <label className="text-text-secondary block mb-1">{t('settings.criticModel', 'Critic Model (Adversarial Refuter)')}</label>
                 <input
                   type="text"
                   value={settings.MODEL_CRITIC || ''}
@@ -129,7 +129,7 @@ export const SettingsModal: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="text-text-secondary block mb-1">Vision VLM Model (OCR / Image OSINT)</label>
+                <label className="text-text-secondary block mb-1">{t('settings.vlmModel', 'Vision VLM Model (OCR / Image OSINT)')}</label>
                 <input
                   type="text"
                   value={settings.MODEL_VLM || ''}
@@ -143,11 +143,11 @@ export const SettingsModal: React.FC = () => {
           {/* Reasoning & Investigation Thresholds */}
           <div className="space-y-3 pt-3 border-t border-border-subtle">
             <span className="font-semibold text-accent uppercase tracking-wider block">
-              Cognitive Parameters & Thresholds
+              {t('settings.reasoningSection', 'Cognitive Parameters & Thresholds')}
             </span>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="text-text-secondary block mb-1">Confidence Threshold (0-1)</label>
+                <label className="text-text-secondary block mb-1">{t('settings.confidenceThreshold', 'Confidence Threshold (0-1)')}</label>
                 <input
                   type="number"
                   step="0.05"
@@ -161,7 +161,7 @@ export const SettingsModal: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="text-text-secondary block mb-1">Max Search Depth</label>
+                <label className="text-text-secondary block mb-1">{t('settings.searchDepth', 'Max Search Depth')}</label>
                 <input
                   type="number"
                   min="1"
@@ -174,7 +174,7 @@ export const SettingsModal: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="text-text-secondary block mb-1">Hypothesis Limit</label>
+                <label className="text-text-secondary block mb-1">{t('settings.hypothesisLimit', 'Hypothesis Limit')}</label>
                 <input
                   type="number"
                   min="1"
@@ -192,11 +192,11 @@ export const SettingsModal: React.FC = () => {
           {/* Security & Authentication */}
           <div className="space-y-3 pt-3 border-t border-border-subtle">
             <span className="font-semibold text-accent uppercase tracking-wider block">
-              Security & Access Control
+              {t('settings.securitySection', 'Security & Access Control')}
             </span>
             <div className="p-3 rounded-lg border border-border-subtle bg-bg-canvas flex items-center justify-between">
               <div>
-                <p className="font-medium text-text-primary">Bearer Authentication Token</p>
+                <p className="font-medium text-text-primary">{t('settings.bearerToken', 'Bearer Authentication Token')}</p>
                 <p className="text-text-tertiary text-[11px] font-mono-data truncate max-w-sm">
                   {token ? `${token.slice(0, 16)}...` : 'No token active'}
                 </p>
@@ -205,7 +205,7 @@ export const SettingsModal: React.FC = () => {
                 onClick={handleRegenerateToken}
                 className="px-2.5 py-1 text-2xs font-medium text-status-rejected border border-status-rejected/30 hover:bg-status-rejected/10 rounded transition-colors"
               >
-                Regenerate Token
+                {t('settings.regenerateToken', 'Regenerate Token')}
               </button>
             </div>
           </div>
@@ -217,12 +217,12 @@ export const SettingsModal: React.FC = () => {
             onClick={() => setIsSettingsOpen(false)}
             className="px-3 py-1.5 text-2xs font-medium text-text-secondary hover:text-text-primary transition-colors"
           >
-            Close
+            {t('action.close', 'Close')}
           </button>
           <div className="flex items-center gap-2">
             {saveSuccess && (
               <span className="flex items-center gap-1 text-2xs text-status-confirmed">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Saved
+                <CheckCircle2 className="w-3.5 h-3.5" /> {t('action.saved', 'Saved')}
               </span>
             )}
             <button
@@ -231,7 +231,7 @@ export const SettingsModal: React.FC = () => {
               className="flex items-center gap-1.5 px-4 py-1.5 text-2xs font-medium text-white bg-accent hover:bg-accent-hover rounded transition-colors disabled:opacity-50"
             >
               <Save className="w-3.5 h-3.5" />
-              {isSaving ? 'Saving...' : 'Save Settings'}
+              {isSaving ? t('action.saving', 'Saving...') : t('settings.saveBtn', 'Save Settings')}
             </button>
           </div>
         </div>
@@ -239,3 +239,4 @@ export const SettingsModal: React.FC = () => {
     </div>
   )
 }
+

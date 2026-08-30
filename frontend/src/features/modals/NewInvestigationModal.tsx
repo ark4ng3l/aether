@@ -1,11 +1,13 @@
 import React, { useState } from 'react'
-import { Plus, X, Shield, Sparkles, ArrowRight } from 'lucide-react'
+import { Plus, X, Shield } from 'lucide-react'
 import { useProjectStore } from '../../stores/useProjectStore'
+import { useLocaleStore } from '../../stores/useLocaleStore'
 import { api } from '../../api/endpoints'
 import { EntityType } from '../../types/api'
 
 export const NewInvestigationModal: React.FC = () => {
   const { isNewModalOpen, setIsNewModalOpen, setProjects, setActiveProjectId } = useProjectStore()
+  const { t } = useLocaleStore()
 
   const [name, setName] = useState('')
   const [targetSeed, setTargetSeed] = useState('')
@@ -55,8 +57,12 @@ export const NewInvestigationModal: React.FC = () => {
               <Shield className="w-4 h-4" strokeWidth={1.5} />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-text-primary">Initialize Target Investigation</h3>
-              <p className="text-2xs text-text-tertiary">Seed autonomous cognitive OSINT & threat intelligence</p>
+              <h3 className="text-sm font-bold text-text-primary">
+                {t('project.newTitle', 'Initialize Target Investigation')}
+              </h3>
+              <p className="text-2xs text-text-tertiary">
+                {t('project.newSubtitle', 'Seed autonomous cognitive OSINT & threat intelligence')}
+              </p>
             </div>
           </div>
           <button
@@ -71,7 +77,7 @@ export const NewInvestigationModal: React.FC = () => {
         <form onSubmit={handleSubmit} className="p-4 space-y-4 text-2xs select-text">
           <div>
             <label className="text-text-secondary block mb-1 font-medium">
-              Target Seed (Domain, IP, Org, Email, Hash) *
+              {t('project.targetSeed', 'Target Seed (Domain, IP, Org, Email, Hash)')} *
             </label>
             <input
               type="text"
@@ -86,10 +92,12 @@ export const NewInvestigationModal: React.FC = () => {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-text-secondary block mb-1 font-medium">Investigation Name</label>
+              <label className="text-text-secondary block mb-1 font-medium">
+                {t('project.name', 'Investigation Name')}
+              </label>
               <input
                 type="text"
-                placeholder="Defaults to target seed"
+                placeholder={t('project.namePlaceholder', 'Defaults to target seed')}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full h-8 px-2.5 bg-bg-canvas border border-border-subtle rounded text-text-primary"
@@ -97,7 +105,9 @@ export const NewInvestigationModal: React.FC = () => {
             </div>
 
             <div>
-              <label className="text-text-secondary block mb-1 font-medium">Target Type</label>
+              <label className="text-text-secondary block mb-1 font-medium">
+                {t('project.targetType', 'Target Type')}
+              </label>
               <select
                 value={targetType}
                 onChange={(e) => setTargetType(e.target.value as EntityType)}
@@ -115,11 +125,11 @@ export const NewInvestigationModal: React.FC = () => {
 
           <div>
             <label className="text-text-secondary block mb-1 font-medium">
-              Context Briefing / Analyst Notes (Optional)
+              {t('project.contextBriefing', 'Context Briefing / Analyst Notes (Optional)')}
             </label>
             <textarea
               rows={3}
-              placeholder="Specify known threat actors, targeted industries, or specific investigation focus..."
+              placeholder={t('project.briefingPlaceholder', 'Specify known threat actors, targeted industries, or specific investigation focus...')}
               value={briefing}
               onChange={(e) => setBriefing(e.target.value)}
               className="w-full p-2 bg-bg-canvas border border-border-subtle rounded text-text-primary resize-none focus:border-accent focus:ring-0"
@@ -133,7 +143,7 @@ export const NewInvestigationModal: React.FC = () => {
               onClick={() => setIsNewModalOpen(false)}
               className="px-3 py-1.5 text-2xs text-text-secondary hover:text-text-primary transition-colors"
             >
-              Cancel
+              {t('action.cancel', 'Cancel')}
             </button>
             <button
               type="submit"
@@ -141,7 +151,7 @@ export const NewInvestigationModal: React.FC = () => {
               className="flex items-center gap-1.5 px-4 py-1.5 rounded text-2xs font-medium text-white bg-accent hover:bg-accent-hover disabled:opacity-50 transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
-              {isSubmitting ? 'Creating...' : 'Create Investigation'}
+              {isSubmitting ? t('action.creating', 'Creating...') : t('project.createBtn', 'Create Investigation')}
             </button>
           </div>
         </form>
@@ -149,3 +159,4 @@ export const NewInvestigationModal: React.FC = () => {
     </div>
   )
 }
+

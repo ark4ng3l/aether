@@ -1,11 +1,13 @@
 import React, { useState } from 'react'
-import { AlertTriangle, X, Trash2 } from 'lucide-react'
+import { AlertTriangle, Trash2 } from 'lucide-react'
 import { useProjectStore } from '../../stores/useProjectStore'
+import { useLocaleStore } from '../../stores/useLocaleStore'
 import { api } from '../../api/endpoints'
 
 export const ConfirmPurgeModal: React.FC = () => {
   const { isPurgeModalOpen, setIsPurgeModalOpen, activeProjectId, activeProject, setProjects, setActiveProjectId } =
     useProjectStore()
+  const { t } = useLocaleStore()
   const [isDeleting, setIsDeleting] = useState(false)
 
   if (!isPurgeModalOpen || !activeProject) return null
@@ -34,13 +36,17 @@ export const ConfirmPurgeModal: React.FC = () => {
             <AlertTriangle className="w-5 h-5" strokeWidth={1.5} />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-text-primary">Purge Investigation</h3>
-            <p className="text-2xs text-text-tertiary">This action cannot be undone.</p>
+            <h3 className="text-sm font-bold text-text-primary">
+              {t('project.deleteConfirm', 'Purge Investigation')}
+            </h3>
+            <p className="text-2xs text-text-tertiary">
+              {t('project.deleteWarning', 'This action cannot be undone.')}
+            </p>
           </div>
         </div>
 
         <p className="text-2xs text-text-secondary leading-relaxed">
-          Are you sure you want to permanently delete <strong className="text-text-primary">{activeProject.name}</strong> and all its discovered entity graphs, intelligence dossiers, and timeline logs?
+          {t('project.deletePrompt', 'Are you sure you want to permanently delete')} <strong className="text-text-primary">{activeProject.name}</strong> {t('project.deletePromptEnd', 'and all its discovered entity graphs, intelligence dossiers, and timeline logs?')}
         </p>
 
         <div className="pt-3 border-t border-border-subtle flex items-center justify-between">
@@ -48,7 +54,7 @@ export const ConfirmPurgeModal: React.FC = () => {
             onClick={() => setIsPurgeModalOpen(false)}
             className="px-3 py-1.5 text-2xs font-medium text-text-secondary hover:text-text-primary transition-colors"
           >
-            Cancel
+            {t('action.cancel', 'Cancel')}
           </button>
           <button
             onClick={handleDelete}
@@ -56,10 +62,11 @@ export const ConfirmPurgeModal: React.FC = () => {
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded text-2xs font-medium text-white bg-status-rejected hover:bg-status-rejected/90 disabled:opacity-50 transition-colors"
           >
             <Trash2 className="w-3.5 h-3.5" />
-            {isDeleting ? 'Deleting...' : 'Delete Project'}
+            {isDeleting ? t('action.deleting', 'Deleting...') : t('project.deleteBtn', 'Delete Project')}
           </button>
         </div>
       </div>
     </div>
   )
 }
+

@@ -110,11 +110,20 @@ class ImageOSINTTool(BaseTool):
         )
 
     async def execute(self, image_path: str = "", image_url: str = "", **kwargs) -> ToolResult:
-        target = image_path or image_url or kwargs.get("query", "") or kwargs.get("file_path", "")
+        target = (
+            image_path
+            or image_url
+            or kwargs.get("path_or_url", "")
+            or kwargs.get("file_path", "")
+            or kwargs.get("filename", "")
+            or kwargs.get("query", "")
+            or kwargs.get("target", "")
+        )
         if not target:
             return ToolResult(success=False, data={}, error="No image path or URL provided")
 
         local_path = target
+
 
         # 1. If target is a URL, download it temporarily
         if target.startswith(("http://", "https://")):

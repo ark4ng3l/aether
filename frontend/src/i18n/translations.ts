@@ -18,7 +18,7 @@ export const SUPPORTED_LOCALES: LocaleMeta[] = [
 export const translations: Record<SupportedLocale, Record<string, string>> = {
   en: {
     // Shell & Navigation
-    'nav.workspace': 'Workspace',
+    'nav.workspace': 'Projects',
     'nav.search': 'Search or jump to...',
     'nav.overview': 'Overview',
     'nav.graph': 'Graph',
@@ -31,10 +31,20 @@ export const translations: Record<SupportedLocale, Record<string, string>> = {
     'nav.newInvestigation': 'New Investigation',
     'nav.expandSidebar': 'Expand sidebar',
     'nav.collapseSidebar': 'Collapse sidebar',
-    'nav.keyboardShortcuts': 'Keyboard Shortcuts',
+    'nav.keyboardShortcuts': 'Shortcuts',
     'nav.settings': 'Settings',
     'nav.theme': 'Theme',
     'nav.language': 'Language',
+
+    // Tab names
+    'tabs.overview': 'Overview',
+    'tabs.graph': 'Graph',
+    'tabs.timeline': 'Timeline',
+    'tabs.map': 'Map & Geo',
+    'tabs.arsenal': 'Arsenal',
+    'tabs.vision': 'Vision AI',
+    'tabs.dossier': 'Dossier',
+    'tabs.console': 'Console',
 
     // Statuses
     'status.idle': 'Idle',
@@ -47,29 +57,49 @@ export const translations: Record<SupportedLocale, Record<string, string>> = {
 
     // Common Actions
     'action.save': 'Save',
+    'action.saved': 'Saved',
+    'action.saving': 'Saving...',
     'action.cancel': 'Cancel',
     'action.delete': 'Delete',
+    'action.deleting': 'Deleting...',
     'action.create': 'Create',
+    'action.creating': 'Creating...',
     'action.run': 'Run Mission',
     'action.stop': 'Stop',
     'action.purge': 'Purge',
     'action.export': 'Export',
-    'action.filter': 'Filter...',
+    'action.filter': 'Filter projects...',
     'action.close': 'Close',
     'action.loading': 'Loading...',
     'action.execute': 'Execute',
 
+    // Investigation & Overview
+    'overview.runMission': 'Run Mission',
+    'overview.stopMission': 'Stop',
+    'overview.liveActivity': 'Live Activity',
+    'overview.noActivity': 'No activity yet. Start an investigation to see live events.',
+    'overview.viewFullConsole': 'View full console',
+    'overview.entitiesDiscovered': 'Entities Discovered',
+    'overview.tasksCompleted': 'Tasks Completed',
+    'overview.emptyDescription': 'Select a target from the left rail or initialize a new target seed to begin autonomous OSINT reconnaissance.',
+
     // Investigation & Projects
-    'project.newTitle': 'Initiate Investigation',
-    'project.name': 'Operation Name',
-    'project.namePlaceholder': 'e.g. Operation Shadow Ghost',
-    'project.targetSeed': 'Target Seed (Domain, IP, Handle, Email)',
-    'project.targetSeedPlaceholder': 'e.g. target.com, 192.168.1.1, @threat_actor',
-    'project.targetType': 'Target Entity Type',
-    'project.briefing': 'Mission Briefing & Rules of Engagement',
-    'project.briefingPlaceholder': 'Provide any known threat actor aliases, infrastructure hints, or intelligence requirements...',
-    'project.noProjects': 'No investigations found. Create one to begin.',
-    'project.purgeConfirm': 'Are you sure you want to permanently purge this project and all its collected graph nodes, vector embeddings, and telemetry?',
+    'project.newTitle': 'Initialize Target Investigation',
+    'project.newSubtitle': 'Seed autonomous cognitive OSINT & threat intelligence',
+    'project.name': 'Investigation Name',
+    'project.namePlaceholder': 'Defaults to target seed',
+    'project.targetSeed': 'Target Seed (Domain, IP, Org, Email, Hash)',
+    'project.targetSeedPlaceholder': 'e.g. example.com, 185.199.108.153, Acme Corp',
+    'project.targetType': 'Target Type',
+    'project.contextBriefing': 'Context Briefing / Analyst Notes (Optional)',
+    'project.briefingPlaceholder': 'Specify known threat actors, targeted industries, or specific investigation focus...',
+    'project.createBtn': 'Create Investigation',
+    'project.noProjects': 'No projects found',
+    'project.deleteConfirm': 'Purge Investigation',
+    'project.deleteWarning': 'This action cannot be undone.',
+    'project.deletePrompt': 'Are you sure you want to permanently delete',
+    'project.deletePromptEnd': 'and all its discovered entity graphs, intelligence dossiers, and timeline logs?',
+    'project.deleteBtn': 'Delete Project',
 
     // Metrics & Intelligence
     'metrics.entities': 'Entities Discovered',
@@ -89,13 +119,21 @@ export const translations: Record<SupportedLocale, Record<string, string>> = {
     'healing.synthesized': 'Synthesized Dynamic Tool',
 
     // Modals & Settings
-    'settings.title': 'System & Neural Configuration',
-    'settings.modelProvider': 'Model Provider',
+    'settings.title': 'System Settings & Neural Config',
+    'settings.subtitle': 'Configure local Ollama models, VRAM arbitration, and security parameters',
+    'settings.neuralSection': 'Local Ollama & Neural Models',
     'settings.ollamaUrl': 'Ollama Base URL',
-    'settings.reasoningModel': 'Cognitive Reasoning Model',
-    'settings.visionModel': 'Vision Language Model',
-    'settings.saveSuccess': 'Settings successfully saved',
-    'settings.updates': 'Check for Updates',
+    'settings.fastModel': 'Fast Model (Planner / Extractor)',
+    'settings.criticModel': 'Critic Model (Adversarial Refuter)',
+    'settings.vlmModel': 'Vision VLM Model (OCR / Image OSINT)',
+    'settings.reasoningSection': 'Cognitive Parameters & Thresholds',
+    'settings.confidenceThreshold': 'Confidence Threshold (0-1)',
+    'settings.searchDepth': 'Max Search Depth',
+    'settings.hypothesisLimit': 'Hypothesis Limit',
+    'settings.securitySection': 'Security & Access Control',
+    'settings.bearerToken': 'Bearer Authentication Token',
+    'settings.regenerateToken': 'Regenerate Token',
+    'settings.saveBtn': 'Save Settings',
 
     // Notifications & Shortcuts
     'notifications.title': 'Real-Time Telemetry',
@@ -106,7 +144,7 @@ export const translations: Record<SupportedLocale, Record<string, string>> = {
 
   fa: {
     // Shell & Navigation
-    'nav.workspace': 'فضای عملیاتی',
+    'nav.workspace': 'پروژه‌ها',
     'nav.search': 'جستجو یا پرش سریع...',
     'nav.overview': 'نمای کلی',
     'nav.graph': 'گراف هویت‌ها',
@@ -124,6 +162,16 @@ export const translations: Record<SupportedLocale, Record<string, string>> = {
     'nav.theme': 'پوسته',
     'nav.language': 'زبان',
 
+    // Tab names
+    'tabs.overview': 'نمای کلی',
+    'tabs.graph': 'گراف هویت‌ها',
+    'tabs.timeline': 'خط زمانی',
+    'tabs.map': 'نقشه و ژئو',
+    'tabs.arsenal': 'زرادخانه ابزار',
+    'tabs.vision': 'هوش بصری',
+    'tabs.dossier': 'پرونده اطلاعاتی',
+    'tabs.console': 'کنسول زنده',
+
     // Statuses
     'status.idle': 'آماده به کار',
     'status.planning': 'برنامه‌ریزی مأموریت',
@@ -135,29 +183,49 @@ export const translations: Record<SupportedLocale, Record<string, string>> = {
 
     // Common Actions
     'action.save': 'ذخیره',
+    'action.saved': 'ذخیره شد',
+    'action.saving': 'در حال ذخیره...',
     'action.cancel': 'انصراف',
     'action.delete': 'حذف',
+    'action.deleting': 'در حال حذف...',
     'action.create': 'ایجاد',
+    'action.creating': 'در حال ایجاد...',
     'action.run': 'شروع مأموریت',
     'action.stop': 'توقف',
     'action.purge': 'پاک‌سازی کامل',
     'action.export': 'خروجی',
-    'action.filter': 'فیلتر...',
+    'action.filter': 'فیلتر پروژه‌ها...',
     'action.close': 'بستن',
     'action.loading': 'در حال بارگذاری...',
     'action.execute': 'اجرا',
 
+    // Investigation & Overview
+    'overview.runMission': 'شروع مأموریت',
+    'overview.stopMission': 'توقف',
+    'overview.liveActivity': 'فعالیت‌های زنده',
+    'overview.noActivity': 'هنوز فعالیتی ثبت نشده است. برای مشاهده وقایع، مأموریت را آغاز کنید.',
+    'overview.viewFullConsole': 'مشاهده کنسول کامل',
+    'overview.entitiesDiscovered': 'هویت‌های کشف‌شده',
+    'overview.tasksCompleted': 'وظایف انجام‌شده',
+    'overview.emptyDescription': 'یک هدف را از نوار کناری انتخاب کنید یا با ثبت هدف جدید، عملیات شناسایی و OSINT را آغاز نمایید.',
+
     // Investigation & Projects
     'project.newTitle': 'آغاز عملیات اطلاعاتی جدید',
+    'project.newSubtitle': 'راه‌اندازی تحلیل هوشمند سایبری و جمع‌آوری منبع‌باز',
     'project.name': 'نام عملیات',
-    'project.namePlaceholder': 'مثال: عملیات شبح سیاه',
-    'project.targetSeed': 'هسته هدف (دامنه، IP، نام کاربری، ایمیل)',
-    'project.targetSeedPlaceholder': 'مثال: target.com، 192.168.1.1، @threat_actor',
+    'project.namePlaceholder': 'پیش‌فرض: هسته هدف',
+    'project.targetSeed': 'هسته هدف (دامنه، IP، سازمان، ایمیل، هش)',
+    'project.targetSeedPlaceholder': 'مثال: example.com، 185.199.108.153، شرکت تارگت',
     'project.targetType': 'نوع هویت هدف',
-    'project.briefing': 'شرح مأموریت و قواعد عملیاتی',
-    'project.briefingPlaceholder': 'نام‌های مستعار، اطلاعات زیرساختی یا الزامات اطلاعاتی شناخته‌شده را وارد کنید...',
-    'project.noProjects': 'هیچ پروژه‌ای یافت نشد. برای شروع، عملیات جدیدی بسازید.',
-    'project.purgeConfirm': 'آیا مطمئن هستید که می‌خواهید این عملیات و تمام گره‌های گراف، بردارهای حافظه و داده‌های جمع‌آوری‌شده را برای همیشه حذف کنید؟',
+    'project.contextBriefing': 'شرح مأموریت / یادداشت‌های تحلیلگر (اختیاری)',
+    'project.briefingPlaceholder': 'نام‌های مستعار، اهداف خاص، صنایع مرتبط یا نکات مهم را وارد نمایید...',
+    'project.createBtn': 'ایجاد تحقیق جدید',
+    'project.noProjects': 'هیچ پروژه‌ای یافت نشد',
+    'project.deleteConfirm': 'پاک‌سازی کامل عملیات',
+    'project.deleteWarning': 'این عملیات غیرقابل بازگشت است.',
+    'project.deletePrompt': 'آیا مطمئن هستید که می‌خواهید پروژه',
+    'project.deletePromptEnd': 'و تمامی گراف‌های کشف‌شده، پرونده‌ها و لاگ‌های آن را برای همیشه پاک کنید؟',
+    'project.deleteBtn': 'حذف کامل پروژه',
 
     // Metrics & Intelligence
     'metrics.entities': 'هویت‌های کشف‌شده',
@@ -177,13 +245,21 @@ export const translations: Record<SupportedLocale, Record<string, string>> = {
     'healing.synthesized': 'سنتز خودکار ابزار جدید',
 
     // Modals & Settings
-    'settings.title': 'پیکربندی سیستم و مدل‌های عصبی',
-    'settings.modelProvider': 'تأمین‌کننده مدل',
-    'settings.ollamaUrl': 'آدرس سرور Ollama',
-    'settings.reasoningModel': 'مدل استنتاج و فرماندهی',
-    'settings.visionModel': 'مدل هوش بصری (VLM)',
-    'settings.saveSuccess': 'تنظیمات با موفقیت ذخیره شد',
-    'settings.updates': 'بررسی به‌روزرسانی‌ها',
+    'settings.title': 'تنظیمات سیستم و مدل‌های هوش مصنوعی',
+    'settings.subtitle': 'پیکربندی مدل‌های محلی Ollama، مدیریت حافظه VRAM و پارامترهای امنیتی',
+    'settings.neuralSection': 'مدل‌های عصبی و سرور محلی Ollama',
+    'settings.ollamaUrl': 'آدرس پایه Ollama',
+    'settings.fastModel': 'مدل سریع (برنامه‌ریز / استخراج‌کننده)',
+    'settings.criticModel': 'مدل منتقد و ارزیاب امنیتی (Critic)',
+    'settings.vlmModel': 'مدل هوش بصری (OCR / تحلیل تصاویر)',
+    'settings.reasoningSection': 'پارامترها و آستانه‌های استدلال شناختی',
+    'settings.confidenceThreshold': 'آستانه اطمینان هویت‌ها (۰ تا ۱)',
+    'settings.searchDepth': 'حداکثر عمق جستجو و پیمایش',
+    'settings.hypothesisLimit': 'سقف فرضیه‌های همزمان',
+    'settings.securitySection': 'امنیت و کنترل دسترسی',
+    'settings.bearerToken': 'توکن امنیتی نشست Bearer',
+    'settings.regenerateToken': 'تولید مجدد توکن',
+    'settings.saveBtn': 'ذخیره تنظیمات',
 
     // Notifications & Shortcuts
     'notifications.title': 'تلمتری و هشدارهای زنده',
@@ -194,7 +270,7 @@ export const translations: Record<SupportedLocale, Record<string, string>> = {
 
   ru: {
     // Shell & Navigation
-    'nav.workspace': 'Рабочее пространство',
+    'nav.workspace': 'Проекты',
     'nav.search': 'Поиск или быстрый переход...',
     'nav.overview': 'Обзор',
     'nav.graph': 'Граф связей',
@@ -212,6 +288,16 @@ export const translations: Record<SupportedLocale, Record<string, string>> = {
     'nav.theme': 'Тема',
     'nav.language': 'Язык',
 
+    // Tab names
+    'tabs.overview': 'Обзор',
+    'tabs.graph': 'Граф связей',
+    'tabs.timeline': 'Хронология',
+    'tabs.map': 'Карта и гео',
+    'tabs.arsenal': 'Инструменты',
+    'tabs.vision': 'Компьютерное зрение',
+    'tabs.dossier': 'Досье',
+    'tabs.console': 'Консоль',
+
     // Statuses
     'status.idle': 'Ожидание',
     'status.planning': 'Планирование',
@@ -223,29 +309,49 @@ export const translations: Record<SupportedLocale, Record<string, string>> = {
 
     // Common Actions
     'action.save': 'Сохранить',
+    'action.saved': 'Сохранено',
+    'action.saving': 'Сохранение...',
     'action.cancel': 'Отмена',
     'action.delete': 'Удалить',
+    'action.deleting': 'Удаление...',
     'action.create': 'Создать',
+    'action.creating': 'Создание...',
     'action.run': 'Запустить',
     'action.stop': 'Остановить',
     'action.purge': 'Очистить',
     'action.export': 'Экспорт',
-    'action.filter': 'Фильтр...',
+    'action.filter': 'Фильтр проектов...',
     'action.close': 'Закрыть',
     'action.loading': 'Загрузка...',
     'action.execute': 'Выполнить',
 
+    // Investigation & Overview
+    'overview.runMission': 'Запустить расследование',
+    'overview.stopMission': 'Остановить',
+    'overview.liveActivity': 'Текущая активность',
+    'overview.noActivity': 'Активности нет. Запустите расследование для мониторинга событий.',
+    'overview.viewFullConsole': 'Открыть полную консоль',
+    'overview.entitiesDiscovered': 'Обнаружено сущностей',
+    'overview.tasksCompleted': 'Выполнено задач',
+    'overview.emptyDescription': 'Выберите цель на панели слева или создайте новое расследование.',
+
     // Investigation & Projects
     'project.newTitle': 'Начать новое расследование',
+    'project.newSubtitle': 'Автономная киберразведка и когнитивный анализ угроз',
     'project.name': 'Название операции',
-    'project.namePlaceholder': 'например: Операция Shadow Ghost',
-    'project.targetSeed': 'Цель (Домен, IP, Никнейм, Email)',
-    'project.targetSeedPlaceholder': 'например: target.com, 192.168.1.1, @threat_actor',
-    'project.targetType': 'Тип сущности цели',
-    'project.briefing': 'Брифинг и правила операции',
-    'project.briefingPlaceholder': 'Введите известные псевдонимы, детали инфраструктуры или требования...',
-    'project.noProjects': 'Расследования не найдены. Создайте новое для начала работы.',
-    'project.purgeConfirm': 'Вы уверены, что хотите навсегда удалить этот проект и все собранные данные графа и векторы?',
+    'project.namePlaceholder': 'по умолчанию: цель',
+    'project.targetSeed': 'Цель (Домен, IP, Организация, Email, Хеш)',
+    'project.targetSeedPlaceholder': 'например: example.com, 185.199.108.153',
+    'project.targetType': 'Тип сущности',
+    'project.contextBriefing': 'Брифинг и контекст (необязательно)',
+    'project.briefingPlaceholder': 'Укажите известные псевдонимы, ключевые цели или требования...',
+    'project.createBtn': 'Создать расследование',
+    'project.noProjects': 'Проекты не найдены',
+    'project.deleteConfirm': 'Удаление расследования',
+    'project.deleteWarning': 'Это действие необратимо.',
+    'project.deletePrompt': 'Вы уверены, что хотите удалить проект',
+    'project.deletePromptEnd': 'и все собранные данные, граф и досье?',
+    'project.deleteBtn': 'Удалить проект',
 
     // Metrics & Intelligence
     'metrics.entities': 'Обнаружено сущностей',
@@ -266,12 +372,20 @@ export const translations: Record<SupportedLocale, Record<string, string>> = {
 
     // Modals & Settings
     'settings.title': 'Конфигурация нейросетей и системы',
-    'settings.modelProvider': 'Провайдер моделей',
+    'settings.subtitle': 'Настройка локальных моделей Ollama и параметров безопасности',
+    'settings.neuralSection': 'Локальные модели Ollama',
     'settings.ollamaUrl': 'URL-адрес Ollama',
-    'settings.reasoningModel': 'Модель рассуждений',
-    'settings.visionModel': 'Модель компьютерного зрения',
-    'settings.saveSuccess': 'Настройки успешно сохранены',
-    'settings.updates': 'Проверка обновлений',
+    'settings.fastModel': 'Быстрая модель (Планировщик)',
+    'settings.criticModel': 'Модель критика (Верификация)',
+    'settings.vlmModel': 'Модель зрения (OCR / Анализ изображений)',
+    'settings.reasoningSection': 'Когнитивные параметры и пороги',
+    'settings.confidenceThreshold': 'Порог уверенности (0-1)',
+    'settings.searchDepth': 'Глубина поиска',
+    'settings.hypothesisLimit': 'Лимит гипотез',
+    'settings.securitySection': 'Безопасность и доступ',
+    'settings.bearerToken': 'Токен аутентификации Bearer',
+    'settings.regenerateToken': 'Перевыпустить токен',
+    'settings.saveBtn': 'Сохранить настройки',
 
     // Notifications & Shortcuts
     'notifications.title': 'Телеметрия в реальном времени',
@@ -282,7 +396,7 @@ export const translations: Record<SupportedLocale, Record<string, string>> = {
 
   zh: {
     // Shell & Navigation
-    'nav.workspace': '工作空间',
+    'nav.workspace': '项目列表',
     'nav.search': '搜索或快速跳转...',
     'nav.overview': '总览',
     'nav.graph': '实体图谱',
@@ -300,6 +414,16 @@ export const translations: Record<SupportedLocale, Record<string, string>> = {
     'nav.theme': '主题',
     'nav.language': '语言',
 
+    // Tab names
+    'tabs.overview': '总览',
+    'tabs.graph': '实体图谱',
+    'tabs.timeline': '时间线',
+    'tabs.map': '地理态势',
+    'tabs.arsenal': '工具军械库',
+    'tabs.vision': '视觉智能',
+    'tabs.dossier': '情报卷宗',
+    'tabs.console': '实时控制台',
+
     // Statuses
     'status.idle': '待命',
     'status.planning': '规划中',
@@ -311,29 +435,49 @@ export const translations: Record<SupportedLocale, Record<string, string>> = {
 
     // Common Actions
     'action.save': '保存',
+    'action.saved': '已保存',
+    'action.saving': '正在保存...',
     'action.cancel': '取消',
     'action.delete': '删除',
+    'action.deleting': '正在删除...',
     'action.create': '创建',
+    'action.creating': '正在创建...',
     'action.run': '启动任务',
     'action.stop': '停止',
     'action.purge': '彻底清除',
     'action.export': '导出',
-    'action.filter': '过滤...',
+    'action.filter': '过滤项目...',
     'action.close': '关闭',
     'action.loading': '加载中...',
     'action.execute': '执行',
 
+    // Investigation & Overview
+    'overview.runMission': '启动调查任务',
+    'overview.stopMission': '停止',
+    'overview.liveActivity': '实时侦查活动',
+    'overview.noActivity': '暂无活动记录。启动调查以实时观察侦查事件。',
+    'overview.viewFullConsole': '查看完整控制台',
+    'overview.entitiesDiscovered': '已发现实体',
+    'overview.tasksCompleted': '已完成任务',
+    'overview.emptyDescription': '请在左侧边栏选择调查目标，或创建新目标以开始自主开源网络情报侦查。',
+
     // Investigation & Projects
     'project.newTitle': '发起新情报调查',
+    'project.newSubtitle': '开启认知级自主网络威胁情报与开源情报搜集',
     'project.name': '行动名称',
-    'project.namePlaceholder': '例如：暗影幽灵行动',
-    'project.targetSeed': '目标种子 (域名、IP、社交账号、邮箱)',
-    'project.targetSeedPlaceholder': '例如：target.com, 192.168.1.1, @threat_actor',
-    'project.targetType': '目标实体类型',
-    'project.briefing': '任务简报与交战规则',
+    'project.namePlaceholder': '默认使用目标种子',
+    'project.targetSeed': '目标种子 (域名、IP、机构、邮箱、文件哈希)',
+    'project.targetSeedPlaceholder': '例如：example.com, 185.199.108.153',
+    'project.targetType': '目标类型',
+    'project.contextBriefing': '任务简报 / 分析师备注 (可选)',
     'project.briefingPlaceholder': '输入已知的威胁实体别名、基础设施线索或情报需求...',
-    'project.noProjects': '未找到任何调查项目。请创建新项目以开始。',
-    'project.purgeConfirm': '您确定要永久清除此项目及其所有图谱节点、向量嵌入和遥测数据吗？',
+    'project.createBtn': '创建情报调查',
+    'project.noProjects': '未找到任何项目',
+    'project.deleteConfirm': '清除情报调查',
+    'project.deleteWarning': '此操作不可撤销。',
+    'project.deletePrompt': '您确定要永久删除项目',
+    'project.deletePromptEnd': '及其所有实体图谱、情报卷宗和日志吗？',
+    'project.deleteBtn': '删除项目',
 
     // Metrics & Intelligence
     'metrics.entities': '已发现实体',
@@ -353,13 +497,21 @@ export const translations: Record<SupportedLocale, Record<string, string>> = {
     'healing.synthesized': '动态合成新工具',
 
     // Modals & Settings
-    'settings.title': '系统与神经推理配置',
-    'settings.modelProvider': '模型提供商',
+    'settings.title': '系统设置与神经模型配置',
+    'settings.subtitle': '配置本地 Ollama 模型、VRAM 显存调度与安全参数',
+    'settings.neuralSection': '本地 Ollama 神经模型',
     'settings.ollamaUrl': 'Ollama 服务地址',
-    'settings.reasoningModel': '推理决策模型',
-    'settings.visionModel': '视觉语言模型',
-    'settings.saveSuccess': '设置已成功保存',
-    'settings.updates': '检查更新',
+    'settings.fastModel': '快速推理模型 (规划与实体提取)',
+    'settings.criticModel': '对抗审查模型 (Critic 反驳验证)',
+    'settings.vlmModel': '视觉语言模型 (OCR 与图像情报分析)',
+    'settings.reasoningSection': '认知参数与推理阈值',
+    'settings.confidenceThreshold': '实体置信度阈值 (0-1)',
+    'settings.searchDepth': '最大搜索深度',
+    'settings.hypothesisLimit': '并行假设上限',
+    'settings.securitySection': '安全与访问控制',
+    'settings.bearerToken': 'Bearer 身份令牌',
+    'settings.regenerateToken': '重新生成令牌',
+    'settings.saveBtn': '保存配置',
 
     // Notifications & Shortcuts
     'notifications.title': '实时情报遥测',
@@ -368,3 +520,4 @@ export const translations: Record<SupportedLocale, Record<string, string>> = {
     'shortcuts.title': '键盘快捷键指南',
   },
 }
+

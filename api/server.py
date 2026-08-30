@@ -532,6 +532,55 @@ async def get_uploaded_image(filename: str):
     return FileResponse(image_path)
 
 
+class AnalyzeImageRequest(BaseModel):
+    filename: Optional[str] = None
+    image_path: Optional[str] = None
+    prompt: Optional[str] = "Analyze this image for OSINT intelligence: identify any readable text, location clues, landmarks, equipment, or logos."
+
+
+@app.post("/api/images/analyze")
+async def analyze_image_endpoint(req: AnalyzeImageRequest):
+    """Runs deep multimodal forensics, EXIF extraction, OCR, and scene analysis on an uploaded image."""
+    from aether.perception.tools.image_tools import ImageOSINTTool
+    filename = req.filename or req.image_path or ""
+    if not filename:
+        raise HTTPException(status_code=400, detail="Filename or image_path required")
+
+    upload_dir = (BASE_DIR / "data" / "uploads").resolve()
+    target_path = upload_dir / Path(filename).name
+    if not target_path.exists():
+        if Path(filename).exists():
+            target_path = Path(filename)
+        else:
+            raise HTTPException(status_code=404, detail=f"Image file '{filename}' not found in uploads")
+
+    tool = ImageOSINTTool()
+    result = await tool.execute(image_path=str(target_path), prompt=req.prompt)
+    return {
+        "status": "success" if result.success else "error",
+        "data": result.data,
+        "error": result.error,
+        "execution_time_ms": result.execution_time_ms,
+    }
+
+
+
+@app.post("/api/auth/token/regenerate")
+async def regenerate_token_endpoint():
+    """Regenerates a new local API security token and updates persistent storage."""
+    global AUTH_TOKEN
+    new_token = secrets.token_hex(24)
+    AUTH_TOKEN = new_token
+    AUTH_TOKEN_FILE.write_text(new_token, encoding="utf-8")
+    try:
+        os.chmod(AUTH_TOKEN_FILE, 0o600)
+    except Exception:
+        pass
+    logger.mission_critical(f"AETHER Local API Security Token Regenerated: {new_token}")
+    return {"status": "regenerated", "token": new_token}
+
+
+
 # ── System Metrics & Observability ────────────────────────────────────────────
 
 @app.get("/api/metrics")
@@ -733,11 +782,13 @@ async def update_settings_endpoint(req: UpdateSettingsRequest):
 
 
 @app.get("/api/system/update-check")
+@app.get("/api/system/update/check")
 async def check_for_updates():
     """Checks GitHub for new commits, tags, and releases."""
     from aether.core.updater import check_github_update
     update_info = await check_github_update()
     return update_info
+
 
 
 

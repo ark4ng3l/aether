@@ -288,3 +288,33 @@ class TestProjectEndpoints:
         resp_pdf = client.get(f"/api/projects/{proj.id}/dossier/export?format=pdf")
         assert resp_pdf.status_code == 200
         assert b"<html>" in resp_pdf.content
+
+    def test_image_upload_and_analyze(self, client: TestClient, tmp_path: Path):
+        # Create dummy image
+        from PIL import Image
+        import io
+        img = Image.new("RGB", (100, 100), color="blue")
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG")
+        buf.seek(0)
+
+        # Upload
+        resp_upload = client.post(
+            "/api/upload/image",
+            files={"file": ("test_blue.jpg", buf, "image/jpeg")},
+        )
+        assert resp_upload.status_code == 200
+        upload_data = resp_upload.json()
+        assert upload_data["status"] == "uploaded"
+        filename = upload_data["filename"]
+
+        # Analyze
+        resp_analyze = client.post(
+            "/api/images/analyze",
+            json={"filename": filename},
+        )
+        assert resp_analyze.status_code == 200
+        analyze_data = resp_analyze.json()
+        assert analyze_data["status"] == "success"
+        assert "data" in analyze_data
+
