@@ -9,13 +9,18 @@ import {
   Moon,
   Sun,
   Shield,
+  Trash2,
 } from 'lucide-react'
+
 import { useProjectStore } from '../../stores/useProjectStore'
 import { useThemeStore } from '../../stores/useThemeStore'
 import { useLocaleStore } from '../../stores/useLocaleStore'
 import { StatusDot } from '../../components/ui/StatusDot'
 import { Tooltip } from '../../components/ui/Tooltip'
 import { Kbd } from '../../components/ui/Kbd'
+import { showToast } from '../../components/ui/Toast'
+import { api } from '../../api/endpoints'
+
 
 interface LeftRailProps {
   onOpenShortcuts?: () => void
@@ -104,6 +109,23 @@ export const LeftRail: React.FC<LeftRailProps> = ({ onOpenShortcuts }) => {
     )
   }
 
+  const handleDeleteProject = async (e: React.MouseEvent, projectId: string, projectName: string) => {
+    e.stopPropagation()
+    if (!window.confirm(`Delete project "${projectName}"?`)) return
+
+    try {
+      await api.deleteProject(projectId)
+      const remaining = projects.filter((p) => p.id !== projectId)
+      useProjectStore.getState().setProjects(remaining)
+      if (activeProjectId === projectId) {
+        useProjectStore.getState().setActiveProjectId(remaining.length > 0 ? remaining[0].id : null)
+      }
+      showToast({ message: `Project "${projectName}" deleted`, type: 'info' })
+    } catch (err: any) {
+      showToast({ message: err?.message || 'Failed to delete project', type: 'error' })
+    }
+  }
+
   return (
     <aside className="flex flex-col w-60 bg-bg-surface border-r border-border-subtle shrink-0 select-none">
       {/* Header */}
@@ -149,9 +171,9 @@ export const LeftRail: React.FC<LeftRailProps> = ({ onOpenShortcuts }) => {
 
       {/* Project List */}
       <div className="flex-1 overflow-y-auto scrollbar-none px-1.5 pb-2">
-        <div className="px-1.5 py-1.5">
-          <span className="text-2xs font-medium text-text-tertiary uppercase tracking-wider">
-            {t('nav.workspace', 'Projects')}
+        <div className="px-1.5 py-1.5 flex items-center justify-between">
+          <span className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider">
+            {t('nav.workspace', 'Projects')} ({filtered.length})
           </span>
         </div>
         {filtered.length === 0 ? (
@@ -162,32 +184,47 @@ export const LeftRail: React.FC<LeftRailProps> = ({ onOpenShortcuts }) => {
           filtered.map((project) => {
             const isActive = project.id === activeProjectId
             return (
-              <button
+              <div
                 key={project.id}
                 onClick={() => setActiveProjectId(project.id)}
-                className={`w-full flex items-start gap-2 px-2.5 py-2 rounded text-left rtl:text-right transition-colors duration-120 group ${
+                className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded text-left rtl:text-right transition-colors duration-120 cursor-pointer group ${
                   isActive
-                    ? 'bg-accent-subtle text-text-primary'
-                    : 'hover:bg-bg-canvas text-text-secondary'
+                    ? 'bg-accent-subtle text-text-primary border border-accent/20'
+                    : 'hover:bg-bg-canvas text-text-secondary border border-transparent'
                 }`}
               >
-                <StatusDot status={project.status} size="sm" />
-                <div className="min-w-0 flex-1">
-                  <p className={`text-2xs font-medium truncate ${isActive ? 'text-text-primary' : ''}`}>
-                    {project.name}
-                  </p>
-                  <p className="text-2xs text-text-tertiary truncate font-mono-data">
-                    {project.target_seed}
-                  </p>
+                <div className="flex items-start gap-2 min-w-0 flex-1">
+                  <div className="mt-1 shrink-0">
+                    <StatusDot status={project.status} size="sm" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className={`text-2xs font-medium truncate ${isActive ? 'text-text-primary' : ''}`}>
+                      {project.name}
+                    </p>
+                    <p className="text-[10px] text-text-tertiary truncate font-mono-data">
+                      {project.target_seed}
+                    </p>
+                  </div>
                 </div>
-                <span className="text-2xs text-text-tertiary font-mono-data shrink-0">
-                  {project.entities_count}
-                </span>
-              </button>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-[10px] text-text-tertiary font-mono-data px-1.5 py-0.5 rounded bg-bg-canvas border border-border-subtle/60">
+                    {project.entities_count}
+                  </span>
+                  <button
+                    onClick={(e) => handleDeleteProject(e, project.id, project.name)}
+                    title="Delete project"
+                    className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-status-rejected/10 text-text-tertiary hover:text-status-rejected transition-all"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
             )
           })
         )}
       </div>
+
 
       {/* Bottom Actions */}
       <div className="border-t border-border-subtle px-3 py-2 space-y-1">
