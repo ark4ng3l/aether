@@ -240,12 +240,16 @@ class OrchestrationEngine:
                 logger.info(f"Parallel fan-out: {len(initial_tasks)} initial tasks")
                 await self._execute_parallel_tasks(initial_tasks)
 
-            # ── Main investigation loop ──
-            while iteration < max_iter:
+            # ── Main investigation loop (0 or negative = Unlimited / Exhaustive Mode) ──
+            while (max_iter <= 0 or iteration < max_iter) and self.state.status not in (
+                InvestigationStatus.STOPPED,
+                InvestigationStatus.FAILED,
+            ):
                 iteration += 1
                 await self._emit("status_change", {
                     "status": self.state.status.value,
                     "iteration": iteration,
+                    "is_unlimited": max_iter <= 0,
                     "completed_count": len(self.state.completed_tasks),
                     "pending_tasks": self.state.current_task_stack,
                 })
@@ -612,38 +616,38 @@ class OrchestrationEngine:
     # ------------------------------------------------------------------
 
     def _harvest_sub_entities(self, text: str, parent_id: str, task_step: Optional[TaskStep] = None):
-        """Extract IPs, emails, usernames, domains, CVEs, and hashes from tool output."""
-        # 1. Emails (extract up to 30 unique emails)
+        """Extract all IPs, emails, usernames, domains, CVEs, and hashes from tool output without artificial limits."""
+        # 1. All Emails
         emails = set(re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', text))
-        for email in list(emails)[:30]:
+        for email in emails:
             self._add_sub_entity(email, EntityType.EMAIL, parent_id, RelationshipType.ASSOCIATED_WITH, task_step)
 
-        # 2. IPv4 Addresses (extract up to 30 unique IPs)
+        # 2. All IPv4 Addresses (filter private/loopback)
         ips = set(re.findall(r'\b(?:\d{1,3}\.){3}\d{1,3}\b', text))
-        for ip in list(ips)[:30]:
+        for ip in ips:
             if not ip.startswith(("127.", "0.", "255.", "192.168.", "10.", "172.")):
                 self._add_sub_entity(ip, EntityType.IP_ADDRESS, parent_id, RelationshipType.RESOLVES_TO, task_step)
 
-        # 3. Subdomains & Domains (extract up to 50 unique subdomains)
+        # 3. All Subdomains & Domains
         domains = set(re.findall(
             r'\b(?:[a-zA-Z0-9-]+\.)+(?:com|org|net|io|co|ir|ru|cn|de|uk|info|biz|me|xyz|top|app|dev|gov|mil|edu|onion|tech|cloud|security)\b',
             text.lower()
         ))
-        for dom in list(domains)[:50]:
+        for dom in domains:
             if dom != self.state.target_seed:
                 rel = RelationshipType.SUBDOMAIN_OF if self.state.target_seed in dom else RelationshipType.ASSOCIATED_WITH
                 self._add_sub_entity(dom, EntityType.DOMAIN, self.state.target_seed, rel, task_step)
 
-        # 4. Social Handles (@username) (extract up to 25 unique handles)
+        # 4. All Social Handles (@username)
         handles = set(re.findall(r'(?<=[\s,(\'")])@([a-zA-Z0-9_]{3,25})\b', text))
-        for h in list(handles)[:25]:
+        for h in handles:
             handle_str = f"@{h}"
             if handle_str != self.state.target_seed:
                 self._add_sub_entity(handle_str, EntityType.SOCIAL_HANDLE, parent_id, RelationshipType.ASSOCIATED_WITH, task_step)
 
-        # 5. CVE Identifiers (CVE-YYYY-NNNNN) (extract up to 30 CVEs)
+        # 5. All CVE Identifiers (CVE-YYYY-NNNNN)
         cves = set(re.findall(r'\bCVE-\d{4}-\d{4,7}\b', text, re.IGNORECASE))
-        for cve in list(cves)[:30]:
+        for cve in cves:
             self._add_sub_entity(cve.upper(), EntityType.CVE, parent_id, RelationshipType.ASSOCIATED_WITH, task_step)
 
     def _add_sub_entity(

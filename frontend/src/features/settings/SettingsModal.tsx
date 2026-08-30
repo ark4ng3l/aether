@@ -418,15 +418,18 @@ export const SettingsModal: React.FC = () => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="bg-bg-canvas p-3 rounded-xl border border-border-subtle">
-                <label className="text-text-secondary block mb-1 font-medium">
-                  {t('settings.confidenceThreshold', 'Confidence Threshold')} (0.1 - 1.0)
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-text-secondary font-medium">
+                    {t('settings.confidenceThreshold', 'Confidence Threshold')}
+                  </label>
+                  <span className="text-[10px] text-text-tertiary font-mono">0.1 - 1.0</span>
+                </div>
                 <input
                   type="number"
                   step="0.05"
                   min="0.1"
                   max="1"
-                  value={settings.ENTITY_CONFIDENCE_THRESHOLD ?? 0.45}
+                  value={settings.ENTITY_CONFIDENCE_THRESHOLD ?? 0.35}
                   onChange={(e) =>
                     setSettings({ ...settings, ENTITY_CONFIDENCE_THRESHOLD: parseFloat(e.target.value) })
                   }
@@ -435,32 +438,46 @@ export const SettingsModal: React.FC = () => {
               </div>
 
               <div className="bg-bg-canvas p-3 rounded-xl border border-border-subtle">
-                <label className="text-text-secondary block mb-1 font-medium">
-                  {t('settings.searchDepth', 'Max Search Depth')} (1 - 500)
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-text-secondary font-medium">
+                    {t('settings.searchDepth', 'Max Search Depth')}
+                  </label>
+                  {(settings.MAX_SEARCH_DEPTH === 0 || !settings.MAX_SEARCH_DEPTH) ? (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 font-semibold border border-cyan-500/20">♾️ Unlimited</span>
+                  ) : (
+                    <span className="text-[10px] text-text-tertiary font-mono">0 = Unlimited</span>
+                  )}
+                </div>
                 <input
                   type="number"
-                  min="1"
-                  max="500"
-                  value={settings.MAX_SEARCH_DEPTH ?? 100}
+                  min="0"
+                  max="1000"
+                  value={settings.MAX_SEARCH_DEPTH ?? 0}
                   onChange={(e) =>
-                    setSettings({ ...settings, MAX_SEARCH_DEPTH: parseInt(e.target.value, 10) })
+                    setSettings({ ...settings, MAX_SEARCH_DEPTH: parseInt(e.target.value, 10) || 0 })
                   }
                   className="w-full h-8 px-2.5 bg-bg-surface border border-border-subtle rounded-lg text-text-primary font-mono text-[11px] outline-none focus:border-accent"
                 />
               </div>
 
               <div className="bg-bg-canvas p-3 rounded-xl border border-border-subtle">
-                <label className="text-text-secondary block mb-1 font-medium">
-                  {t('settings.hypothesisLimit', 'Hypothesis Limit')} (1 - 50)
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-text-secondary font-medium">
+                    {t('settings.hypothesisLimit', 'Hypothesis Limit')}
+                  </label>
+                  {(settings.HYPOTHESIS_RECURSION_LIMIT === 0 || !settings.HYPOTHESIS_RECURSION_LIMIT) ? (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 font-semibold border border-cyan-500/20">♾️ Unlimited</span>
+                  ) : (
+                    <span className="text-[10px] text-text-tertiary font-mono">0 = Unlimited</span>
+                  )}
+                </div>
                 <input
                   type="number"
-                  min="1"
-                  max="50"
-                  value={settings.HYPOTHESIS_RECURSION_LIMIT ?? 20}
+                  min="0"
+                  max="100"
+                  value={settings.HYPOTHESIS_RECURSION_LIMIT ?? 0}
                   onChange={(e) =>
-                    setSettings({ ...settings, HYPOTHESIS_RECURSION_LIMIT: parseInt(e.target.value, 10) })
+                    setSettings({ ...settings, HYPOTHESIS_RECURSION_LIMIT: parseInt(e.target.value, 10) || 0 })
                   }
                   className="w-full h-8 px-2.5 bg-bg-surface border border-border-subtle rounded-lg text-text-primary font-mono text-[11px] outline-none focus:border-accent"
                 />

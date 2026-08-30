@@ -42,10 +42,10 @@ class Settings(BaseSettings):
     MODEL_DEEP: str = "hermes-3.6-genesis:35b-a3b-uncensored-v7"
     MODEL_DEEP_FALLBACK: str = "hf.co/HauhauCS/Gemma4-31B-QAT-Uncensored-HauhauCS-Balanced-MTP:Q4_K_M"
 
-    # ── Cognitive Reasoning & Thinking Budgets ─────────────────────────
-    HYPOTHESIS_RECURSION_LIMIT: int = 20
-    MAX_SEARCH_DEPTH: int = 100
-    ENTITY_CONFIDENCE_THRESHOLD: float = 0.45
+    # ── Cognitive Reasoning & Thinking Budgets (0 = ♾️ Unlimited / Exhaustive Mode) ──
+    HYPOTHESIS_RECURSION_LIMIT: int = 0  # 0 = Unlimited recursive hypotheses until natural convergence
+    MAX_SEARCH_DEPTH: int = 0            # 0 = Unlimited / Continuous search until all leads exhausted
+    ENTITY_CONFIDENCE_THRESHOLD: float = 0.35  # Low threshold to capture all subtle and early OSINT signals
 
     # ── Model Temperatures ─────────────────────────────────────────────
     REASONING_TEMPERATURE: float = 0.7
