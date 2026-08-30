@@ -77,25 +77,40 @@ class Planner:
                 reasoning=f"Executing queued task: {task}",
             )
 
-        # ── Entropy check: dead-end detection ──
+        # ── Entropy check: progressive stagnation detection (require 3 consecutive zero-gain steps) ──
         current_count = len(self.state.discovered_entities)
         gain = current_count - self._previous_entity_count
         self._previous_entity_count = current_count
 
-        if current_count > 0 and gain == 0:
-            logger.warning("Low information gain — switching to Hypothesis Mode.")
-            return PlanAction(action="hypothesis", reasoning="Dead-end detected")
+        if not hasattr(self, "_stagnant_steps"):
+            self._stagnant_steps = 0
 
-        # ── Ask the LLM for the next step ──
+        if gain > 0:
+            self._stagnant_steps = 0
+        else:
+            self._stagnant_steps += 1
+
+        if current_count > 0 and self._stagnant_steps >= 3 and not self.state.current_task_stack:
+            logger.warning("Consecutive low information gain — triggering Hypothesis Abductive Engine.")
+            self._stagnant_steps = 0
+            return PlanAction(action="hypothesis", reasoning="Consecutive zero-gain steps detected")
+
+        # ── Ask the LLM for the next step across all 34 tools ──
         available_tools = [
-            "image_osint", "subdomain_finder", "ip_geolocate", "breach_lookup",
-            "web_search", "social_recon", "network_recon",
-            "stealth_crawler", "vlm_processor", "metadata_extractor",
-            "whois_lookup", "shodan_lookup", "github_dorker",
-            "company_recon", "news_intel", "threat_intel",
-            "wayback_lookup", "favicon_fingerprint", "tech_stack_fingerprint",
-            "typosquat_recon", "asn_lookup", "ssl_cert_inspector",
-            "cloud_bucket_recon", "robots_sitemap_recon",
+            # Infrastructure & Network
+            "subdomain_finder", "network_recon", "ip_geolocate", "asn_lookup",
+            "ssl_cert_inspector", "passive_dns", "cert_transparency", "port_prober",
+            "security_headers_auditor", "api_schema_inspector", "whois_lookup", "shodan_lookup",
+            # Threat & Leaks
+            "breach_lookup", "threat_intel", "threat_reputation", "cloud_bucket_recon",
+            "typosquat_recon", "favicon_fingerprint", "tech_stack_fingerprint",
+            # Search & Media
+            "web_search", "news_intel", "wayback_lookup", "robots_sitemap_recon",
+            # Persona & Identity OSINT
+            "email_oracle", "phone_intel", "deep_social_matrix", "scholarly_intel",
+            "social_recon", "github_dorker", "company_recon", "email_security_auditor",
+            # Visual Forensics & Steganography
+            "image_osint", "vlm_processor", "metadata_extractor", "stealth_crawler",
         ]
 
         context_section = ""
@@ -140,9 +155,9 @@ class Planner:
             f"{[e.id for e in self.state.discovered_entities[:15]]}\n\n"
             f"AVAILABLE TOOLS: {available_tools}\n\n"
             "RULES:\n"
+            "- Deeply investigate without stopping early. Exhaustively pivot on newly discovered subdomains, IPs, emails, handles, and technologies.\n"
             "- Do NOT re-run a tool that already completed with the same parameters.\n"
-            "- Prioritize tools that follow up on discovered entities (e.g., GeoIP on new IPs, social on new handles).\n"
-            "- If sufficient intelligence has been gathered, respond with 'finish'.\n\n"
+            "- Only respond with 'finish' if all 34 angles and sub-entities are genuinely exhausted.\n\n"
             "Respond ONLY with a JSON object:\n"
             '{"action":"tool_call","tool_name":"<tool>","params":{"query":"<value>"},"reasoning":"..."}\n'
             'OR {"action":"finish","reasoning":"..."}\n'
@@ -184,16 +199,30 @@ class Planner:
         elif self.state.target_type == EntityType.SOCIAL_HANDLE:
             return PlanAction(
                 action="tool_call",
-                tool_name="social_recon",
-                params={"username": self.state.target_seed},
-                reasoning="Social Target: Multi-platform profile verification",
+                tool_name="deep_social_matrix",
+                params={"handle": self.state.target_seed},
+                reasoning="Social Target: 50+ platform digital presence matrix",
+            )
+        elif self.state.target_type == EntityType.EMAIL:
+            return PlanAction(
+                action="tool_call",
+                tool_name="email_oracle",
+                params={"email": self.state.target_seed},
+                reasoning="Email Target: Online service oracle & avatar reconnaissance",
+            )
+        elif self.state.target_type == EntityType.PHONE_NUMBER:
+            return PlanAction(
+                action="tool_call",
+                tool_name="phone_intel",
+                params={"phone": self.state.target_seed},
+                reasoning="Phone Target: International carrier, line type, and VoIP discovery",
             )
         else:
             return PlanAction(
                 action="tool_call",
                 tool_name="web_search",
                 params={"query": f"OSINT {self.state.target_seed}"},
-                reasoning="Fallback: generic search",
+                reasoning="Fallback: multi-engine web search",
             )
 
     # ------------------------------------------------------------------
@@ -202,11 +231,41 @@ class Planner:
 
     @staticmethod
     def _infer_tool(task: str) -> tuple[str, dict]:
-        """Map a free-text task to a (tool_name, params) tuple."""
+        """Map a free-text task to a (tool_name, params) tuple across all 34 tools."""
         lower = task.lower()
         val = task.split(":", 1)[-1].strip() if ":" in task else task.strip()
+
+        # Image
         if "image" in lower or "photo" in lower or "exif" in lower or lower.endswith((".jpg", ".png", ".webp", ".jpeg")):
             return "image_osint", {"image_path": val}
+
+        # Persona & Identity OSINT
+        if "email_oracle" in lower or ("oracle" in lower and "@" in lower):
+            return "email_oracle", {"email": val}
+        if "email_sec" in lower or "spf" in lower or "dmarc" in lower or "dkim" in lower:
+            return "email_security_auditor", {"domain_or_email": val}
+        if "phone" in lower or "tel" in lower or lower.startswith("+") or lower.startswith("phone:"):
+            return "phone_intel", {"phone": val}
+        if "deep_social" in lower or "matrix" in lower:
+            return "deep_social_matrix", {"handle": val}
+        if "scholarly" in lower or "paper" in lower or "author" in lower or "crossref" in lower:
+            return "scholarly_intel", {"author_name": val}
+
+        # Infrastructure & Network
+        if "cert_trans" in lower or "ct_logs" in lower or "crt.sh" in lower:
+            return "cert_transparency", {"domain": val}
+        if "passive_dns" in lower or "pdns" in lower or "otx" in lower:
+            return "passive_dns", {"domain": val}
+        if "port" in lower or "probe" in lower or "banner" in lower or "open_ports" in lower:
+            return "port_prober", {"host": val}
+        if "sec_headers" in lower or "csp" in lower or "hsts" in lower or "cors" in lower or "headers" in lower:
+            return "security_headers_auditor", {"domain_or_url": val}
+        if "api_schema" in lower or "swagger" in lower or "openapi" in lower or "graphql" in lower:
+            return "api_schema_inspector", {"domain_or_url": val}
+        if "threat_rep" in lower or "urlhaus" in lower or "threatfox" in lower or "feodo" in lower:
+            return "threat_reputation", {"target": val}
+
+        # Subdomains & DNS
         if "subdomain" in lower or "crt" in lower:
             return "subdomain_finder", {"domain": val}
         if "geo" in lower or "geoip" in lower or lower.startswith("ip:"):
@@ -217,7 +276,7 @@ class Planner:
             return "social_recon", {"username": val}
         if "whois" in lower or "registrar" in lower or "registration" in lower:
             return "whois_lookup", {"domain": val}
-        if "shodan" in lower or "port" in lower or "cve" in lower or "vuln" in lower:
+        if "shodan" in lower or "cve" in lower or "vuln" in lower:
             return "shodan_lookup", {"ip": val}
         if "github" in lower or "secret" in lower or "dork" in lower or "leaked" in lower:
             return "github_dorker", {"query": val}
@@ -231,7 +290,7 @@ class Planner:
             return "wayback_lookup", {"domain": val}
         if "favicon" in lower or "mmh3" in lower:
             return "favicon_fingerprint", {"domain": val}
-        if "tech" in lower or "stack" in lower or "wappalyzer" in lower or "headers" in lower:
+        if "tech" in lower or "stack" in lower or "wappalyzer" in lower:
             return "tech_stack_fingerprint", {"domain": val}
         if "typosquat" in lower or "squat" in lower or "permutation" in lower:
             return "typosquat_recon", {"domain": val}
@@ -247,6 +306,7 @@ class Planner:
             return "network_recon", {"domain": val}
         if "crawl" in lower or "http" in lower:
             return "stealth_crawler", {"url": val}
+
         # Default
         return "web_search", {"query": val}
 

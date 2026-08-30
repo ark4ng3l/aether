@@ -176,29 +176,62 @@ class OrchestrationEngine:
                 "properties": root_entity.properties,
             })
 
-            # ── Fast-Track Parallel Initial Recon ──
+            # ── Exhaustive Multi-Tool Initial Fan-Out ──
             initial_tasks = []
             if not self.state.current_task_stack:
                 if seed_type == EntityType.DOMAIN:
                     initial_tasks = [
                         f"subdomains: {seed}",
+                        f"cert_trans: {seed}",
+                        f"passive_dns: {seed}",
                         f"network: {seed}",
+                        f"whois: {seed}",
+                        f"sec_headers: {seed}",
+                        f"threat_rep: {seed}",
+                        f"tech: {seed}",
                         f"search: {seed}",
                     ]
                 elif seed_type == EntityType.IP_ADDRESS:
                     initial_tasks = [
                         f"geoip: {seed}",
-                        f"network: {seed}",
+                        f"asn: {seed}",
+                        f"ports: {seed}",
+                        f"shodan: {seed}",
+                        f"threat_rep: {seed}",
+                        f"search: {seed}",
                     ]
                 elif seed_type == EntityType.SOCIAL_HANDLE:
                     clean_handle = seed.lstrip("@")
                     initial_tasks = [
+                        f"deep_social: {clean_handle}",
                         f"social: {clean_handle}",
+                        f"github: {clean_handle}",
                         f"breach: {clean_handle}",
+                        f"scholarly: {clean_handle}",
+                        f"search: {seed}",
+                    ]
+                elif seed_type == EntityType.EMAIL:
+                    initial_tasks = [
+                        f"email_oracle: {seed}",
+                        f"email_sec: {seed}",
+                        f"breach: {seed}",
+                        f"search: {seed}",
+                    ]
+                elif seed_type == EntityType.PHONE_NUMBER:
+                    initial_tasks = [
+                        f"phone: {seed}",
                         f"search: {seed}",
                     ]
                 elif seed_type == EntityType.IMAGE:
                     initial_tasks = [f"image: {seed}"]
+                else:
+                    # General / Organization / Keyword
+                    initial_tasks = [
+                        f"company: {seed}",
+                        f"scholarly: {seed}",
+                        f"news: {seed}",
+                        f"search: {seed}",
+                    ]
 
             # Execute initial tasks in PARALLEL for 2-4x speedup
             if initial_tasks:
@@ -644,6 +677,23 @@ class OrchestrationEngine:
 
         if task_step:
             task_step.produced_entity_ids.append(entity_id)
+
+        # ── Recursive Pivot: Auto-enqueue deep follow-up probes ──
+        if len(self.state.current_task_stack) < 35:
+            if entity_type == EntityType.DOMAIN:
+                self.state.current_task_stack.append(f"passive_dns: {entity_id}")
+                self.state.current_task_stack.append(f"sec_headers: {entity_id}")
+            elif entity_type == EntityType.IP_ADDRESS:
+                self.state.current_task_stack.append(f"geoip: {entity_id}")
+                self.state.current_task_stack.append(f"asn: {entity_id}")
+            elif entity_type == EntityType.EMAIL:
+                self.state.current_task_stack.append(f"email_oracle: {entity_id}")
+                self.state.current_task_stack.append(f"email_sec: {entity_id}")
+            elif entity_type == EntityType.SOCIAL_HANDLE:
+                self.state.current_task_stack.append(f"deep_social: {entity_id.lstrip('@')}")
+            elif entity_type == EntityType.CVE:
+                self.state.current_task_stack.append(f"threat_rep: {entity_id}")
+
 
     # ------------------------------------------------------------------
     # Dossier Synthesis
