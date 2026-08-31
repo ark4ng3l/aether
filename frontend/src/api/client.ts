@@ -1,12 +1,8 @@
-let cachedToken: string | null =
-  (typeof window !== 'undefined' && (window as any).__AETHER_BOOTSTRAP__?.token) ||
-  (typeof window !== 'undefined' ? localStorage.getItem('aether_auth_token') : null)
+let cachedToken: string | null = null
 
 export async function getAuthToken(): Promise<string> {
-  if (cachedToken) return cachedToken
-
   if (typeof window !== 'undefined') {
-    // 1. Check window global bootstrap tokens
+    // 1. Check window global bootstrap tokens (Highest Priority from server)
     if ((window as any).__AETHER_BOOT_TOKEN__) {
       cachedToken = (window as any).__AETHER_BOOT_TOKEN__
       localStorage.setItem('aether_auth_token', cachedToken!)
@@ -19,6 +15,8 @@ export async function getAuthToken(): Promise<string> {
         return cachedToken
       }
     }
+
+    if (cachedToken) return cachedToken
 
     // 2. Check URL hash (e.g. #token=abc123...)
     if (window.location.hash) {
