@@ -276,6 +276,8 @@ try:
     import aether.perception.tools.social_matrix_tools
     import aether.perception.tools.web_check_suite
     import aether.perception.tools.geospatial_intelligence
+    import aether.perception.tools.darknet_ransomware_tracker
+    import aether.perception.tools.synthetic_persona_forensics
 except ImportError:
     pass
 

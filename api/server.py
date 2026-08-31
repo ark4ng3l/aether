@@ -1279,13 +1279,117 @@ async def update_settings_endpoint(req: UpdateSettingsRequest):
     return {"status": "updated", "settings": updates}
 
 
-@app.get("/api/system/update-check")
-@app.get("/api/system/update/check")
-async def check_for_updates():
-    """Checks GitHub for new commits, tags, and releases."""
-    from aether.core.updater import check_github_update
-    update_info = await check_github_update()
-    return update_info
+# ── Next-Generation Intelligence & Forensic Endpoints ────────────────────────
+
+class RansomwareScanRequest(BaseModel):
+    target: str
+    target_type: Optional[str] = "domain"
+
+
+class DeepfakeScanRequest(BaseModel):
+    image_bytes_base64: str
+
+
+class GraphCentralityRequest(BaseModel):
+    project_id: Optional[str] = None
+    entities: Optional[Dict[str, Any]] = None
+    relationships: Optional[List[Dict[str, Any]]] = None
+
+
+class CreateWatcherRequest(BaseModel):
+    target: str
+    target_type: Optional[str] = "domain"
+    project_id: Optional[str] = None
+    interval_minutes: Optional[int] = 60
+
+
+@app.post("/api/intelligence/ransomware-leaks")
+async def scan_ransomware_leaks_endpoint(req: RansomwareScanRequest):
+    """Probes live extortion blogs, ransomware victim databases, and C2 malware feeds."""
+    from aether.perception.tools.darknet_ransomware_tracker import ransomware_leak_hunter
+    return await ransomware_leak_hunter(target=req.target, target_type=req.target_type or "domain")
+
+
+@app.post("/api/intelligence/forensics/deepfake")
+async def deepfake_forensics_endpoint(req: DeepfakeScanRequest):
+    """Executes Error Level Analysis (ELA) and GAN biometric artifact detection."""
+    from aether.perception.tools.synthetic_persona_forensics import ela_forensic_analyzer, gan_artifact_detector
+    ela_res = ela_forensic_analyzer(image_bytes_base64=req.image_bytes_base64)
+    gan_res = gan_artifact_detector(image_bytes_base64=req.image_bytes_base64)
+    return {
+        "success": ela_res.get("success") and gan_res.get("success"),
+        "error_level_analysis": ela_res,
+        "gan_synthesis_analysis": gan_res,
+        "is_suspicious_or_tampered": ela_res.get("is_likely_manipulated", False) or gan_res.get("is_likely_ai_generated", False),
+    }
+
+
+@app.get("/api/projects/{project_id}/export/html")
+async def export_project_html_dossier(project_id: str):
+    """Renders standalone publication-grade HTML intelligence dossier with embedded STIX 2.1."""
+    proj = project_manager.get_project(project_id)
+    if not proj:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    from aether.reasoning.executive_dossier_exporter import ExecutiveDossierExporter
+    stix_bundle = project_manager.get_stix_bundle(project_id)
+    html_content = ExecutiveDossierExporter.generate_html_report(proj.model_dump(), stix_bundle)
+    return Response(content=html_content, media_type="text/html")
+
+
+@app.post("/api/intelligence/graph/centrality")
+async def graph_centrality_endpoint(req: GraphCentralityRequest):
+    """Computes Betweenness, Degree, and Closeness Centrality across investigation graph."""
+    from aether.reasoning.graph_analytics import GraphCentralityEngine
+    entities = req.entities or {}
+    relationships = req.relationships or []
+
+    if req.project_id and not entities:
+        proj = project_manager.get_project(req.project_id)
+        if proj and proj.state:
+            entities = getattr(proj.state, "entities", {}) or {}
+            relationships = getattr(proj.state, "relationships", []) or []
+
+    return GraphCentralityEngine.analyze_graph(entities=entities, relationships=relationships)
+
+
+# ── Continuous OSINT Surveillance Watchers ─────────────────────────────────────
+
+from aether.core.continuous_watcher import ContinuousWatcherManager
+watcher_manager = ContinuousWatcherManager()
+
+
+@app.get("/api/watchers")
+async def list_watchers_endpoint():
+    """Lists all active surveillance watchers."""
+    return {"watchers": watcher_manager.list_watchers()}
+
+
+@app.post("/api/watchers")
+async def add_watcher_endpoint(req: CreateWatcherRequest):
+    """Registers a target for continuous surveillance and mutation alerts."""
+    watcher = watcher_manager.add_watcher(
+        target=req.target,
+        target_type=req.target_type or "domain",
+        project_id=req.project_id,
+        interval_minutes=req.interval_minutes or 60,
+    )
+    return {"status": "registered", "watcher": watcher}
+
+
+@app.delete("/api/watchers/{watcher_id}")
+async def delete_watcher_endpoint(watcher_id: str):
+    """Removes a target from continuous surveillance."""
+    success = watcher_manager.delete_watcher(watcher_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Watcher not found")
+    return {"status": "deleted", "watcher_id": watcher_id}
+
+
+@app.post("/api/watchers/{watcher_id}/probe")
+async def probe_watcher_endpoint(watcher_id: str):
+    """Triggers an immediate delta probe against a watched target."""
+    return await watcher_manager.execute_probe(watcher_id)
 
 
 
